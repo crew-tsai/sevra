@@ -10,11 +10,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const INCIDENT_TYPES: Record<string, string[]> = {
-  safety: ["injury_report", "turbulence_event"],
-  delay: ["cancellation_wave"],
-  customer_treatment: ["discrimination_claim", "baggage_failure"],
-  outage: ["system_outage"],
-  misinformation: ["false_rumor"],
+  safety: ["injury_report", "turbulence_event", "medical_emergency", "onboard_incident", "technical_failure", "emergency_landing"],
+  delay: ["cancellation_wave", "flight_delay", "missed_connections", "crew_shortage", "airport_disruption"],
+  customer_treatment: ["discrimination_claim", "staff_behavior_issue", "passenger_removal", "accessibility_issue", "service_complaint"],
+  outage: ["system_outage", "checkin_failure", "boarding_system_issue", "baggage_system_failure", "app_or_website_down"],
+  misinformation: ["false_rumor", "misleading_video", "fake_news", "manipulated_content", "social_media_backlash"],
 };
 
 const SOURCES = [
