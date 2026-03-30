@@ -14,7 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      incidents: {
+        Row: {
+          airline_name: string | null
+          airport_code: string | null
+          assignee: string | null
+          country: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          estimated_passengers_impacted: number | null
+          flight_number: string | null
+          id: string
+          incident_type: string
+          influencer_media_involved: boolean
+          injury_fatality: boolean
+          is_public: boolean
+          regulator_involved: boolean
+          risk: string
+          risk_score: number
+          route: string | null
+          source: string
+          status: string
+          sub_type: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          airline_name?: string | null
+          airport_code?: string | null
+          assignee?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          estimated_passengers_impacted?: number | null
+          flight_number?: string | null
+          id?: string
+          incident_type: string
+          influencer_media_involved?: boolean
+          injury_fatality?: boolean
+          is_public?: boolean
+          regulator_involved?: boolean
+          risk?: string
+          risk_score?: number
+          route?: string | null
+          source?: string
+          status?: string
+          sub_type?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          airline_name?: string | null
+          airport_code?: string | null
+          assignee?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          estimated_passengers_impacted?: number | null
+          flight_number?: string | null
+          id?: string
+          incident_type?: string
+          influencer_media_involved?: boolean
+          injury_fatality?: boolean
+          is_public?: boolean
+          regulator_involved?: boolean
+          risk?: string
+          risk_score?: number
+          route?: string | null
+          source?: string
+          status?: string
+          sub_type?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +100,24 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      incident_source:
+        | "manual"
+        | "social_media"
+        | "news"
+        | "internal_ops"
+        | "customer_complaint"
+        | "regulator"
+      incident_status: "active" | "monitoring" | "contained" | "resolved"
+      incident_type:
+        | "operational"
+        | "safety"
+        | "security"
+        | "weather"
+        | "technical"
+        | "medical"
+        | "regulatory"
+        | "reputational"
+      risk_level: "critical" | "high" | "medium" | "low"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +244,27 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      incident_source: [
+        "manual",
+        "social_media",
+        "news",
+        "internal_ops",
+        "customer_complaint",
+        "regulator",
+      ],
+      incident_status: ["active", "monitoring", "contained", "resolved"],
+      incident_type: [
+        "operational",
+        "safety",
+        "security",
+        "weather",
+        "technical",
+        "medical",
+        "regulatory",
+        "reputational",
+      ],
+      risk_level: ["critical", "high", "medium", "low"],
+    },
   },
 } as const
