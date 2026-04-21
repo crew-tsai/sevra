@@ -200,7 +200,7 @@ export default function Sevra() {
         {([
           { key: "pending", label: "Pending", value: stats.pending, color: "text-foreground" },
           { key: "incident_created", label: "Incidents created", value: stats.incidents, color: "text-primary" },
-          { key: "linked_to_incident", label: "Linked (deduped)", value: stats.linked, color: "text-amber-500" },
+          { key: "linked_to_incident", label: "Linked (deduped)", value: stats.linked, color: "text-accent-foreground" },
           { key: "dismissed", label: "Dismissed (noise)", value: stats.dismissed, color: "text-muted-foreground" },
         ] as const).map((s) => {
           const active = statusFilter === s.key;
@@ -296,7 +296,7 @@ export default function Sevra() {
                           </Badge>
                         )}
                         {m.status === "linked_to_incident" && (
-                          <Badge variant="outline" className="text-[10px] text-amber-600">deduped</Badge>
+                          <Badge variant="outline" className="text-[10px]">deduped</Badge>
                         )}
                       </>
                     )}
