@@ -162,9 +162,15 @@ export default function Sevra() {
       (statusFilter === "all" || m.status === statusFilter),
   );
 
+  const incidentMentionCounts = mentions.reduce<Record<string, number>>((acc, m) => {
+    if (m.incident_id) acc[m.incident_id] = (acc[m.incident_id] ?? 0) + 1;
+    return acc;
+  }, {});
+
   const stats = {
     pending: mentions.filter((m) => m.status === "pending").length,
     incidents: mentions.filter((m) => m.status === "incident_created").length,
+    linked: mentions.filter((m) => m.status === "linked_to_incident").length,
     dismissed: mentions.filter((m) => m.status === "dismissed").length,
   };
 
