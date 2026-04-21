@@ -196,10 +196,11 @@ export default function Sevra() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {([
           { key: "pending", label: "Pending", value: stats.pending, color: "text-foreground" },
           { key: "incident_created", label: "Incidents created", value: stats.incidents, color: "text-primary" },
+          { key: "linked_to_incident", label: "Linked (deduped)", value: stats.linked, color: "text-amber-500" },
           { key: "dismissed", label: "Dismissed (noise)", value: stats.dismissed, color: "text-muted-foreground" },
         ] as const).map((s) => {
           const active = statusFilter === s.key;
