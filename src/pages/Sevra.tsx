@@ -137,7 +137,8 @@ export default function Sevra() {
       const { data, error } = await supabase.functions.invoke("sevra-analyze", { body: { mention_id: m.id } });
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Analysis failed");
-      if (data.incident_id) toast.success("Incident auto-created from mention");
+      if (data.deduped) toast.success("Linked to existing incident (duplicate detected)");
+      else if (data.incident_id) toast.success("Incident auto-created from mention");
       else toast.message("Mention dismissed as noise");
     } catch (e: any) {
       toast.error(e.message || "Failed to analyze");
