@@ -89,7 +89,7 @@ export default function Sevra() {
   const [loading, setLoading] = useState(true);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "incident_created" | "dismissed">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "incident_created" | "dismissed" | "linked_to_incident">("all");
 
   const load = async () => {
     setLoading(true);
@@ -137,7 +137,8 @@ export default function Sevra() {
       const { data, error } = await supabase.functions.invoke("sevra-analyze", { body: { mention_id: m.id } });
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Analysis failed");
-      if (data.incident_id) toast.success("Incident auto-created from mention");
+      if (data.deduped) toast.success("Linked to existing incident (duplicate detected)");
+      else if (data.incident_id) toast.success("Incident auto-created from mention");
       else toast.message("Mention dismissed as noise");
     } catch (e: any) {
       toast.error(e.message || "Failed to analyze");
@@ -161,9 +162,15 @@ export default function Sevra() {
       (statusFilter === "all" || m.status === statusFilter),
   );
 
+  const incidentMentionCounts = mentions.reduce<Record<string, number>>((acc, m) => {
+    if (m.incident_id) acc[m.incident_id] = (acc[m.incident_id] ?? 0) + 1;
+    return acc;
+  }, {});
+
   const stats = {
     pending: mentions.filter((m) => m.status === "pending").length,
     incidents: mentions.filter((m) => m.status === "incident_created").length,
+    linked: mentions.filter((m) => m.status === "linked_to_incident").length,
     dismissed: mentions.filter((m) => m.status === "dismissed").length,
   };
 
@@ -189,10 +196,11 @@ export default function Sevra() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {([
           { key: "pending", label: "Pending", value: stats.pending, color: "text-foreground" },
           { key: "incident_created", label: "Incidents created", value: stats.incidents, color: "text-primary" },
+          { key: "linked_to_incident", label: "Linked (deduped)", value: stats.linked, color: "text-accent-foreground" },
           { key: "dismissed", label: "Dismissed (noise)", value: stats.dismissed, color: "text-muted-foreground" },
         ] as const).map((s) => {
           const active = statusFilter === s.key;
@@ -277,10 +285,20 @@ export default function Sevra() {
                     {m.status === "analyzing" && (
                       <Badge variant="secondary"><Loader2 className="h-3 w-3 animate-spin" /> analyzing</Badge>
                     )}
-                    {m.status === "incident_created" && m.incident_id && (
-                      <Button size="sm" variant="outline" onClick={() => navigate(`/incidents/${m.incident_id}`)}>
-                        <AlertTriangle className="h-3.5 w-3.5" /> View incident
-                      </Button>
+                    {(m.status === "incident_created" || m.status === "linked_to_incident") && m.incident_id && (
+                      <>
+                        <Button size="sm" variant="outline" onClick={() => navigate(`/incidents/${m.incident_id}`)}>
+                          <AlertTriangle className="h-3.5 w-3.5" /> View incident
+                        </Button>
+                        {incidentMentionCounts[m.incident_id] > 1 && (
+                          <Badge variant="secondary" className="text-[10px]">
+                            {incidentMentionCounts[m.incident_id]} mentions on this incident
+                          </Badge>
+                        )}
+                        {m.status === "linked_to_incident" && (
+                          <Badge variant="outline" className="text-[10px]">deduped</Badge>
+                        )}
+                      </>
                     )}
                     {m.status === "dismissed" && (
                       <Badge variant="outline" className="gap-1"><CheckCircle2 className="h-3 w-3" /> noise</Badge>
