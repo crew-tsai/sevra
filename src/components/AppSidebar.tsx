@@ -1,4 +1,4 @@
-import { LayoutDashboard, Plus, Shield, FileText, CheckCircle, LogOut } from "lucide-react";
+import { LayoutDashboard, Plus, Shield, FileText, CheckCircle, LogOut, Radio } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -15,8 +15,9 @@ import {
 } from "@/components/ui/sidebar";
 
 const mainItems = [
+  { title: "SEVRA · Social Intel", url: "/sevra", icon: Radio },
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "New Incident", url: "/incidents/new", icon: Plus },
+  { title: "Manual Incident", url: "/incidents/new", icon: Plus },
 ];
 
 const workflowItems = [
@@ -43,7 +44,7 @@ export function AppSidebar() {
               {mainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <NavLink to={item.url} end={item.url === "/dashboard"} activeClassName="bg-sidebar-accent text-foreground font-medium">
+                    <NavLink to={item.url} end={item.url === "/sevra"} activeClassName="bg-sidebar-accent text-foreground font-medium">
                       <item.icon className="h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>
