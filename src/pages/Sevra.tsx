@@ -89,6 +89,7 @@ export default function Sevra() {
   const [loading, setLoading] = useState(true);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "incident_created" | "dismissed">("all");
 
   const load = async () => {
     setLoading(true);
@@ -154,7 +155,11 @@ export default function Sevra() {
     }
   };
 
-  const filtered = mentions.filter((m) => filter === "all" || m.channel === filter);
+  const filtered = mentions.filter(
+    (m) =>
+      (filter === "all" || m.channel === filter) &&
+      (statusFilter === "all" || m.status === statusFilter),
+  );
 
   const stats = {
     pending: mentions.filter((m) => m.status === "pending").length,
@@ -185,18 +190,24 @@ export default function Sevra() {
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <Card className="p-4">
-          <div className="text-xs text-muted-foreground uppercase tracking-wider">Pending</div>
-          <div className="text-2xl font-bold mt-1">{stats.pending}</div>
-        </Card>
-        <Card className="p-4">
-          <div className="text-xs text-muted-foreground uppercase tracking-wider">Incidents created</div>
-          <div className="text-2xl font-bold mt-1 text-primary">{stats.incidents}</div>
-        </Card>
-        <Card className="p-4">
-          <div className="text-xs text-muted-foreground uppercase tracking-wider">Dismissed (noise)</div>
-          <div className="text-2xl font-bold mt-1 text-muted-foreground">{stats.dismissed}</div>
-        </Card>
+        {([
+          { key: "pending", label: "Pending", value: stats.pending, color: "text-foreground" },
+          { key: "incident_created", label: "Incidents created", value: stats.incidents, color: "text-primary" },
+          { key: "dismissed", label: "Dismissed (noise)", value: stats.dismissed, color: "text-muted-foreground" },
+        ] as const).map((s) => {
+          const active = statusFilter === s.key;
+          return (
+            <Card
+              key={s.key}
+              onClick={() => setStatusFilter(active ? "all" : s.key)}
+              className={`p-4 cursor-pointer transition-colors hover:bg-accent/50 ${active ? "ring-2 ring-primary bg-accent/40" : ""}`}
+            >
+              <div className="text-xs text-muted-foreground uppercase tracking-wider">{s.label}</div>
+              <div className={`text-2xl font-bold mt-1 ${s.color}`}>{s.value}</div>
+              {active && <div className="text-[10px] text-muted-foreground mt-1">click again to clear</div>}
+            </Card>
+          );
+        })}
       </div>
 
       <Tabs value={filter} onValueChange={setFilter}>
