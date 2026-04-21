@@ -1,6 +1,7 @@
 import { LayoutDashboard, Plus, Shield, FileText, CheckCircle, LogOut, Radio } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Sidebar,
   SidebarContent,
@@ -30,7 +31,12 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const navigate = useNavigate();
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + "/");
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -79,11 +85,9 @@ export function AppSidebar() {
       <SidebarFooter className="border-t border-sidebar-border p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <NavLink to="/login" activeClassName="">
-                <LogOut className="h-4 w-4" />
-                {!collapsed && <span>Sign out</span>}
-              </NavLink>
+            <SidebarMenuButton onClick={signOut}>
+              <LogOut className="h-4 w-4" />
+              {!collapsed && <span>Sign out</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
