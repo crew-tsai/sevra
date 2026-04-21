@@ -285,10 +285,20 @@ export default function Sevra() {
                     {m.status === "analyzing" && (
                       <Badge variant="secondary"><Loader2 className="h-3 w-3 animate-spin" /> analyzing</Badge>
                     )}
-                    {m.status === "incident_created" && m.incident_id && (
-                      <Button size="sm" variant="outline" onClick={() => navigate(`/incidents/${m.incident_id}`)}>
-                        <AlertTriangle className="h-3.5 w-3.5" /> View incident
-                      </Button>
+                    {(m.status === "incident_created" || m.status === "linked_to_incident") && m.incident_id && (
+                      <>
+                        <Button size="sm" variant="outline" onClick={() => navigate(`/incidents/${m.incident_id}`)}>
+                          <AlertTriangle className="h-3.5 w-3.5" /> View incident
+                        </Button>
+                        {incidentMentionCounts[m.incident_id] > 1 && (
+                          <Badge variant="secondary" className="text-[10px]">
+                            {incidentMentionCounts[m.incident_id]} mentions on this incident
+                          </Badge>
+                        )}
+                        {m.status === "linked_to_incident" && (
+                          <Badge variant="outline" className="text-[10px] text-amber-600">deduped</Badge>
+                        )}
+                      </>
                     )}
                     {m.status === "dismissed" && (
                       <Badge variant="outline" className="gap-1"><CheckCircle2 className="h-3 w-3" /> noise</Badge>
