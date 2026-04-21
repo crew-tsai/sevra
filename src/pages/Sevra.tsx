@@ -89,7 +89,7 @@ export default function Sevra() {
   const [loading, setLoading] = useState(true);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "incident_created" | "dismissed">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "incident_created" | "dismissed" | "linked_to_incident">("all");
 
   const load = async () => {
     setLoading(true);
