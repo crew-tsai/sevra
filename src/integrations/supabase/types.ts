@@ -92,6 +92,98 @@ export type Database = {
         }
         Relationships: []
       }
+      social_mentions: {
+        Row: {
+          ai_extracted: Json | null
+          ai_incident_type: string | null
+          ai_risk: string | null
+          ai_risk_score: number | null
+          ai_should_create_incident: boolean | null
+          ai_sub_type: string | null
+          ai_summary: string | null
+          author_avatar_url: string | null
+          author_handle: string | null
+          author_name: string | null
+          channel: string
+          content: string
+          created_at: string
+          created_by: string | null
+          id: string
+          incident_id: string | null
+          is_influencer: boolean | null
+          is_verified: boolean | null
+          likes: number | null
+          post_url: string | null
+          posted_at: string | null
+          reach: number | null
+          shares: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          ai_extracted?: Json | null
+          ai_incident_type?: string | null
+          ai_risk?: string | null
+          ai_risk_score?: number | null
+          ai_should_create_incident?: boolean | null
+          ai_sub_type?: string | null
+          ai_summary?: string | null
+          author_avatar_url?: string | null
+          author_handle?: string | null
+          author_name?: string | null
+          channel: string
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          incident_id?: string | null
+          is_influencer?: boolean | null
+          is_verified?: boolean | null
+          likes?: number | null
+          post_url?: string | null
+          posted_at?: string | null
+          reach?: number | null
+          shares?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          ai_extracted?: Json | null
+          ai_incident_type?: string | null
+          ai_risk?: string | null
+          ai_risk_score?: number | null
+          ai_should_create_incident?: boolean | null
+          ai_sub_type?: string | null
+          ai_summary?: string | null
+          author_avatar_url?: string | null
+          author_handle?: string | null
+          author_name?: string | null
+          channel?: string
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          incident_id?: string | null
+          is_influencer?: boolean | null
+          is_verified?: boolean | null
+          likes?: number | null
+          post_url?: string | null
+          posted_at?: string | null
+          reach?: number | null
+          shares?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_mentions_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

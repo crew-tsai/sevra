@@ -11,6 +11,7 @@ import IncidentDetail from "@/pages/IncidentDetail";
 import Strategy from "@/pages/Strategy";
 import Assets from "@/pages/Assets";
 import Approvals from "@/pages/Approvals";
+import Sevra from "@/pages/Sevra";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,8 +24,9 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<Navigate to="/sevra" replace />} />
           <Route element={<AppLayout />}>
+            <Route path="/sevra" element={<Sevra />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/incidents/new" element={<NewIncident />} />
             <Route path="/incidents/:id" element={<IncidentDetail />} />
