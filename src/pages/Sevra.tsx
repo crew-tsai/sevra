@@ -247,7 +247,7 @@ export default function Sevra() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <Sparkles className="h-3.5 w-3.5 text-primary" />
                           <span className="text-xs font-semibold text-foreground">SEVRA analysis</span>
-                          {m.ai_risk && <RiskBadge risk={m.ai_risk as any} />}
+                          {m.ai_risk && <RiskBadge level={m.ai_risk as any} />}
                           {m.ai_incident_type && <Badge variant="outline" className="text-[10px]">{m.ai_incident_type}</Badge>}
                           {m.ai_sub_type && <Badge variant="outline" className="text-[10px]">{m.ai_sub_type}</Badge>}
                           {m.ai_risk_score != null && <span className="text-xs text-muted-foreground">score {m.ai_risk_score}</span>}
