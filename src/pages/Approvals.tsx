@@ -214,11 +214,6 @@ export default function Approvals() {
                     const isPending = item.approval_status === "pending";
                     const isRejected = item.approval_status === "rejected";
                     const isRegenerating = regeneratingId === item.id;
-                </div>
-                <div className="space-y-3">
-                  {items.map((item) => {
-                    const Icon = TYPE_ICON[item.asset_type] ?? FileText;
-                    const isPending = item.approval_status === "pending";
                     return (
                       <Card
                         key={item.id}
