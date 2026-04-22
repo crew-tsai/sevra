@@ -39,33 +39,13 @@ const CHANNEL_META: Record<string, { icon: typeof Twitter; label: string; color:
 };
 
 const MOCK_FEED = [
+  // 🇪🇸 Spanish
   {
     channel: "twitter",
     author_name: "Carla Méndez",
     author_handle: "carlamendez",
     content: "Llevamos 4 horas en pista en MAD vuelo IB3412 a BCN sin información. Hay una señora mayor descompensada y nadie del crew responde 😡 @iberia",
     likes: 1240, shares: 320, reach: 84000, is_verified: false, is_influencer: false,
-  },
-  {
-    channel: "tiktok",
-    author_name: "TravelWithMike",
-    author_handle: "travelwithmike",
-    content: "VIRAL: cabina turbulencia extrema vuelo Madrid-Bogotá, gente gritando, máscaras caídas. Esto no puede pasar.",
-    likes: 58000, shares: 12000, reach: 1200000, is_verified: true, is_influencer: true,
-  },
-  {
-    channel: "instagram",
-    author_name: "Diego R.",
-    author_handle: "diegor.fly",
-    content: "Tercer día sin maletas tras volar de BCN-LHR. Sistema de equipajes caído según el mostrador. Esto es un caos.",
-    likes: 410, shares: 45, reach: 9800, is_verified: false, is_influencer: false,
-  },
-  {
-    channel: "twitter",
-    author_name: "Aviation Watch",
-    author_handle: "aviationwatch",
-    content: "RUMOR sin confirmar circulando: supuesto aterrizaje de emergencia en BCN. NO hay confirmación oficial de AENA ni de la aerolínea. Cuidado con difundir.",
-    likes: 8900, shares: 4200, reach: 320000, is_verified: true, is_influencer: false,
   },
   {
     channel: "instagram",
@@ -80,6 +60,52 @@ const MOCK_FEED = [
     author_handle: "pedrogfly",
     content: "App de la aerolínea caída desde esta mañana, no se puede hacer check-in online ni ver tarjetas de embarque. Colas enormes en T4.",
     likes: 980, shares: 210, reach: 45000, is_verified: false, is_influencer: false,
+  },
+
+  // 🇬🇧 English
+  {
+    channel: "tiktok",
+    author_name: "TravelWithMike",
+    author_handle: "travelwithmike",
+    content: "VIRAL: extreme turbulence on Madrid–Bogotá flight, people screaming, oxygen masks dropped. This should never happen.",
+    likes: 58000, shares: 12000, reach: 1200000, is_verified: true, is_influencer: true,
+  },
+  {
+    channel: "twitter",
+    author_name: "Aviation Watch",
+    author_handle: "aviationwatch",
+    content: "UNCONFIRMED rumor circulating about an emergency landing at BCN. NO official confirmation from AENA or the airline. Be careful before resharing.",
+    likes: 8900, shares: 4200, reach: 320000, is_verified: true, is_influencer: false,
+  },
+  {
+    channel: "instagram",
+    author_name: "Diego R.",
+    author_handle: "diegor.fly",
+    content: "Third day with no luggage after flying BCN-LHR. Baggage system reportedly down per the desk staff. This is chaos.",
+    likes: 410, shares: 45, reach: 9800, is_verified: false, is_influencer: false,
+  },
+
+  // 🇫🇷 French
+  {
+    channel: "twitter",
+    author_name: "Julien Bernard",
+    author_handle: "julienbrnd",
+    content: "Vol AF1234 CDG-MAD annulé sans explication, 200 passagers bloqués au terminal 2E depuis 6h. Aucun agent au comptoir. C'est honteux !",
+    likes: 3200, shares: 1100, reach: 145000, is_verified: false, is_influencer: false,
+  },
+  {
+    channel: "instagram",
+    author_name: "Camille Dubois",
+    author_handle: "camille.voyage",
+    content: "Atterrissage d'urgence à Lyon ce matin, fumée en cabine. Tout le monde évacué par les toboggans. Merci à l'équipage incroyable 🙏",
+    likes: 15600, shares: 4800, reach: 420000, is_verified: true, is_influencer: true,
+  },
+  {
+    channel: "tiktok",
+    author_name: "Lucas M.",
+    author_handle: "lucasmfly",
+    content: "Le personnel de bord a refusé d'embarquer ma mère car elle parlait arabe au téléphone. Inacceptable, je porte plainte.",
+    likes: 22000, shares: 6500, reach: 580000, is_verified: false, is_influencer: false,
   },
 ];
 
