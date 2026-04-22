@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -90,6 +90,10 @@ const formatDateTime = (iso: string | null | undefined) => {
 export default function IncidentDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const navState = (location.state ?? null) as { from?: string; fromLabel?: string } | null;
+  const backTo = navState?.from ?? null;
+  const backLabel = navState?.fromLabel ?? "Back";
   const [incident, setIncident] = useState<Incident | null>(null);
   const [mentions, setMentions] = useState<Mention[]>([]);
   const [assetCount, setAssetCount] = useState(0);
@@ -200,15 +204,17 @@ export default function IncidentDetail() {
         <Breadcrumbs
           items={[
             { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
-            { label: "Incidents", to: "/dashboard" },
+            ...(backTo
+              ? [{ label: backTo.startsWith("/approvals") ? "Approvals" : "Incidents", to: backTo }]
+              : [{ label: "Incidents", to: "/dashboard" }]),
             { label: incident.title },
           ]}
         />
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => (backTo ? navigate(backTo) : navigate(-1))}
           className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> Back
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to {backLabel}
         </button>
       </div>
 
