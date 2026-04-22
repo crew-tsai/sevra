@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -38,12 +38,16 @@ const TYPE_ICON: Record<string, typeof FileText> = {
 };
 
 export default function Approvals() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusIncidentId = searchParams.get("incident");
   const [assets, setAssets] = useState<Asset[]>([]);
   const [incidents, setIncidents] = useState<Record<string, IncidentLite>>({});
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [tab, setTab] = useState<"pending" | "approved" | "rejected">("pending");
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const load = async () => {
     setLoading(true);
@@ -78,6 +82,33 @@ export default function Approvals() {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  // When arriving with ?incident=<id>, switch to the tab where that incident has assets
+  useEffect(() => {
+    if (!focusIncidentId || loading || !assets.length) return;
+    const incidentAssets = assets.filter((a) => a.incident_id === focusIncidentId);
+    if (!incidentAssets.length) return;
+    const order: Array<"pending" | "approved" | "rejected"> = ["pending", "approved", "rejected"];
+    const best = order.find((s) => incidentAssets.some((a) => a.approval_status === s));
+    if (best) setTab(best);
+  }, [focusIncidentId, loading, assets]);
+
+  // Scroll + highlight after the section mounts in the active tab
+  useEffect(() => {
+    if (!focusIncidentId || loading) return;
+    const el = sectionRefs.current[focusIncidentId];
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    setHighlightId(focusIncidentId);
+    const t = window.setTimeout(() => {
+      setHighlightId(null);
+      const next = new URLSearchParams(searchParams);
+      next.delete("incident");
+      setSearchParams(next, { replace: true });
+    }, 2000);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusIncidentId, tab, loading]);
 
   const updateStatus = async (id: string, status: "approved" | "rejected") => {
     setBusyId(id);
@@ -155,7 +186,14 @@ export default function Approvals() {
           {Object.entries(grouped).map(([incidentId, items]) => {
             const inc = incidents[incidentId];
             return (
-              <div key={incidentId} className="space-y-3">
+              <div
+                key={incidentId}
+                ref={(el) => { sectionRefs.current[incidentId] = el; }}
+                className={cn(
+                  "space-y-3 rounded-lg transition-all duration-500 scroll-mt-6",
+                  highlightId === incidentId && "ring-2 ring-primary ring-offset-2 ring-offset-background p-3 -m-3 bg-primary/5",
+                )}
+              >
                 <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-sm font-semibold text-foreground">
                     {inc?.title ?? "Incident"}
