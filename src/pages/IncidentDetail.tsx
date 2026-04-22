@@ -204,15 +204,17 @@ export default function IncidentDetail() {
         <Breadcrumbs
           items={[
             { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
-            { label: "Incidents", to: "/dashboard" },
+            ...(backTo
+              ? [{ label: backTo.startsWith("/approvals") ? "Approvals" : "Incidents", to: backTo }]
+              : [{ label: "Incidents", to: "/dashboard" }]),
             { label: incident.title },
           ]}
         />
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => (backTo ? navigate(backTo) : navigate(-1))}
           className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> Back
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to {backLabel}
         </button>
       </div>
 
