@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Shield } from "lucide-react";
+import sevraLogo from "@/assets/sevra-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -48,10 +48,9 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm space-y-8">
-        <div className="text-center space-y-2">
-          <div className="flex items-center justify-center gap-2">
-            <Shield className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-bold text-foreground">CrisisCommand</h1>
+        <div className="text-center space-y-3">
+          <div className="flex items-center justify-center">
+            <img src={sevraLogo} alt="Sevra" className="h-12 sm:h-14 w-auto object-contain" />
           </div>
           <p className="text-sm text-muted-foreground">Enterprise crisis management platform</p>
         </div>
