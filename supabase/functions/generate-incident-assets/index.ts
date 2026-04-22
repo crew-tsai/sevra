@@ -96,7 +96,7 @@ ${(mentions ?? []).map((m: any) => `- [${m.channel}] @${m.author_handle}: ${m.co
           },
           {
             role: "user",
-            content: `Generate the full communication package for the following incident.\n\n${context}\n\nAsset briefs:\n${ASSET_SPEC.map((a) => `- ${a.key}: ${a.title} — ${a.description}`).join("\n")}`,
+            content: `Generate ${singleKey ? "ONLY the following asset" : "the full communication package"} for the following incident.\n\n${context}\n\nAsset briefs:\n${targetSpecs.map((a) => `- ${a.key}: ${a.title} — ${a.description}`).join("\n")}`,
           },
         ],
         tools: [
