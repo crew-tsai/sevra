@@ -77,17 +77,26 @@ export default function Dashboard() {
         <p className="text-sm text-muted-foreground mt-1">Overview of active incidents and risk posture</p>
       </div>
 
-      {/* Stats */}
+      {/* Stats — clickable status filter */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {stats.map((stat) => (
-          <div key={stat.label} className="rounded-lg border border-border bg-card p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
-              <span className="text-xs font-medium text-muted-foreground">{stat.label}</span>
-            </div>
-            <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-          </div>
-        ))}
+        {stats.map((stat) => {
+          const active = statusFilter === stat.key;
+          return (
+            <button
+              key={stat.key}
+              onClick={() => setStatusFilter(active ? "all" : stat.key)}
+              className={`text-left rounded-lg border bg-card p-4 transition-colors hover:bg-accent/50 ${
+                active ? "border-primary ring-2 ring-primary/30" : "border-border"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                <span className="text-xs font-medium text-muted-foreground">{stat.label}</span>
+              </div>
+              <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+            </button>
+          );
+        })}
       </div>
 
       {/* Source filter */}
@@ -115,12 +124,22 @@ export default function Dashboard() {
             </button>
           );
         })}
+        {hasFilters && (
+          <button
+            onClick={() => { setSourceFilter("all"); setStatusFilter("all"); }}
+            className="ml-auto text-xs text-muted-foreground hover:text-foreground underline"
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
       {/* Incidents table */}
       <div className="rounded-lg border border-border bg-card">
-        <div className="px-4 py-3 border-b border-border">
-          <h2 className="text-sm font-semibold text-foreground">All Incidents</h2>
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-foreground">
+            Incidents {hasFilters && <span className="text-muted-foreground font-normal">· {filtered.length} of {incidents.length}</span>}
+          </h2>
         </div>
         {loading ? (
           <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>
