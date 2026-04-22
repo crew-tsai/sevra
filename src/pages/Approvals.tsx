@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle2, XCircle, FileText, Copy, Loader2, ExternalLink, Megaphone, MessageSquare, Users, HelpCircle, RefreshCw } from "lucide-react";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { CheckCircle2, XCircle, FileText, Copy, Loader2, ExternalLink, Megaphone, MessageSquare, Users, HelpCircle, RefreshCw, LayoutDashboard, X, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -100,12 +101,7 @@ export default function Approvals() {
     if (!el) return;
     el.scrollIntoView({ behavior: "smooth", block: "start" });
     setHighlightId(focusIncidentId);
-    const t = window.setTimeout(() => {
-      setHighlightId(null);
-      const next = new URLSearchParams(searchParams);
-      next.delete("incident");
-      setSearchParams(next, { replace: true });
-    }, 2000);
+    const t = window.setTimeout(() => setHighlightId(null), 2000);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusIncidentId, tab, loading]);
@@ -144,7 +140,8 @@ export default function Approvals() {
     setTab("pending");
   };
 
-  const filtered = assets.filter((a) => a.approval_status === tab);
+  const scoped = focusIncidentId ? assets.filter((a) => a.incident_id === focusIncidentId) : assets;
+  const filtered = scoped.filter((a) => a.approval_status === tab);
 
   // Group by incident
   const grouped = filtered.reduce<Record<string, Asset[]>>((acc, a) => {
@@ -153,19 +150,70 @@ export default function Approvals() {
   }, {});
 
   const counts = {
-    pending: assets.filter((a) => a.approval_status === "pending").length,
-    approved: assets.filter((a) => a.approval_status === "approved").length,
-    rejected: assets.filter((a) => a.approval_status === "rejected").length,
+    pending: scoped.filter((a) => a.approval_status === "pending").length,
+    approved: scoped.filter((a) => a.approval_status === "approved").length,
+    rejected: scoped.filter((a) => a.approval_status === "rejected").length,
+  };
+
+  const focusIncident = focusIncidentId ? incidents[focusIncidentId] : null;
+
+  const clearIncidentFilter = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("incident");
+    setSearchParams(next, { replace: true });
   };
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
+      <Breadcrumbs
+        items={
+          focusIncidentId
+            ? [
+                { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
+                { label: focusIncident?.title ?? "Incident", to: `/incidents/${focusIncidentId}` },
+                { label: "Media package" },
+              ]
+            : [
+                { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
+                { label: "Approvals" },
+              ]
+        }
+      />
+
       <div>
-        <h1 className="text-xl font-semibold text-foreground">Approval workflow</h1>
+        <h1 className="text-xl font-semibold text-foreground">
+          {focusIncidentId ? "Media package" : "Approval workflow"}
+        </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Review and approve communication assets before distribution.
+          {focusIncidentId
+            ? "Review and approve the assets generated for this incident."
+            : "Review and approve communication assets before distribution."}
         </p>
       </div>
+
+      {focusIncidentId && (
+        <div className="flex items-center gap-2 flex-wrap rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
+          <Filter className="h-3.5 w-3.5 text-primary" />
+          <span className="text-muted-foreground">Filtered to:</span>
+          <span className="text-foreground font-medium truncate max-w-[280px]">
+            {focusIncident?.title ?? focusIncidentId.slice(0, 8)}
+          </span>
+          <Link
+            to={`/incidents/${focusIncidentId}`}
+            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+          >
+            view incident <ExternalLink className="h-3 w-3" />
+          </Link>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 px-2 ml-auto text-xs"
+            onClick={clearIncidentFilter}
+          >
+            <X className="h-3 w-3" /> Show all
+          </Button>
+        </div>
+      )}
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
         <TabsList>
