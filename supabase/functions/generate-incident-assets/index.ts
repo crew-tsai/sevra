@@ -20,13 +20,18 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { incident_id } = await req.json();
+    const { incident_id, asset_key } = await req.json();
     if (!incident_id || typeof incident_id !== "string") {
       return new Response(JSON.stringify({ error: "incident_id required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const singleKey: string | null =
+      typeof asset_key === "string" && ASSET_SPEC.some((s) => s.key === asset_key)
+        ? asset_key
+        : null;
+    const targetSpecs = singleKey ? ASSET_SPEC.filter((s) => s.key === singleKey) : ASSET_SPEC;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -91,7 +96,7 @@ ${(mentions ?? []).map((m: any) => `- [${m.channel}] @${m.author_handle}: ${m.co
           },
           {
             role: "user",
-            content: `Generate the full communication package for the following incident.\n\n${context}\n\nAsset briefs:\n${ASSET_SPEC.map((a) => `- ${a.key}: ${a.title} — ${a.description}`).join("\n")}`,
+            content: `Generate ${singleKey ? "ONLY the following asset" : "the full communication package"} for the following incident.\n\n${context}\n\nAsset briefs:\n${targetSpecs.map((a) => `- ${a.key}: ${a.title} — ${a.description}`).join("\n")}`,
           },
         ],
         tools: [
@@ -108,7 +113,7 @@ ${(mentions ?? []).map((m: any) => `- [${m.channel}] @${m.author_handle}: ${m.co
                     items: {
                       type: "object",
                       properties: {
-                        key: { type: "string", enum: ASSET_SPEC.map((a) => a.key) },
+                        key: { type: "string", enum: targetSpecs.map((a) => a.key) },
                         title: { type: "string" },
                         content: { type: "string" },
                       },
@@ -150,8 +155,16 @@ ${(mentions ?? []).map((m: any) => `- [${m.channel}] @${m.author_handle}: ${m.co
     const generated: Array<{ key: string; title: string; content: string }> = args?.assets ?? [];
     if (!generated.length) throw new Error("AI returned no assets");
 
-    // Remove any previous package for this incident, then insert fresh
-    await admin.from("incident_assets").delete().eq("incident_id", incident_id);
+    // Remove only what we're regenerating, then insert fresh
+    if (singleKey) {
+      await admin
+        .from("incident_assets")
+        .delete()
+        .eq("incident_id", incident_id)
+        .eq("asset_type", singleKey);
+    } else {
+      await admin.from("incident_assets").delete().eq("incident_id", incident_id);
+    }
 
     const rows = generated.map((g) => {
       const spec = ASSET_SPEC.find((s) => s.key === g.key);

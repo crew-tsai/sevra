@@ -131,16 +131,16 @@ export default function Approvals() {
     toast.success("Copied to clipboard");
   };
 
-  const regenerate = async (incidentId: string) => {
-    setRegeneratingId(incidentId);
+  const regenerateAsset = async (asset: Asset) => {
+    setRegeneratingId(asset.id);
     const { data, error } = await supabase.functions.invoke("generate-incident-assets", {
-      body: { incident_id: incidentId },
+      body: { incident_id: asset.incident_id, asset_key: asset.asset_type },
     });
     setRegeneratingId(null);
     if (error || !data?.success) {
-      return toast.error(error?.message ?? "Failed to regenerate package");
+      return toast.error(error?.message ?? "Failed to regenerate asset");
     }
-    toast.success("Package regenerated");
+    toast.success(`${asset.title} regenerated`);
     setTab("pending");
   };
 
@@ -207,26 +207,13 @@ export default function Approvals() {
                   >
                     View incident <ExternalLink className="h-3 w-3" />
                   </Link>
-                  {tab === "rejected" && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => regenerate(incidentId)}
-                      disabled={regeneratingId === incidentId}
-                    >
-                      {regeneratingId === incidentId ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <RefreshCw className="h-3.5 w-3.5" />
-                      )}
-                      Regenerate package
-                    </Button>
-                  )}
                 </div>
                 <div className="space-y-3">
                   {items.map((item) => {
                     const Icon = TYPE_ICON[item.asset_type] ?? FileText;
                     const isPending = item.approval_status === "pending";
+                    const isRejected = item.approval_status === "rejected";
+                    const isRegenerating = regeneratingId === item.id;
                     return (
                       <Card
                         key={item.id}
@@ -289,6 +276,21 @@ export default function Approvals() {
                                     <XCircle className="h-3.5 w-3.5" /> Reject
                                   </Button>
                                 </>
+                              )}
+                              {(isPending || isRejected) && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => regenerateAsset(item)}
+                                  disabled={isRegenerating}
+                                >
+                                  {isRegenerating ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="h-3.5 w-3.5" />
+                                  )}
+                                  Regenerate
+                                </Button>
                               )}
                             </div>
                           </div>
