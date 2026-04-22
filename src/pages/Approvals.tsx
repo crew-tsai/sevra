@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle2, XCircle, FileText, Copy, Loader2, ExternalLink, Megaphone, MessageSquare, Users, HelpCircle } from "lucide-react";
+import { CheckCircle2, XCircle, FileText, Copy, Loader2, ExternalLink, Megaphone, MessageSquare, Users, HelpCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +42,7 @@ export default function Approvals() {
   const [incidents, setIncidents] = useState<Record<string, IncidentLite>>({});
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [tab, setTab] = useState<"pending" | "approved" | "rejected">("pending");
 
   const load = async () => {
@@ -97,6 +98,19 @@ export default function Approvals() {
   const copy = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("Copied to clipboard");
+  };
+
+  const regenerate = async (incidentId: string) => {
+    setRegeneratingId(incidentId);
+    const { data, error } = await supabase.functions.invoke("generate-incident-assets", {
+      body: { incident_id: incidentId },
+    });
+    setRegeneratingId(null);
+    if (error || !data?.success) {
+      return toast.error(error?.message ?? "Failed to regenerate package");
+    }
+    toast.success("Package regenerated");
+    setTab("pending");
   };
 
   const filtered = assets.filter((a) => a.approval_status === tab);
@@ -155,6 +169,21 @@ export default function Approvals() {
                   >
                     View incident <ExternalLink className="h-3 w-3" />
                   </Link>
+                  {tab === "rejected" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => regenerate(incidentId)}
+                      disabled={regeneratingId === incidentId}
+                    >
+                      {regeneratingId === incidentId ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-3.5 w-3.5" />
+                      )}
+                      Regenerate package
+                    </Button>
+                  )}
                 </div>
                 <div className="space-y-3">
                   {items.map((item) => {
