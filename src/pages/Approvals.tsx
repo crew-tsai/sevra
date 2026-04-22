@@ -277,6 +277,21 @@ export default function Approvals() {
                                   </Button>
                                 </>
                               )}
+                              {(isPending || isRejected) && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => regenerateAsset(item)}
+                                  disabled={isRegenerating}
+                                >
+                                  {isRegenerating ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="h-3.5 w-3.5" />
+                                  )}
+                                  Regenerate
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </div>
