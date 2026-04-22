@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RiskBadge } from "@/components/RiskBadge";
 import { StatusBadge } from "@/components/StatusBadge";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -21,6 +22,7 @@ import {
   AlertTriangle,
   ShieldAlert,
   Package,
+  LayoutDashboard,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -194,12 +196,21 @@ export default function IncidentDetail() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <button
-        onClick={() => navigate(-1)}
-        className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-      >
-        <ArrowLeft className="h-3.5 w-3.5" /> Back
-      </button>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <Breadcrumbs
+          items={[
+            { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
+            { label: "Incidents", to: "/dashboard" },
+            { label: incident.title },
+          ]}
+        />
+        <button
+          onClick={() => navigate(-1)}
+          className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> Back
+        </button>
+      </div>
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
