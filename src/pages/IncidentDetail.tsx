@@ -356,31 +356,32 @@ export default function IncidentDetail() {
           </Card>
 
           <Card className="p-4 space-y-3">
-            <h2 className="text-sm font-semibold text-foreground">Approval</h2>
-            <p className="text-xs text-muted-foreground">
-              Status:{" "}
-              <span className="text-foreground font-medium">
-                {incident.approval_status.replace("_", " ")}
-              </span>
-            </p>
-            {incident.approved_at && (
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold text-foreground inline-flex items-center gap-2">
+                <Package className="h-4 w-4 text-primary" /> Media package
+              </h2>
+              {assetCount > 0 && (
+                <Badge variant="secondary" className="text-[10px]">{assetCount} assets</Badge>
+              )}
+            </div>
+            {assetCount > 0 ? (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  Communication assets generated for this incident. Review and approve them before distribution.
+                </p>
+                <Button asChild size="sm" className="w-full">
+                  <Link to={`/approvals?incident=${incident.id}`}>
+                    Open package in Approvals
+                    <ExternalLink className="h-3.5 w-3.5 ml-1" />
+                  </Link>
+                </Button>
+              </>
+            ) : (
               <p className="text-xs text-muted-foreground">
-                When: {formatDateTime(incident.approved_at)}
+                {isApproved
+                  ? "Package generation in progress…"
+                  : "Approve this incident to auto-generate the communication package."}
               </p>
-            )}
-            {assetCount > 0 && (
-              <Link
-                to={`/approvals?incident=${incident.id}`}
-                className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/40 hover:bg-muted px-3 py-2 text-xs transition-colors group"
-              >
-                <span className="flex items-center gap-2 min-w-0">
-                  <Package className="h-3.5 w-3.5 text-primary shrink-0" />
-                  <span className="text-foreground font-medium truncate">
-                    Media package ({assetCount} assets)
-                  </span>
-                </span>
-                <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-foreground shrink-0" />
-              </Link>
             )}
           </Card>
         </div>
