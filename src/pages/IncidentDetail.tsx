@@ -90,6 +90,7 @@ export default function IncidentDetail() {
   const navigate = useNavigate();
   const [incident, setIncident] = useState<Incident | null>(null);
   const [mentions, setMentions] = useState<Mention[]>([]);
+  const [assetCount, setAssetCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
@@ -97,18 +98,24 @@ export default function IncidentDetail() {
   const load = async () => {
     if (!id) return;
     setLoading(true);
-    const [{ data: inc, error: incErr }, { data: mens, error: menErr }] = await Promise.all([
+    const [{ data: inc, error: incErr }, { data: mens, error: menErr }, { count, error: cntErr }] = await Promise.all([
       supabase.from("incidents").select("*").eq("id", id).maybeSingle(),
       supabase
         .from("social_mentions")
         .select("id, channel, author_name, author_handle, content, post_url, posted_at, ai_summary, ai_risk, is_verified, is_influencer")
         .eq("incident_id", id)
         .order("posted_at", { ascending: false }),
+      supabase
+        .from("incident_assets")
+        .select("id", { count: "exact", head: true })
+        .eq("incident_id", id),
     ]);
     if (incErr) toast.error(incErr.message);
     if (menErr) toast.error(menErr.message);
+    if (cntErr) toast.error(cntErr.message);
     setIncident((inc as Incident | null) ?? null);
     setMentions((mens ?? []) as Mention[]);
+    setAssetCount(count ?? 0);
     setLoading(false);
   };
 
