@@ -20,13 +20,18 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { incident_id } = await req.json();
+    const { incident_id, asset_key } = await req.json();
     if (!incident_id || typeof incident_id !== "string") {
       return new Response(JSON.stringify({ error: "incident_id required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const singleKey: string | null =
+      typeof asset_key === "string" && ASSET_SPEC.some((s) => s.key === asset_key)
+        ? asset_key
+        : null;
+    const targetSpecs = singleKey ? ASSET_SPEC.filter((s) => s.key === singleKey) : ASSET_SPEC;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
