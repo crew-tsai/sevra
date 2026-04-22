@@ -14,6 +14,59 @@ export type Database = {
   }
   public: {
     Tables: {
+      incident_assets: {
+        Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          asset_type: string
+          channel: string | null
+          content: string
+          created_at: string
+          created_by: string | null
+          id: string
+          incident_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          asset_type: string
+          channel?: string | null
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          incident_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          asset_type?: string
+          channel?: string | null
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          incident_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_assets_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incidents: {
         Row: {
           airline_name: string | null

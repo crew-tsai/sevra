@@ -128,10 +128,27 @@ export default function IncidentDetail() {
         approved_by: userData.user?.id ?? null,
       })
       .eq("id", incident.id);
-    setApproving(false);
-    if (error) return toast.error(error.message);
-    toast.success("Incident approved");
-    load();
+    if (error) {
+      setApproving(false);
+      return toast.error(error.message);
+    }
+    toast.success("Incident approved — generating asset package…");
+    try {
+      const { data, error: fnErr } = await supabase.functions.invoke("generate-incident-assets", {
+        body: { incident_id: incident.id },
+      });
+      if (fnErr) throw fnErr;
+      if (!data?.success) throw new Error(data?.error || "Failed to generate package");
+      toast.success(`${data.count} assets generated — review them in Approvals`, {
+        action: { label: "Open Approvals", onClick: () => navigate("/approvals") },
+      });
+      navigate("/approvals");
+    } catch (e: any) {
+      toast.error(e.message || "Asset generation failed");
+      load();
+    } finally {
+      setApproving(false);
+    }
   };
 
   const reject = async () => {
