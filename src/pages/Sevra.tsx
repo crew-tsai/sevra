@@ -307,6 +307,14 @@ export default function Sevra() {
                       {m.is_verified && <Badge variant="secondary" className="text-[10px]">verified</Badge>}
                       {m.is_influencer && <Badge variant="secondary" className="text-[10px]">influencer</Badge>}
                       <span className="text-xs text-muted-foreground">· {meta.label}</span>
+                      {(m.posted_at || m.created_at) && (
+                        <span
+                          className="text-xs text-muted-foreground"
+                          title={formatDateTime(m.posted_at ?? m.created_at) ?? undefined}
+                        >
+                          · posted {formatRelative(m.posted_at ?? m.created_at)}
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-foreground mt-2 whitespace-pre-wrap">{m.content}</p>
                     <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
@@ -324,6 +332,14 @@ export default function Sevra() {
                           {m.ai_incident_type && <Badge variant="outline" className="text-[10px]">{m.ai_incident_type}</Badge>}
                           {m.ai_sub_type && <Badge variant="outline" className="text-[10px]">{m.ai_sub_type}</Badge>}
                           {m.ai_risk_score != null && <span className="text-xs text-muted-foreground">score {m.ai_risk_score}</span>}
+                          {m.updated_at && (
+                            <span
+                              className="text-xs text-muted-foreground ml-auto"
+                              title={formatDateTime(m.updated_at) ?? undefined}
+                            >
+                              analyzed {formatRelative(m.updated_at)}
+                            </span>
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground">{m.ai_summary}</p>
                       </div>
