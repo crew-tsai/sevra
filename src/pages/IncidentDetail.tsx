@@ -90,6 +90,10 @@ const formatDateTime = (iso: string | null | undefined) => {
 export default function IncidentDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const navState = (location.state ?? null) as { from?: string; fromLabel?: string } | null;
+  const backTo = navState?.from ?? null;
+  const backLabel = navState?.fromLabel ?? "Back";
   const [incident, setIncident] = useState<Incident | null>(null);
   const [mentions, setMentions] = useState<Mention[]>([]);
   const [assetCount, setAssetCount] = useState(0);
