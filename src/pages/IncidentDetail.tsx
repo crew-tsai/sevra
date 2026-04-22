@@ -344,7 +344,7 @@ export default function IncidentDetail() {
             <DetailRow icon={Users} label="Assignee" value={incident.assignee} />
           </Card>
 
-          <Card className="p-4 space-y-2">
+          <Card className="p-4 space-y-3">
             <h2 className="text-sm font-semibold text-foreground">Approval</h2>
             <p className="text-xs text-muted-foreground">
               Status:{" "}
@@ -356,6 +356,20 @@ export default function IncidentDetail() {
               <p className="text-xs text-muted-foreground">
                 When: {formatDateTime(incident.approved_at)}
               </p>
+            )}
+            {assetCount > 0 && (
+              <Link
+                to={`/approvals?incident=${incident.id}`}
+                className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/40 hover:bg-muted px-3 py-2 text-xs transition-colors group"
+              >
+                <span className="flex items-center gap-2 min-w-0">
+                  <Package className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span className="text-foreground font-medium truncate">
+                    Media package ({assetCount} assets)
+                  </span>
+                </span>
+                <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-foreground shrink-0" />
+              </Link>
             )}
           </Card>
         </div>
