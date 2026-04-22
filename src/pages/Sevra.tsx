@@ -30,6 +30,34 @@ type Mention = {
   ai_summary: string | null;
   incident_id: string | null;
   created_at: string;
+  updated_at: string;
+};
+
+const formatDateTime = (iso: string | null | undefined) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleString(undefined, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const formatRelative = (iso: string | null | undefined) => {
+  if (!iso) return null;
+  const d = new Date(iso).getTime();
+  if (isNaN(d)) return null;
+  const diffSec = Math.round((Date.now() - d) / 1000);
+  if (diffSec < 60) return `${diffSec}s ago`;
+  const diffMin = Math.round(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffH = Math.round(diffMin / 60);
+  if (diffH < 24) return `${diffH}h ago`;
+  const diffD = Math.round(diffH / 24);
+  return `${diffD}d ago`;
 };
 
 const CHANNEL_META: Record<string, { icon: typeof Twitter; label: string; color: string }> = {
