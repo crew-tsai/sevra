@@ -113,7 +113,7 @@ ${(mentions ?? []).map((m: any) => `- [${m.channel}] @${m.author_handle}: ${m.co
                     items: {
                       type: "object",
                       properties: {
-                        key: { type: "string", enum: ASSET_SPEC.map((a) => a.key) },
+                        key: { type: "string", enum: targetSpecs.map((a) => a.key) },
                         title: { type: "string" },
                         content: { type: "string" },
                       },
