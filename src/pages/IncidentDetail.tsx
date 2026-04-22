@@ -356,6 +356,21 @@ export default function IncidentDetail() {
           </Card>
 
           <Card className="p-4 space-y-3">
+            <h2 className="text-sm font-semibold text-foreground">Approval</h2>
+            <p className="text-xs text-muted-foreground">
+              Status:{" "}
+              <span className="text-foreground font-medium">
+                {incident.approval_status.replace("_", " ")}
+              </span>
+            </p>
+            {incident.approved_at && (
+              <p className="text-xs text-muted-foreground">
+                When: {formatDateTime(incident.approved_at)}
+              </p>
+            )}
+          </Card>
+
+          <Card className="p-4 space-y-3">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-sm font-semibold text-foreground inline-flex items-center gap-2">
                 <Package className="h-4 w-4 text-primary" /> Media package
