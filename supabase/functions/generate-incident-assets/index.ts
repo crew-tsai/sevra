@@ -155,8 +155,16 @@ ${(mentions ?? []).map((m: any) => `- [${m.channel}] @${m.author_handle}: ${m.co
     const generated: Array<{ key: string; title: string; content: string }> = args?.assets ?? [];
     if (!generated.length) throw new Error("AI returned no assets");
 
-    // Remove any previous package for this incident, then insert fresh
-    await admin.from("incident_assets").delete().eq("incident_id", incident_id);
+    // Remove only what we're regenerating, then insert fresh
+    if (singleKey) {
+      await admin
+        .from("incident_assets")
+        .delete()
+        .eq("incident_id", incident_id)
+        .eq("asset_type", singleKey);
+    } else {
+      await admin.from("incident_assets").delete().eq("incident_id", incident_id);
+    }
 
     const rows = generated.map((g) => {
       const spec = ASSET_SPEC.find((s) => s.key === g.key);
