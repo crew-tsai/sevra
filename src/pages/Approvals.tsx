@@ -101,12 +101,7 @@ export default function Approvals() {
     if (!el) return;
     el.scrollIntoView({ behavior: "smooth", block: "start" });
     setHighlightId(focusIncidentId);
-    const t = window.setTimeout(() => {
-      setHighlightId(null);
-      const next = new URLSearchParams(searchParams);
-      next.delete("incident");
-      setSearchParams(next, { replace: true });
-    }, 2000);
+    const t = window.setTimeout(() => setHighlightId(null), 2000);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusIncidentId, tab, loading]);
