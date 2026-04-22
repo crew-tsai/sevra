@@ -1,128 +1,359 @@
-import { useParams, Link } from "react-router-dom";
-import { incidents, timelineEvents } from "@/lib/mock-data";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams, Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { RiskBadge } from "@/components/RiskBadge";
 import { StatusBadge } from "@/components/StatusBadge";
-import { ArrowLeft, Brain, Clock, AlertTriangle, Zap, CheckCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Loader2,
+  Sparkles,
+  ExternalLink,
+  Twitter,
+  Instagram,
+  Music2,
+  Plane,
+  MapPin,
+  Users,
+  AlertTriangle,
+  ShieldAlert,
+} from "lucide-react";
+import { toast } from "sonner";
 
-const typeIcons = {
-  alert: AlertTriangle,
-  action: Zap,
-  update: Clock,
-  resolution: CheckCircle,
+type Incident = {
+  id: string;
+  title: string;
+  description: string | null;
+  incident_type: string;
+  sub_type: string | null;
+  airline_name: string | null;
+  flight_number: string | null;
+  route: string | null;
+  airport_code: string | null;
+  country: string | null;
+  injury_fatality: boolean;
+  regulator_involved: boolean;
+  estimated_passengers_impacted: number | null;
+  is_public: boolean;
+  influencer_media_involved: boolean;
+  source: string;
+  risk: "critical" | "high" | "medium" | "low";
+  status: "active" | "monitoring" | "contained" | "resolved";
+  risk_score: number;
+  assignee: string | null;
+  approval_status: string;
+  approved_at: string | null;
+  approved_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type Mention = {
+  id: string;
+  channel: string;
+  author_name: string | null;
+  author_handle: string | null;
+  content: string;
+  post_url: string | null;
+  posted_at: string | null;
+  ai_summary: string | null;
+  ai_risk: string | null;
+  is_verified: boolean | null;
+  is_influencer: boolean | null;
+};
+
+const CHANNEL_ICON: Record<string, typeof Twitter> = {
+  twitter: Twitter,
+  instagram: Instagram,
+  tiktok: Music2,
+};
+
+const formatDateTime = (iso: string | null | undefined) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleString(undefined, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 };
 
 export default function IncidentDetail() {
   const { id } = useParams();
-  const incident = incidents.find((i) => i.id === id);
+  const navigate = useNavigate();
+  const [incident, setIncident] = useState<Incident | null>(null);
+  const [mentions, setMentions] = useState<Mention[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [approving, setApproving] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
 
-  if (!incident) {
+  const load = async () => {
+    if (!id) return;
+    setLoading(true);
+    const [{ data: inc, error: incErr }, { data: mens, error: menErr }] = await Promise.all([
+      supabase.from("incidents").select("*").eq("id", id).maybeSingle(),
+      supabase
+        .from("social_mentions")
+        .select("id, channel, author_name, author_handle, content, post_url, posted_at, ai_summary, ai_risk, is_verified, is_influencer")
+        .eq("incident_id", id)
+        .order("posted_at", { ascending: false }),
+    ]);
+    if (incErr) toast.error(incErr.message);
+    if (menErr) toast.error(menErr.message);
+    setIncident((inc as Incident | null) ?? null);
+    setMentions((mens ?? []) as Mention[]);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  const approve = async () => {
+    if (!incident) return;
+    setApproving(true);
+    const { data: userData } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from("incidents")
+      .update({
+        approval_status: "approved",
+        approved_at: new Date().toISOString(),
+        approved_by: userData.user?.id ?? null,
+      })
+      .eq("id", incident.id);
+    setApproving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Incident approved");
+    load();
+  };
+
+  const reject = async () => {
+    if (!incident) return;
+    setRejecting(true);
+    const { error } = await supabase
+      .from("incidents")
+      .update({ approval_status: "rejected" })
+      .eq("id", incident.id);
+    setRejecting(false);
+    if (error) return toast.error(error.message);
+    toast.success("Incident rejected");
+    load();
+  };
+
+  if (loading) {
     return (
-      <div className="p-6">
-        <p className="text-muted-foreground">Incident not found.</p>
-        <Link to="/dashboard" className="text-primary text-sm mt-2 inline-block">← Back to dashboard</Link>
+      <div className="p-10 flex items-center justify-center text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading incident…
       </div>
     );
   }
 
+  if (!incident) {
+    return (
+      <div className="p-6 max-w-2xl mx-auto">
+        <p className="text-muted-foreground">Incident not found.</p>
+        <Link to="/sevra" className="text-primary text-sm mt-2 inline-block">← Back to SEVRA</Link>
+      </div>
+    );
+  }
+
+  const isApproved = incident.approval_status === "approved";
+  const isRejected = incident.approval_status === "rejected";
+
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="p-6 max-w-5xl mx-auto space-y-6">
+      <button
+        onClick={() => navigate(-1)}
+        className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" /> Back
+      </button>
+
       {/* Header */}
-      <div>
-        <Link to="/dashboard" className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mb-3">
-          <ArrowLeft className="h-3 w-3" /> Back
-        </Link>
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-mono text-muted-foreground">{incident.id}</span>
-              <RiskBadge level={incident.risk} />
-              <StatusBadge status={incident.status} />
-            </div>
-            <h1 className="text-xl font-semibold text-foreground">{incident.title}</h1>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="space-y-2 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-mono text-muted-foreground">{incident.id.slice(0, 8)}</span>
+            <RiskBadge level={incident.risk} />
+            <StatusBadge status={incident.status} />
+            <Badge variant="outline" className="text-[10px]">{incident.incident_type}</Badge>
+            {incident.sub_type && <Badge variant="outline" className="text-[10px]">{incident.sub_type}</Badge>}
+            {isApproved && (
+              <Badge className="gap-1 bg-risk-low-bg text-risk-low border-0">
+                <CheckCircle2 className="h-3 w-3" /> approved
+              </Badge>
+            )}
+            {isRejected && (
+              <Badge variant="outline" className="gap-1">
+                <ShieldAlert className="h-3 w-3" /> rejected
+              </Badge>
+            )}
+            {!isApproved && !isRejected && (
+              <Badge variant="secondary" className="text-[10px]">pending review</Badge>
+            )}
           </div>
+          <h1 className="text-xl font-semibold text-foreground">{incident.title}</h1>
+          <p className="text-xs text-muted-foreground">
+            Created {formatDateTime(incident.created_at)} · Source: {incident.source}
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-2 shrink-0">
           <div className="text-right text-xs text-muted-foreground">
-            <p>Assigned to <span className="text-foreground font-medium">{incident.assignee}</span></p>
-            <p className="mt-0.5">Risk Score: <span className="text-foreground font-bold">{incident.riskScore}/100</span></p>
+            Risk score <span className="text-foreground font-bold text-base ml-1">{incident.risk_score}/100</span>
           </div>
+          {!isApproved && (
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={reject} disabled={rejecting || approving}>
+                {rejecting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldAlert className="h-3.5 w-3.5" />}
+                Reject
+              </Button>
+              <Button size="sm" onClick={approve} disabled={approving || rejecting}>
+                {approving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                Approve incident
+              </Button>
+            </div>
+          )}
+          {isApproved && incident.approved_at && (
+            <p className="text-xs text-muted-foreground">
+              Approved {formatDateTime(incident.approved_at)}
+            </p>
+          )}
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main content */}
+        {/* Main */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Description */}
-          <div className="rounded-lg border border-border bg-card p-4">
-            <h2 className="text-sm font-semibold text-foreground mb-2">Description</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">{incident.description}</p>
-          </div>
+          {incident.description && (
+            <Card className="p-4">
+              <h2 className="text-sm font-semibold text-foreground mb-2">Description</h2>
+              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                {incident.description}
+              </p>
+            </Card>
+          )}
 
-          {/* AI Analysis */}
-          <div className="rounded-lg border border-border bg-card p-4">
+          <Card className="p-4">
             <div className="flex items-center gap-2 mb-3">
-              <Brain className="h-4 w-4 text-primary" />
-              <h2 className="text-sm font-semibold text-foreground">AI Analysis</h2>
+              <Sparkles className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-semibold text-foreground">
+                Linked social mentions ({mentions.length})
+              </h2>
             </div>
-            <div className="space-y-3 text-sm text-muted-foreground">
-              <p><span className="font-medium text-foreground">Impact Assessment:</span> This incident has high potential for regulatory, financial, and reputational impact. GDPR Article 33 requires notification to supervisory authority within 72 hours of breach discovery.</p>
-              <p><span className="font-medium text-foreground">Similar Precedents:</span> Based on analysis of 847 similar incidents, the median resolution time is 14 days. Organizations that engaged forensics within 24 hours reduced total cost by 38%.</p>
-              <p><span className="font-medium text-foreground">Recommended Priority Actions:</span> (1) Complete forensic scoping within 12 hours, (2) Prepare regulatory notification draft, (3) Engage external counsel, (4) Begin affected user identification.</p>
-            </div>
-          </div>
-
-          {/* Risk Score Visual */}
-          <div className="rounded-lg border border-border bg-card p-4">
-            <h2 className="text-sm font-semibold text-foreground mb-3">Risk Score Breakdown</h2>
-            <div className="space-y-3">
-              {[
-                { label: "Regulatory Exposure", value: 95 },
-                { label: "Financial Impact", value: 82 },
-                { label: "Reputational Risk", value: 88 },
-                { label: "Operational Disruption", value: 45 },
-              ].map((item) => (
-                <div key={item.label}>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">{item.label}</span>
-                    <span className="text-foreground font-medium">{item.value}%</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-accent">
-                    <div
-                      className={`h-full rounded-full ${item.value > 80 ? "bg-risk-critical" : item.value > 60 ? "bg-risk-high" : item.value > 40 ? "bg-risk-medium" : "bg-risk-low"}`}
-                      style={{ width: `${item.value}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+            {mentions.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No mentions linked to this incident.</p>
+            ) : (
+              <div className="space-y-3">
+                {mentions.map((m) => {
+                  const Icon = CHANNEL_ICON[m.channel] ?? Twitter;
+                  return (
+                    <div key={m.id} className="border border-border rounded-md p-3">
+                      <div className="flex items-center gap-2 flex-wrap text-xs">
+                        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="font-semibold text-foreground">{m.author_name}</span>
+                        <span className="text-muted-foreground">@{m.author_handle}</span>
+                        {m.is_verified && <Badge variant="secondary" className="text-[10px]">verified</Badge>}
+                        {m.is_influencer && <Badge variant="secondary" className="text-[10px]">influencer</Badge>}
+                        {m.ai_risk && <RiskBadge level={m.ai_risk as any} />}
+                        {m.posted_at && (
+                          <span className="text-muted-foreground ml-auto">
+                            {formatDateTime(m.posted_at)}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-foreground mt-2 whitespace-pre-wrap">{m.content}</p>
+                      {m.post_url && (
+                        <a
+                          href={m.post_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mt-2"
+                        >
+                          source <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
         </div>
 
-        {/* Timeline sidebar */}
+        {/* Sidebar */}
         <div className="space-y-6">
-          <div className="rounded-lg border border-border bg-card p-4">
-            <h2 className="text-sm font-semibold text-foreground mb-4">Timeline</h2>
-            <div className="space-y-4">
-              {timelineEvents.map((event, idx) => {
-                const Icon = typeIcons[event.type];
-                return (
-                  <div key={event.id} className="relative pl-6">
-                    {idx < timelineEvents.length - 1 && (
-                      <div className="absolute left-[9px] top-6 bottom-0 w-px bg-border" />
-                    )}
-                    <div className="absolute left-0 top-0.5">
-                      <Icon className="h-[18px] w-[18px] text-muted-foreground" />
-                    </div>
-                    <p className="text-xs font-medium text-foreground">{event.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{event.description}</p>
-                    <p className="text-[10px] text-muted-foreground/60 mt-1">
-                      {new Date(event.timestamp).toLocaleString()}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <Card className="p-4 space-y-3">
+            <h2 className="text-sm font-semibold text-foreground">Operational details</h2>
+            <DetailRow icon={Plane} label="Airline" value={incident.airline_name} />
+            <DetailRow icon={Plane} label="Flight" value={incident.flight_number} />
+            <DetailRow icon={MapPin} label="Route" value={incident.route} />
+            <DetailRow icon={MapPin} label="Airport" value={incident.airport_code} />
+            <DetailRow icon={MapPin} label="Country" value={incident.country} />
+            <DetailRow
+              icon={Users}
+              label="Pax impacted"
+              value={incident.estimated_passengers_impacted?.toLocaleString() ?? null}
+            />
+            <DetailRow
+              icon={AlertTriangle}
+              label="Injury / fatality"
+              value={incident.injury_fatality ? "Yes" : "No"}
+            />
+            <DetailRow
+              icon={ShieldAlert}
+              label="Regulator involved"
+              value={incident.regulator_involved ? "Yes" : "No"}
+            />
+            <DetailRow
+              icon={Sparkles}
+              label="Influencer media"
+              value={incident.influencer_media_involved ? "Yes" : "No"}
+            />
+            <DetailRow icon={Users} label="Assignee" value={incident.assignee} />
+          </Card>
+
+          <Card className="p-4 space-y-2">
+            <h2 className="text-sm font-semibold text-foreground">Approval</h2>
+            <p className="text-xs text-muted-foreground">
+              Status:{" "}
+              <span className="text-foreground font-medium">
+                {incident.approval_status.replace("_", " ")}
+              </span>
+            </p>
+            {incident.approved_at && (
+              <p className="text-xs text-muted-foreground">
+                When: {formatDateTime(incident.approved_at)}
+              </p>
+            )}
+          </Card>
         </div>
       </div>
+    </div>
+  );
+}
+
+function DetailRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Plane;
+  label: string;
+  value: string | null;
+}) {
+  if (!value) return null;
+  return (
+    <div className="flex items-center gap-2 text-xs">
+      <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+      <span className="text-muted-foreground">{label}:</span>
+      <span className="text-foreground font-medium truncate">{value}</span>
     </div>
   );
 }
