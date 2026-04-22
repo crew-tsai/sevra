@@ -38,12 +38,16 @@ const TYPE_ICON: Record<string, typeof FileText> = {
 };
 
 export default function Approvals() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusIncidentId = searchParams.get("incident");
   const [assets, setAssets] = useState<Asset[]>([]);
   const [incidents, setIncidents] = useState<Record<string, IncidentLite>>({});
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [tab, setTab] = useState<"pending" | "approved" | "rejected">("pending");
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const load = async () => {
     setLoading(true);
