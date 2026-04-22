@@ -20,6 +20,7 @@ import {
   Users,
   AlertTriangle,
   ShieldAlert,
+  Package,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -89,6 +90,7 @@ export default function IncidentDetail() {
   const navigate = useNavigate();
   const [incident, setIncident] = useState<Incident | null>(null);
   const [mentions, setMentions] = useState<Mention[]>([]);
+  const [assetCount, setAssetCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
@@ -96,18 +98,24 @@ export default function IncidentDetail() {
   const load = async () => {
     if (!id) return;
     setLoading(true);
-    const [{ data: inc, error: incErr }, { data: mens, error: menErr }] = await Promise.all([
+    const [{ data: inc, error: incErr }, { data: mens, error: menErr }, { count, error: cntErr }] = await Promise.all([
       supabase.from("incidents").select("*").eq("id", id).maybeSingle(),
       supabase
         .from("social_mentions")
         .select("id, channel, author_name, author_handle, content, post_url, posted_at, ai_summary, ai_risk, is_verified, is_influencer")
         .eq("incident_id", id)
         .order("posted_at", { ascending: false }),
+      supabase
+        .from("incident_assets")
+        .select("id", { count: "exact", head: true })
+        .eq("incident_id", id),
     ]);
     if (incErr) toast.error(incErr.message);
     if (menErr) toast.error(menErr.message);
+    if (cntErr) toast.error(cntErr.message);
     setIncident((inc as Incident | null) ?? null);
     setMentions((mens ?? []) as Mention[]);
+    setAssetCount(count ?? 0);
     setLoading(false);
   };
 
@@ -336,7 +344,7 @@ export default function IncidentDetail() {
             <DetailRow icon={Users} label="Assignee" value={incident.assignee} />
           </Card>
 
-          <Card className="p-4 space-y-2">
+          <Card className="p-4 space-y-3">
             <h2 className="text-sm font-semibold text-foreground">Approval</h2>
             <p className="text-xs text-muted-foreground">
               Status:{" "}
@@ -348,6 +356,20 @@ export default function IncidentDetail() {
               <p className="text-xs text-muted-foreground">
                 When: {formatDateTime(incident.approved_at)}
               </p>
+            )}
+            {assetCount > 0 && (
+              <Link
+                to={`/approvals?incident=${incident.id}`}
+                className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/40 hover:bg-muted px-3 py-2 text-xs transition-colors group"
+              >
+                <span className="flex items-center gap-2 min-w-0">
+                  <Package className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span className="text-foreground font-medium truncate">
+                    Media package ({assetCount} assets)
+                  </span>
+                </span>
+                <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-foreground shrink-0" />
+              </Link>
             )}
           </Card>
         </div>
