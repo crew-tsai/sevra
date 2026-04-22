@@ -100,6 +100,19 @@ export default function Approvals() {
     toast.success("Copied to clipboard");
   };
 
+  const regenerate = async (incidentId: string) => {
+    setRegeneratingId(incidentId);
+    const { data, error } = await supabase.functions.invoke("generate-incident-assets", {
+      body: { incident_id: incidentId },
+    });
+    setRegeneratingId(null);
+    if (error || !data?.success) {
+      return toast.error(error?.message ?? "Failed to regenerate package");
+    }
+    toast.success("Package regenerated");
+    setTab("pending");
+  };
+
   const filtered = assets.filter((a) => a.approval_status === tab);
 
   // Group by incident
