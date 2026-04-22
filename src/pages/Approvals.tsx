@@ -186,7 +186,14 @@ export default function Approvals() {
           {Object.entries(grouped).map(([incidentId, items]) => {
             const inc = incidents[incidentId];
             return (
-              <div key={incidentId} className="space-y-3">
+              <div
+                key={incidentId}
+                ref={(el) => { sectionRefs.current[incidentId] = el; }}
+                className={cn(
+                  "space-y-3 rounded-lg transition-all duration-500 scroll-mt-6",
+                  highlightId === incidentId && "ring-2 ring-primary ring-offset-2 ring-offset-background p-3 -m-3 bg-primary/5",
+                )}
+              >
                 <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-sm font-semibold text-foreground">
                     {inc?.title ?? "Incident"}
