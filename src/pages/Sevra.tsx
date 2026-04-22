@@ -192,13 +192,35 @@ export default function Sevra() {
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Analysis failed");
       if (data.deduped) toast.success("Linked to existing incident (duplicate detected)");
-      else if (data.incident_id) toast.success("Incident auto-created from mention");
-      else toast.message("Mention dismissed as noise");
+      else if (data.incident_id) {
+        toast.success("Incident auto-created — review & approve", {
+          action: {
+            label: "View & approve",
+            onClick: () => navigate(`/incidents/${data.incident_id}`),
+          },
+        });
+      } else toast.message("Mention dismissed as noise");
     } catch (e: any) {
       toast.error(e.message || "Failed to analyze");
     } finally {
       setAnalyzingId(null);
     }
+  };
+
+  const approveIncident = async (incidentId: string) => {
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData.user?.id;
+    const { error } = await supabase
+      .from("incidents")
+      .update({
+        approval_status: "approved",
+        approved_at: new Date().toISOString(),
+        approved_by: userId ?? null,
+      })
+      .eq("id", incidentId);
+    if (error) return toast.error(error.message);
+    toast.success("Incident approved");
+    setApprovedIds((prev) => new Set(prev).add(incidentId));
   };
 
   const analyzeAllPending = async () => {
