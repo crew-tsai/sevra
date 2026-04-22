@@ -30,6 +30,34 @@ type Mention = {
   ai_summary: string | null;
   incident_id: string | null;
   created_at: string;
+  updated_at: string;
+};
+
+const formatDateTime = (iso: string | null | undefined) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleString(undefined, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const formatRelative = (iso: string | null | undefined) => {
+  if (!iso) return null;
+  const d = new Date(iso).getTime();
+  if (isNaN(d)) return null;
+  const diffSec = Math.round((Date.now() - d) / 1000);
+  if (diffSec < 60) return `${diffSec}s ago`;
+  const diffMin = Math.round(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffH = Math.round(diffMin / 60);
+  if (diffH < 24) return `${diffH}h ago`;
+  const diffD = Math.round(diffH / 24);
+  return `${diffD}d ago`;
 };
 
 const CHANNEL_META: Record<string, { icon: typeof Twitter; label: string; color: string }> = {
@@ -279,6 +307,14 @@ export default function Sevra() {
                       {m.is_verified && <Badge variant="secondary" className="text-[10px]">verified</Badge>}
                       {m.is_influencer && <Badge variant="secondary" className="text-[10px]">influencer</Badge>}
                       <span className="text-xs text-muted-foreground">· {meta.label}</span>
+                      {(m.posted_at || m.created_at) && (
+                        <span
+                          className="text-xs text-muted-foreground"
+                          title={formatDateTime(m.posted_at ?? m.created_at) ?? undefined}
+                        >
+                          · posted {formatRelative(m.posted_at ?? m.created_at)}
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-foreground mt-2 whitespace-pre-wrap">{m.content}</p>
                     <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
@@ -296,6 +332,14 @@ export default function Sevra() {
                           {m.ai_incident_type && <Badge variant="outline" className="text-[10px]">{m.ai_incident_type}</Badge>}
                           {m.ai_sub_type && <Badge variant="outline" className="text-[10px]">{m.ai_sub_type}</Badge>}
                           {m.ai_risk_score != null && <span className="text-xs text-muted-foreground">score {m.ai_risk_score}</span>}
+                          {m.updated_at && (
+                            <span
+                              className="text-xs text-muted-foreground ml-auto"
+                              title={formatDateTime(m.updated_at) ?? undefined}
+                            >
+                              analyzed {formatRelative(m.updated_at)}
+                            </span>
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground">{m.ai_summary}</p>
                       </div>
