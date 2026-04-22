@@ -131,16 +131,16 @@ export default function Approvals() {
     toast.success("Copied to clipboard");
   };
 
-  const regenerate = async (incidentId: string) => {
-    setRegeneratingId(incidentId);
+  const regenerateAsset = async (asset: Asset) => {
+    setRegeneratingId(asset.id);
     const { data, error } = await supabase.functions.invoke("generate-incident-assets", {
-      body: { incident_id: incidentId },
+      body: { incident_id: asset.incident_id, asset_key: asset.asset_type },
     });
     setRegeneratingId(null);
     if (error || !data?.success) {
-      return toast.error(error?.message ?? "Failed to regenerate package");
+      return toast.error(error?.message ?? "Failed to regenerate asset");
     }
-    toast.success("Package regenerated");
+    toast.success(`${asset.title} regenerated`);
     setTab("pending");
   };
 
