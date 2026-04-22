@@ -46,8 +46,8 @@
     /* Crisis-specific tokens — light surfaces */
     --risk-critical: 11 100% 55%;
     --risk-critical-bg: 11 100% 96%;
-    --risk-high: 25 95% 53%;
-    --risk-high-bg: 25 95% 96%;
+    --risk-high: 11 100% 62%;
+    --risk-high-bg: 11 100% 96%;
     --risk-medium: 45 93% 47%;
     --risk-medium-bg: 45 93% 96%;
     --risk-low: 142 71% 40%;
