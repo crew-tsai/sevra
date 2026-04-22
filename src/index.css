@@ -6,54 +6,58 @@
 
 @layer base {
   :root {
-    --background: 0 0% 98%;
-    --foreground: 220 20% 10%;
+    /* Sevra dark theme — Midnight background, Graphite surfaces */
+    --background: 240 22% 7%;          /* #0D0D17 */
+    --foreground: 0 0% 100%;           /* #FFFFFF */
 
-    --card: 0 0% 100%;
-    --card-foreground: 220 20% 10%;
+    --card: 240 15% 20%;               /* #2A2A3A */
+    --card-foreground: 0 0% 100%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 10%;
+    --popover: 240 15% 20%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 230 80% 56%;
+    /* Coral CTA */
+    --primary: 11 100% 62%;            /* #FF5A3C */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 220 20% 10%;
+    /* Graphite surface as secondary */
+    --secondary: 240 15% 20%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 10% 46%;
+    --muted: 240 14% 16%;
+    --muted-foreground: 240 10% 75%;   /* ~#E6E6EB tone */
 
-    --accent: 220 14% 93%;
-    --accent-foreground: 220 20% 10%;
+    /* Purple accent / hover */
+    --accent: 258 100% 65%;            /* #7C4DFF */
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 230 80% 56%;
+    --border: 240 14% 22%;
+    --input: 240 14% 22%;
+    --ring: 11 100% 62%;
 
     --radius: 0.5rem;
 
-    /* Crisis-specific tokens */
-    --risk-critical: 0 72% 51%;
-    --risk-critical-bg: 0 72% 96%;
-    --risk-high: 25 95% 53%;
-    --risk-high-bg: 25 95% 96%;
-    --risk-medium: 45 93% 47%;
-    --risk-medium-bg: 45 93% 96%;
-    --risk-low: 142 71% 45%;
-    --risk-low-bg: 142 71% 96%;
+    /* Crisis-specific tokens — tuned for dark surfaces */
+    --risk-critical: 11 100% 62%;
+    --risk-critical-bg: 11 60% 18%;
+    --risk-high: 25 95% 60%;
+    --risk-high-bg: 25 60% 18%;
+    --risk-medium: 45 93% 55%;
+    --risk-medium-bg: 45 60% 16%;
+    --risk-low: 142 71% 50%;
+    --risk-low-bg: 142 50% 14%;
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 220 10% 40%;
-    --sidebar-primary: 230 80% 56%;
+    --sidebar-background: 240 22% 7%;
+    --sidebar-foreground: 240 10% 75%;
+    --sidebar-primary: 11 100% 62%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 14% 96%;
-    --sidebar-accent-foreground: 220 20% 10%;
-    --sidebar-border: 220 13% 93%;
-    --sidebar-ring: 230 80% 56%;
+    --sidebar-accent: 240 15% 20%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 240 14% 18%;
+    --sidebar-ring: 11 100% 62%;
 
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
