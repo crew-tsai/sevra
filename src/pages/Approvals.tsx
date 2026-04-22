@@ -169,6 +169,21 @@ export default function Approvals() {
                   >
                     View incident <ExternalLink className="h-3 w-3" />
                   </Link>
+                  {tab === "rejected" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => regenerate(incidentId)}
+                      disabled={regeneratingId === incidentId}
+                    >
+                      {regeneratingId === incidentId ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-3.5 w-3.5" />
+                      )}
+                      Regenerate package
+                    </Button>
+                  )}
                 </div>
                 <div className="space-y-3">
                   {items.map((item) => {
