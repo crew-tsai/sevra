@@ -83,6 +83,33 @@ export default function Approvals() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  // When arriving with ?incident=<id>, switch to the tab where that incident has assets
+  useEffect(() => {
+    if (!focusIncidentId || loading || !assets.length) return;
+    const incidentAssets = assets.filter((a) => a.incident_id === focusIncidentId);
+    if (!incidentAssets.length) return;
+    const order: Array<"pending" | "approved" | "rejected"> = ["pending", "approved", "rejected"];
+    const best = order.find((s) => incidentAssets.some((a) => a.approval_status === s));
+    if (best) setTab(best);
+  }, [focusIncidentId, loading, assets]);
+
+  // Scroll + highlight after the section mounts in the active tab
+  useEffect(() => {
+    if (!focusIncidentId || loading) return;
+    const el = sectionRefs.current[focusIncidentId];
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    setHighlightId(focusIncidentId);
+    const t = window.setTimeout(() => {
+      setHighlightId(null);
+      const next = new URLSearchParams(searchParams);
+      next.delete("incident");
+      setSearchParams(next, { replace: true });
+    }, 2000);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusIncidentId, tab, loading]);
+
   const updateStatus = async (id: string, status: "approved" | "rejected") => {
     setBusyId(id);
     const { data: userData } = await supabase.auth.getUser();
