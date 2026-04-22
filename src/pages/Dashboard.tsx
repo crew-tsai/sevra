@@ -51,18 +51,24 @@ export default function Dashboard() {
   }, []);
 
   const stats = [
-    { label: "Active", value: incidents.filter((i) => i.status === "active").length, icon: AlertTriangle, color: "text-risk-critical" },
-    { label: "Monitoring", value: incidents.filter((i) => i.status === "monitoring").length, icon: Activity, color: "text-risk-high" },
-    { label: "Contained", value: incidents.filter((i) => i.status === "contained").length, icon: Shield, color: "text-risk-medium" },
-    { label: "Resolved", value: incidents.filter((i) => i.status === "resolved").length, icon: CheckCircle, color: "text-risk-low" },
-  ];
+    { key: "active", label: "Active", value: incidents.filter((i) => i.status === "active").length, icon: AlertTriangle, color: "text-risk-critical" },
+    { key: "monitoring", label: "Monitoring", value: incidents.filter((i) => i.status === "monitoring").length, icon: Activity, color: "text-risk-high" },
+    { key: "contained", label: "Contained", value: incidents.filter((i) => i.status === "contained").length, icon: Shield, color: "text-risk-medium" },
+    { key: "resolved", label: "Resolved", value: incidents.filter((i) => i.status === "resolved").length, icon: CheckCircle, color: "text-risk-low" },
+  ] as const;
 
   const sourceCounts = {
     manual: incidents.filter((i) => i.source === "manual").length,
     social: incidents.filter((i) => i.source === "social_media").length,
   };
 
-  const filtered = incidents.filter((i) => sourceFilter === "all" || i.source === sourceFilter);
+  const filtered = incidents.filter(
+    (i) =>
+      (sourceFilter === "all" || i.source === sourceFilter) &&
+      (statusFilter === "all" || i.status === statusFilter),
+  );
+
+  const hasFilters = sourceFilter !== "all" || statusFilter !== "all";
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
