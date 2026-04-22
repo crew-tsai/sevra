@@ -28,6 +28,7 @@ export default function Dashboard() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
   const [sourceFilter, setSourceFilter] = useState<"all" | "manual" | "social_media">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "monitoring" | "contained" | "resolved">("all");
 
   useEffect(() => {
     const load = async () => {
@@ -50,18 +51,24 @@ export default function Dashboard() {
   }, []);
 
   const stats = [
-    { label: "Active", value: incidents.filter((i) => i.status === "active").length, icon: AlertTriangle, color: "text-risk-critical" },
-    { label: "Monitoring", value: incidents.filter((i) => i.status === "monitoring").length, icon: Activity, color: "text-risk-high" },
-    { label: "Contained", value: incidents.filter((i) => i.status === "contained").length, icon: Shield, color: "text-risk-medium" },
-    { label: "Resolved", value: incidents.filter((i) => i.status === "resolved").length, icon: CheckCircle, color: "text-risk-low" },
-  ];
+    { key: "active", label: "Active", value: incidents.filter((i) => i.status === "active").length, icon: AlertTriangle, color: "text-risk-critical" },
+    { key: "monitoring", label: "Monitoring", value: incidents.filter((i) => i.status === "monitoring").length, icon: Activity, color: "text-risk-high" },
+    { key: "contained", label: "Contained", value: incidents.filter((i) => i.status === "contained").length, icon: Shield, color: "text-risk-medium" },
+    { key: "resolved", label: "Resolved", value: incidents.filter((i) => i.status === "resolved").length, icon: CheckCircle, color: "text-risk-low" },
+  ] as const;
 
   const sourceCounts = {
     manual: incidents.filter((i) => i.source === "manual").length,
     social: incidents.filter((i) => i.source === "social_media").length,
   };
 
-  const filtered = incidents.filter((i) => sourceFilter === "all" || i.source === sourceFilter);
+  const filtered = incidents.filter(
+    (i) =>
+      (sourceFilter === "all" || i.source === sourceFilter) &&
+      (statusFilter === "all" || i.status === statusFilter),
+  );
+
+  const hasFilters = sourceFilter !== "all" || statusFilter !== "all";
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
@@ -70,17 +77,26 @@ export default function Dashboard() {
         <p className="text-sm text-muted-foreground mt-1">Overview of active incidents and risk posture</p>
       </div>
 
-      {/* Stats */}
+      {/* Stats — clickable status filter */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {stats.map((stat) => (
-          <div key={stat.label} className="rounded-lg border border-border bg-card p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
-              <span className="text-xs font-medium text-muted-foreground">{stat.label}</span>
-            </div>
-            <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-          </div>
-        ))}
+        {stats.map((stat) => {
+          const active = statusFilter === stat.key;
+          return (
+            <button
+              key={stat.key}
+              onClick={() => setStatusFilter(active ? "all" : stat.key)}
+              className={`text-left rounded-lg border bg-card p-4 transition-colors hover:bg-accent/50 ${
+                active ? "border-primary ring-2 ring-primary/30" : "border-border"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                <span className="text-xs font-medium text-muted-foreground">{stat.label}</span>
+              </div>
+              <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+            </button>
+          );
+        })}
       </div>
 
       {/* Source filter */}
@@ -108,12 +124,22 @@ export default function Dashboard() {
             </button>
           );
         })}
+        {hasFilters && (
+          <button
+            onClick={() => { setSourceFilter("all"); setStatusFilter("all"); }}
+            className="ml-auto text-xs text-muted-foreground hover:text-foreground underline"
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
       {/* Incidents table */}
       <div className="rounded-lg border border-border bg-card">
-        <div className="px-4 py-3 border-b border-border">
-          <h2 className="text-sm font-semibold text-foreground">All Incidents</h2>
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-foreground">
+            Incidents {hasFilters && <span className="text-muted-foreground font-normal">· {filtered.length} of {incidents.length}</span>}
+          </h2>
         </div>
         {loading ? (
           <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>
