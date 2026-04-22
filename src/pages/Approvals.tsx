@@ -200,6 +200,7 @@ export default function Approvals() {
           </span>
           <Link
             to={`/incidents/${focusIncidentId}`}
+            state={{ from: `/approvals?incident=${focusIncidentId}`, fromLabel: "Media package" }}
             className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
           >
             view incident <ExternalLink className="h-3 w-3" />
