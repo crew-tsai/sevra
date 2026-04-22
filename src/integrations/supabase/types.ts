@@ -18,6 +18,9 @@ export type Database = {
         Row: {
           airline_name: string | null
           airport_code: string | null
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           assignee: string | null
           country: string | null
           created_at: string
@@ -43,6 +46,9 @@ export type Database = {
         Insert: {
           airline_name?: string | null
           airport_code?: string | null
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           assignee?: string | null
           country?: string | null
           created_at?: string
@@ -68,6 +74,9 @@ export type Database = {
         Update: {
           airline_name?: string | null
           airport_code?: string | null
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           assignee?: string | null
           country?: string | null
           created_at?: string

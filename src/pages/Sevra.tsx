@@ -144,6 +144,7 @@ export default function Sevra() {
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "incident_created" | "dismissed" | "linked_to_incident">("all");
+  const [approvedIds, setApprovedIds] = useState<Set<string>>(new Set());
 
   const load = async () => {
     setLoading(true);
@@ -192,13 +193,35 @@ export default function Sevra() {
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Analysis failed");
       if (data.deduped) toast.success("Linked to existing incident (duplicate detected)");
-      else if (data.incident_id) toast.success("Incident auto-created from mention");
-      else toast.message("Mention dismissed as noise");
+      else if (data.incident_id) {
+        toast.success("Incident auto-created — review & approve", {
+          action: {
+            label: "View & approve",
+            onClick: () => navigate(`/incidents/${data.incident_id}`),
+          },
+        });
+      } else toast.message("Mention dismissed as noise");
     } catch (e: any) {
       toast.error(e.message || "Failed to analyze");
     } finally {
       setAnalyzingId(null);
     }
+  };
+
+  const approveIncident = async (incidentId: string) => {
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData.user?.id;
+    const { error } = await supabase
+      .from("incidents")
+      .update({
+        approval_status: "approved",
+        approved_at: new Date().toISOString(),
+        approved_by: userId ?? null,
+      })
+      .eq("id", incidentId);
+    if (error) return toast.error(error.message);
+    toast.success("Incident approved");
+    setApprovedIds((prev) => new Set(prev).add(incidentId));
   };
 
   const analyzeAllPending = async () => {
@@ -360,6 +383,17 @@ export default function Sevra() {
                         <Button size="sm" variant="outline" onClick={() => navigate(`/incidents/${m.incident_id}`)}>
                           <AlertTriangle className="h-3.5 w-3.5" /> View incident
                         </Button>
+                        {m.status === "incident_created" && (
+                          approvedIds.has(m.incident_id) ? (
+                            <Badge className="gap-1 bg-risk-low-bg text-risk-low border-0">
+                              <CheckCircle2 className="h-3 w-3" /> approved
+                            </Badge>
+                          ) : (
+                            <Button size="sm" onClick={() => approveIncident(m.incident_id!)}>
+                              <CheckCircle2 className="h-3.5 w-3.5" /> Approve
+                            </Button>
+                          )
+                        )}
                         {incidentMentionCounts[m.incident_id] > 1 && (
                           <Badge variant="secondary" className="text-[10px]">
                             {incidentMentionCounts[m.incident_id]} mentions on this incident
