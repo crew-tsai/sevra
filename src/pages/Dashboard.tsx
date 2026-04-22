@@ -57,14 +57,17 @@ export default function Dashboard() {
     { key: "resolved", label: "Resolved", value: incidents.filter((i) => i.status === "resolved").length, icon: CheckCircle, color: "text-risk-low" },
   ] as const;
 
+  const isManualSource = (s: string) => s !== "social_media";
+
   const sourceCounts = {
-    manual: incidents.filter((i) => i.source === "manual").length,
+    manual: incidents.filter((i) => isManualSource(i.source)).length,
     social: incidents.filter((i) => i.source === "social_media").length,
   };
 
   const filtered = incidents.filter(
     (i) =>
-      (sourceFilter === "all" || i.source === sourceFilter) &&
+      (sourceFilter === "all" ||
+        (sourceFilter === "manual" ? isManualSource(i.source) : i.source === sourceFilter)) &&
       (statusFilter === "all" || i.status === statusFilter),
   );
 
