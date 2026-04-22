@@ -383,6 +383,17 @@ export default function Sevra() {
                         <Button size="sm" variant="outline" onClick={() => navigate(`/incidents/${m.incident_id}`)}>
                           <AlertTriangle className="h-3.5 w-3.5" /> View incident
                         </Button>
+                        {m.status === "incident_created" && (
+                          approvedIds.has(m.incident_id) ? (
+                            <Badge className="gap-1 bg-risk-low-bg text-risk-low border-0">
+                              <CheckCircle2 className="h-3 w-3" /> approved
+                            </Badge>
+                          ) : (
+                            <Button size="sm" onClick={() => approveIncident(m.incident_id!)}>
+                              <CheckCircle2 className="h-3.5 w-3.5" /> Approve
+                            </Button>
+                          )
+                        )}
                         {incidentMentionCounts[m.incident_id] > 1 && (
                           <Badge variant="secondary" className="text-[10px]">
                             {incidentMentionCounts[m.incident_id]} mentions on this incident
