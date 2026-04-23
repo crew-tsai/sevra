@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.social-monitor-cron]
 verify_jwt = false
+
+[functions.social-monitor-control]
+verify_jwt = false
