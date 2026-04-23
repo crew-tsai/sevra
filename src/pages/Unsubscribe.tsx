@@ -101,7 +101,7 @@ const Unsubscribe = () => {
           {state.status === "validating" || state.status === "submitting" ? (
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           ) : state.status === "ready" || state.status === "error" ? (
-            <Button onClick={handleConfirm} disabled={state.status === "submitting"}>
+            <Button onClick={handleConfirm}>
               Confirm unsubscribe
             </Button>
           ) : null}
