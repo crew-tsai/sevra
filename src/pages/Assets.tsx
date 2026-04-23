@@ -157,7 +157,7 @@ export default function Assets() {
                             <h3 className="text-sm font-semibold text-foreground truncate">
                               {incident?.title ?? "Unknown incident"}
                             </h3>
-                            {incident?.risk && <RiskBadge risk={incident.risk as never} />}
+                            {incident?.risk && <RiskBadge level={incident.risk as never} />}
                           </div>
                           <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                             <span className="font-mono">PKG-{incidentId.slice(0, 8).toUpperCase()}</span>
