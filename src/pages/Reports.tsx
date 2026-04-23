@@ -123,7 +123,18 @@ export default function Reports() {
     activeIncidents: incidents.filter((i) => i.status === "active").length,
   };
 
-  const PIE_COLORS = ["hsl(var(--primary))", "hsl(var(--risk-high))", "hsl(var(--risk-medium))", "hsl(var(--risk-low))", "hsl(var(--muted-foreground))", "hsl(var(--accent-foreground))"];
+  const CATEGORY_COLORS = [
+    "hsl(217 91% 60%)",   // blue
+    "hsl(160 84% 39%)",   // emerald
+    "hsl(38 92% 50%)",    // amber
+    "hsl(280 87% 65%)",   // purple
+    "hsl(346 87% 60%)",   // rose
+    "hsl(190 90% 45%)",   // cyan
+    "hsl(25 95% 53%)",    // orange
+    "hsl(142 71% 45%)",   // green
+    "hsl(258 90% 66%)",   // violet
+    "hsl(15 80% 55%)",    // red-orange
+  ];
 
   const incidentChartConfig = {
     critical: { label: "Critical", color: "hsl(var(--risk-critical))" },
@@ -246,7 +257,7 @@ export default function Reports() {
                 <PieChart>
                   <Pie data={sourceBreakdown} dataKey="value" nameKey="name" innerRadius={45} outerRadius={75} paddingAngle={2}>
                     {sourceBreakdown.map((_, i) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                      <Cell key={i} fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} />
                     ))}
                   </Pie>
                 </PieChart>
@@ -255,7 +266,7 @@ export default function Reports() {
             <div className="mt-2 grid grid-cols-2 gap-1 text-xs">
               {sourceBreakdown.map((s, i) => (
                 <div key={s.name} className="flex items-center gap-2 text-muted-foreground">
-                  <span className="h-2 w-2 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                  <span className="h-2 w-2 rounded-full" style={{ background: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }} />
                   <span className="truncate">{s.name.replace(/_/g, " ")}</span>
                   <span className="ml-auto text-foreground font-medium">{s.value}</span>
                 </div>
@@ -276,17 +287,21 @@ export default function Reports() {
             <p className="text-sm text-muted-foreground">No data yet.</p>
           ) : (
             <div className="space-y-2">
-              {typeBreakdown.slice(0, 8).map((t) => {
+              {typeBreakdown.slice(0, 8).map((t, i) => {
                 const max = typeBreakdown[0].count;
                 const pct = (t.count / max) * 100;
+                const color = CATEGORY_COLORS[i % CATEGORY_COLORS.length];
                 return (
                   <div key={t.type} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="capitalize text-foreground">{t.type}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full" style={{ background: color }} />
+                        <span className="capitalize text-foreground">{t.type}</span>
+                      </div>
                       <span className="text-muted-foreground">{t.count}</span>
                     </div>
                     <div className="h-2 rounded-full bg-muted overflow-hidden">
-                      <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
+                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
                     </div>
                   </div>
                 );
