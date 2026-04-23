@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Twitter, Instagram, Music2, RefreshCw, Sparkles, ExternalLink, AlertTriangle, CheckCircle2, Loader2, Radio } from "lucide-react";
+import { Twitter, Instagram, Music2, RefreshCw, Sparkles, ExternalLink, AlertTriangle, CheckCircle2, Loader2, Radio, Power, PowerOff } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { RiskBadge } from "@/components/RiskBadge";
 
@@ -146,6 +147,35 @@ export default function Sevra() {
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "incident_created" | "dismissed" | "linked_to_incident">("all");
   const [approvedIds, setApprovedIds] = useState<Set<string>>(new Set());
   const [monitorRunning, setMonitorRunning] = useState(false);
+  const [monitorActive, setMonitorActive] = useState<boolean | null>(null);
+  const [monitorSchedule, setMonitorSchedule] = useState<string | null>(null);
+  const [monitorLastRun, setMonitorLastRun] = useState<string | null>(null);
+  const [monitorTogglePending, setMonitorTogglePending] = useState(false);
+
+  const refreshMonitorStatus = async () => {
+    const { data, error } = await supabase.functions.invoke("social-monitor-control", { body: {} });
+    if (error || !data?.success) return;
+    setMonitorActive(!!data.active);
+    setMonitorSchedule(data.schedule ?? null);
+    setMonitorLastRun(data.last_run_at ?? null);
+  };
+
+  const toggleMonitor = async (next: boolean) => {
+    setMonitorTogglePending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("social-monitor-control", {
+        body: { action: next ? "enable" : "disable" },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Toggle failed");
+      setMonitorActive(!!data.active);
+      toast.success(next ? "Continuous monitoring enabled" : "Continuous monitoring paused");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update monitor");
+    } finally {
+      setMonitorTogglePending(false);
+    }
+  };
 
   const runMonitorNow = async () => {
     setMonitorRunning(true);
@@ -154,6 +184,7 @@ export default function Sevra() {
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Monitor failed");
       toast.success(`Monitor ran — ${data.generated ?? 0} new mentions, ${data.analyzed ?? 0} analyzed`);
+      refreshMonitorStatus();
     } catch (e: any) {
       toast.error(e.message || "Failed to run monitor");
     } finally {
