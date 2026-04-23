@@ -49,6 +49,7 @@ export default function Assets() {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRange>(ALL_TIME);
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
+  const [typeFilter, setTypeFilter] = useState<string>("all");
 
   useEffect(() => {
     const load = async () => {
