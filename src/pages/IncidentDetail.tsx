@@ -380,7 +380,7 @@ export default function IncidentDetail() {
           </Card>
 
           <Card className="p-4 space-y-3">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
               <h2 className="text-sm font-semibold text-foreground inline-flex items-center gap-2">
                 <Package className="h-4 w-4 text-primary" /> Media package
               </h2>
@@ -388,6 +388,9 @@ export default function IncidentDetail() {
                 <Badge variant="secondary" className="text-[10px]">{assetCount} assets</Badge>
               )}
             </div>
+            <Badge variant="outline" className="font-mono text-[10px] tracking-wider border-primary/40 text-primary">
+              PKG-{incident.id.slice(0, 8).toUpperCase()}
+            </Badge>
             {assetCount > 0 ? (
               <>
                 <p className="text-xs text-muted-foreground">
