@@ -6,7 +6,10 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
-import { CheckCircle2, XCircle, FileText, Copy, Loader2, ExternalLink, Megaphone, MessageSquare, Users, HelpCircle, RefreshCw, LayoutDashboard, X, Filter } from "lucide-react";
+import { SendEmailDialog } from "@/components/SendEmailDialog";
+import { PublishSocialDialog } from "@/components/PublishSocialDialog";
+import { isEmailAsset, isSocialAsset, socialNetworkLabel } from "@/lib/distribution";
+import { CheckCircle2, XCircle, FileText, Copy, Loader2, ExternalLink, Megaphone, MessageSquare, Users, HelpCircle, RefreshCw, LayoutDashboard, X, Filter, Mail, Send } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -49,6 +52,8 @@ export default function Approvals() {
   const [tab, setTab] = useState<"pending" | "approved" | "rejected">("pending");
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [emailDialogAsset, setEmailDialogAsset] = useState<Asset | null>(null);
+  const [socialDialogAsset, setSocialDialogAsset] = useState<Asset | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -120,6 +125,18 @@ export default function Approvals() {
     setBusyId(null);
     if (error) return toast.error(error.message);
     toast.success(`Asset ${status}`);
+
+    // Auto-open the relevant distribution dialog after approval
+    if (status === "approved") {
+      const asset = assets.find((a) => a.id === id);
+      if (asset) {
+        if (isEmailAsset(asset.asset_type)) {
+          setEmailDialogAsset(asset);
+        } else if (isSocialAsset(asset.asset_type)) {
+          setSocialDialogAsset(asset);
+        }
+      }
+    }
   };
 
   const copy = (text: string) => {
@@ -354,6 +371,22 @@ export default function Approvals() {
                                   </Button>
                                 </>
                               )}
+                              {item.approval_status === "approved" && isEmailAsset(item.asset_type) && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => setEmailDialogAsset(item)}
+                                >
+                                  <Mail className="h-3.5 w-3.5" /> Send email
+                                </Button>
+                              )}
+                              {item.approval_status === "approved" && isSocialAsset(item.asset_type) && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => setSocialDialogAsset(item)}
+                                >
+                                  <Send className="h-3.5 w-3.5" /> Publish to {socialNetworkLabel(item.asset_type)}
+                                </Button>
+                              )}
                               {(isPending || isRejected) && (
                                 <Button
                                   size="sm"
@@ -381,6 +414,17 @@ export default function Approvals() {
           })}
         </div>
       )}
+
+      <SendEmailDialog
+        open={!!emailDialogAsset}
+        onOpenChange={(v) => !v && setEmailDialogAsset(null)}
+        asset={emailDialogAsset}
+      />
+      <PublishSocialDialog
+        open={!!socialDialogAsset}
+        onOpenChange={(v) => !v && setSocialDialogAsset(null)}
+        asset={socialDialogAsset}
+      />
     </div>
   );
 }
