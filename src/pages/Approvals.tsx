@@ -156,6 +156,7 @@ export default function Approvals() {
   };
 
   const focusIncident = focusIncidentId ? incidents[focusIncidentId] : null;
+  const focusRef = focusIncidentId ? `INC-${focusIncidentId.slice(0, 8).toUpperCase()}` : null;
 
   const clearIncidentFilter = () => {
     const next = new URLSearchParams(searchParams);
@@ -170,7 +171,7 @@ export default function Approvals() {
           focusIncidentId
             ? [
                 { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
-                { label: focusIncident?.title ?? "Incident", to: `/incidents/${focusIncidentId}` },
+                { label: `${focusRef} · ${focusIncident?.title ?? "Incident"}`, to: `/incidents/${focusIncidentId}` },
                 { label: "Media package" },
               ]
             : [
@@ -181,12 +182,21 @@ export default function Approvals() {
       />
 
       <div>
-        <h1 className="text-xl font-semibold text-foreground">
-          {focusIncidentId ? "Media package" : "Approval workflow"}
+        <h1 className="text-xl font-semibold text-foreground inline-flex items-center gap-2 flex-wrap">
+          {focusIncidentId ? (
+            <>
+              <span>Media package</span>
+              <Badge variant="outline" className="font-mono text-[10px] tracking-wider border-primary/40 text-primary">
+                {focusRef}
+              </Badge>
+            </>
+          ) : (
+            "Approval workflow"
+          )}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           {focusIncidentId
-            ? "Review and approve the assets generated for this incident."
+            ? `Assets generated for ${focusIncident?.title ?? focusRef}.`
             : "Review and approve communication assets before distribution."}
         </p>
       </div>
@@ -195,6 +205,9 @@ export default function Approvals() {
         <div className="flex items-center gap-2 flex-wrap rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
           <Filter className="h-3.5 w-3.5 text-primary" />
           <span className="text-muted-foreground">Filtered to:</span>
+          <Badge variant="outline" className="font-mono text-[10px] tracking-wider border-primary/40 text-primary">
+            {focusRef}
+          </Badge>
           <span className="text-foreground font-medium truncate max-w-[280px]">
             {focusIncident?.title ?? focusIncidentId.slice(0, 8)}
           </span>
@@ -244,6 +257,9 @@ export default function Approvals() {
                 )}
               >
                 <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="outline" className="font-mono text-[10px] tracking-wider border-primary/40 text-primary">
+                    INC-{incidentId.slice(0, 8).toUpperCase()}
+                  </Badge>
                   <h2 className="text-sm font-semibold text-foreground">
                     {inc?.title ?? "Incident"}
                   </h2>

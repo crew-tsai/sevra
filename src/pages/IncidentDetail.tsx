@@ -197,6 +197,7 @@ export default function IncidentDetail() {
 
   const isApproved = incident.approval_status === "approved";
   const isRejected = incident.approval_status === "rejected";
+  const incidentRef = `INC-${incident.id.slice(0, 8).toUpperCase()}`;
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
@@ -207,7 +208,7 @@ export default function IncidentDetail() {
             ...(backTo
               ? [{ label: backTo.startsWith("/approvals") ? "Approvals" : "Incidents", to: backTo }]
               : [{ label: "Incidents", to: "/dashboard" }]),
-            { label: incident.title },
+            { label: `${incidentRef} · ${incident.title}` },
           ]}
         />
         <button
@@ -222,7 +223,9 @@ export default function IncidentDetail() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="space-y-2 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-mono text-muted-foreground">{incident.id.slice(0, 8)}</span>
+            <Badge variant="outline" className="font-mono text-[10px] tracking-wider border-primary/40 text-primary">
+              {incidentRef}
+            </Badge>
             <RiskBadge level={incident.risk} />
             <StatusBadge status={incident.status} />
             <Badge variant="outline" className="text-[10px]">{incident.incident_type}</Badge>
