@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { TimeRangeFilter, ALL_TIME, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RiskBadge } from "@/components/RiskBadge";
 
 type Asset = {
@@ -49,6 +50,7 @@ export default function Assets() {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRange>(ALL_TIME);
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
+  const [typeFilter, setTypeFilter] = useState<string>("all");
 
   useEffect(() => {
     const load = async () => {
@@ -81,8 +83,16 @@ export default function Assets() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  const availableTypes = useMemo(() => {
+    const set = new Set<string>();
+    allAssets.forEach((a) => set.add(a.asset_type));
+    return Array.from(set).sort();
+  }, [allAssets]);
+
   const grouped = useMemo(() => {
-    const filtered = allAssets.filter((a) => isInRange(a.created_at, timeRange));
+    const filtered = allAssets.filter(
+      (a) => isInRange(a.created_at, timeRange) && (typeFilter === "all" || a.asset_type === typeFilter)
+    );
     const groups = new Map<string, Asset[]>();
     for (const a of filtered) {
       if (!groups.has(a.incident_id)) groups.set(a.incident_id, []);
@@ -94,7 +104,7 @@ export default function Assets() {
       const tb = incidents[b]?.created_at ?? groups.get(b)![0].created_at;
       return new Date(tb).getTime() - new Date(ta).getTime();
     });
-  }, [allAssets, incidents, timeRange]);
+  }, [allAssets, incidents, timeRange, typeFilter]);
 
   const toggle = (id: string) => {
     setOpenIds((prev) => {
@@ -125,6 +135,19 @@ export default function Assets() {
               {openIds.size === grouped.length ? "Collapse all" : "Expand all"}
             </button>
           )}
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="h-8 w-[180px] text-xs">
+              <SelectValue placeholder="All types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All types</SelectItem>
+              {availableTypes.map((t) => (
+                <SelectItem key={t} value={t} className="capitalize">
+                  {t.replace(/_/g, " ")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <TimeRangeFilter value={timeRange} onChange={setTimeRange} />
         </div>
       </div>
