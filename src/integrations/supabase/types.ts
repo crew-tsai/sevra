@@ -370,6 +370,15 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      get_social_monitor_status: {
+        Args: never
+        Returns: {
+          active: boolean
+          last_run_at: string
+          last_status: string
+          schedule: string
+        }[]
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -386,6 +395,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      set_social_monitor_active: {
+        Args: { p_active: boolean }
+        Returns: undefined
       }
     }
     Enums: {
