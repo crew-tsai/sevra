@@ -135,6 +135,19 @@ export default function Assets() {
               {openIds.size === grouped.length ? "Collapse all" : "Expand all"}
             </button>
           )}
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="h-8 w-[180px] text-xs">
+              <SelectValue placeholder="All types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All types</SelectItem>
+              {availableTypes.map((t) => (
+                <SelectItem key={t} value={t} className="capitalize">
+                  {t.replace(/_/g, " ")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <TimeRangeFilter value={timeRange} onChange={setTimeRange} />
         </div>
       </div>
