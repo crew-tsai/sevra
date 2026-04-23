@@ -157,6 +157,7 @@ export default function Approvals() {
 
   const focusIncident = focusIncidentId ? incidents[focusIncidentId] : null;
   const focusRef = focusIncidentId ? `INC-${focusIncidentId.slice(0, 8).toUpperCase()}` : null;
+  const focusPkgRef = focusIncidentId ? `PKG-${focusIncidentId.slice(0, 8).toUpperCase()}` : null;
 
   const clearIncidentFilter = () => {
     const next = new URLSearchParams(searchParams);
@@ -172,7 +173,7 @@ export default function Approvals() {
             ? [
                 { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
                 { label: `${focusRef} · ${focusIncident?.title ?? "Incident"}`, to: `/incidents/${focusIncidentId}` },
-                { label: "Media package" },
+                { label: `${focusPkgRef} · Media package` },
               ]
             : [
                 { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
@@ -187,7 +188,7 @@ export default function Approvals() {
             <>
               <span>Media package</span>
               <Badge variant="outline" className="font-mono text-[10px] tracking-wider border-primary/40 text-primary">
-                {focusRef}
+                {focusPkgRef}
               </Badge>
             </>
           ) : (
@@ -195,9 +196,15 @@ export default function Approvals() {
           )}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          {focusIncidentId
-            ? `Assets generated for ${focusIncident?.title ?? focusRef}.`
-            : "Review and approve communication assets before distribution."}
+          {focusIncidentId ? (
+            <>
+              Assets generated for{" "}
+              <span className="font-mono text-foreground">{focusRef}</span>
+              {focusIncident?.title ? <> · {focusIncident.title}</> : null}.
+            </>
+          ) : (
+            "Review and approve communication assets before distribution."
+          )}
         </p>
       </div>
 
