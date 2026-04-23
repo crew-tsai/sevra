@@ -13,6 +13,7 @@ import Strategy from "@/pages/Strategy";
 import Assets from "@/pages/Assets";
 import Approvals from "@/pages/Approvals";
 import Sevra from "@/pages/Sevra";
+import Unsubscribe from "@/pages/Unsubscribe";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/unsubscribe" element={<Unsubscribe />} />
           <Route path="/" element={<Navigate to="/sevra" replace />} />
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route path="/sevra" element={<Sevra />} />
