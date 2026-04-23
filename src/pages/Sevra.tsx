@@ -145,6 +145,21 @@ export default function Sevra() {
   const [filter, setFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "incident_created" | "dismissed" | "linked_to_incident">("all");
   const [approvedIds, setApprovedIds] = useState<Set<string>>(new Set());
+  const [monitorRunning, setMonitorRunning] = useState(false);
+
+  const runMonitorNow = async () => {
+    setMonitorRunning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("social-monitor-cron", { body: {} });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Monitor failed");
+      toast.success(`Monitor ran — ${data.generated ?? 0} new mentions, ${data.analyzed ?? 0} analyzed`);
+    } catch (e: any) {
+      toast.error(e.message || "Failed to run monitor");
+    } finally {
+      setMonitorRunning(false);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
