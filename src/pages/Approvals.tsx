@@ -371,6 +371,22 @@ export default function Approvals() {
                                   </Button>
                                 </>
                               )}
+                              {item.approval_status === "approved" && isEmailAsset(item.asset_type) && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => setEmailDialogAsset(item)}
+                                >
+                                  <Mail className="h-3.5 w-3.5" /> Send email
+                                </Button>
+                              )}
+                              {item.approval_status === "approved" && isSocialAsset(item.asset_type) && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => setSocialDialogAsset(item)}
+                                >
+                                  <Send className="h-3.5 w-3.5" /> Publish to {socialNetworkLabel(item.asset_type)}
+                                </Button>
+                              )}
                               {(isPending || isRejected) && (
                                 <Button
                                   size="sm"
