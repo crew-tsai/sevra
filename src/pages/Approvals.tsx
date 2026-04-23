@@ -414,6 +414,17 @@ export default function Approvals() {
           })}
         </div>
       )}
+
+      <SendEmailDialog
+        open={!!emailDialogAsset}
+        onOpenChange={(v) => !v && setEmailDialogAsset(null)}
+        asset={emailDialogAsset}
+      />
+      <PublishSocialDialog
+        open={!!socialDialogAsset}
+        onOpenChange={(v) => !v && setSocialDialogAsset(null)}
+        asset={socialDialogAsset}
+      />
     </div>
   );
 }
