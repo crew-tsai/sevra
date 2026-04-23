@@ -206,6 +206,7 @@ export default function Sevra() {
 
   useEffect(() => {
     load();
+    refreshMonitorStatus();
     const channel = supabase
       .channel("social_mentions_realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "social_mentions" }, () => load())
@@ -323,14 +324,57 @@ export default function Sevra() {
         </div>
       </div>
 
-      <Card className="p-3 flex items-center gap-3 bg-primary/5 border-primary/20">
-        <span className="relative flex h-2.5 w-2.5">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary" />
-        </span>
-        <div className="text-xs">
-          <span className="font-semibold text-foreground">Continuous monitoring active</span>
-          <span className="text-muted-foreground"> · SEVRA scans social channels every 15 minutes and auto-creates incidents on high risk.</span>
+      <Card
+        className={`p-4 flex items-center gap-4 flex-wrap border-2 ${
+          monitorActive
+            ? "bg-emerald-500/5 border-emerald-500/40"
+            : monitorActive === false
+              ? "bg-muted/40 border-border"
+              : "bg-muted/20 border-border"
+        }`}
+      >
+        <div className="flex items-center gap-3 flex-1 min-w-[240px]">
+          {monitorActive ? (
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
+            </span>
+          ) : (
+            <span className="inline-flex rounded-full h-3 w-3 bg-muted-foreground/40" />
+          )}
+          <div className="text-sm">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-foreground">Continuous monitoring</span>
+              {monitorActive === null ? (
+                <Badge variant="outline" className="text-[10px]">checking…</Badge>
+              ) : monitorActive ? (
+                <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/20 text-[10px] uppercase tracking-wider">
+                  <Power className="h-3 w-3 mr-1" /> ON
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-muted-foreground text-[10px] uppercase tracking-wider">
+                  <PowerOff className="h-3 w-3 mr-1" /> OFF
+                </Badge>
+              )}
+            </div>
+            <div className="text-xs text-muted-foreground mt-0.5">
+              {monitorActive
+                ? `SEVRA scans every 15 min and auto-creates incidents on high risk.`
+                : `Paused. Mentions will only be ingested when you click "Run monitor now".`}
+              {monitorLastRun && (
+                <> · Last run {formatRelative(monitorLastRun)}</>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">{monitorActive ? "On" : "Off"}</span>
+          <Switch
+            checked={!!monitorActive}
+            onCheckedChange={toggleMonitor}
+            disabled={monitorActive === null || monitorTogglePending}
+            aria-label="Toggle continuous monitoring"
+          />
         </div>
       </Card>
 
