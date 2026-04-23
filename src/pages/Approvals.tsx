@@ -12,6 +12,7 @@ import { isEmailAsset, isSocialAsset, socialNetworkLabel } from "@/lib/distribut
 import { CheckCircle2, XCircle, FileText, Copy, Loader2, ExternalLink, Megaphone, MessageSquare, Users, HelpCircle, RefreshCw, LayoutDashboard, X, Filter, Mail, Send } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { TimeRangeFilter, ALL_TIME, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
 
 type Asset = {
   id: string;
@@ -54,6 +55,7 @@ export default function Approvals() {
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [emailDialogAsset, setEmailDialogAsset] = useState<Asset | null>(null);
   const [socialDialogAsset, setSocialDialogAsset] = useState<Asset | null>(null);
+  const [timeRange, setTimeRange] = useState<TimeRange>(ALL_TIME);
 
   const load = async () => {
     setLoading(true);
@@ -157,7 +159,8 @@ export default function Approvals() {
     setTab("pending");
   };
 
-  const scoped = focusIncidentId ? assets.filter((a) => a.incident_id === focusIncidentId) : assets;
+  const baseScoped = focusIncidentId ? assets.filter((a) => a.incident_id === focusIncidentId) : assets;
+  const scoped = baseScoped.filter((a) => isInRange(a.created_at, timeRange));
   const filtered = scoped.filter((a) => a.approval_status === tab);
 
   // Group by incident
@@ -224,6 +227,8 @@ export default function Approvals() {
           )}
         </p>
       </div>
+
+      <TimeRangeFilter value={timeRange} onChange={setTimeRange} />
 
       {focusIncidentId && (
         <div className="flex items-center gap-2 flex-wrap rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs">

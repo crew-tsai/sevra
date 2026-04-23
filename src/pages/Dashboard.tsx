@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { AlertTriangle, Activity, Shield, CheckCircle, Radio, Hand } from "lucide-react";
 import { toast } from "sonner";
+import { TimeRangeFilter, ALL_TIME, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
 
 type Incident = {
   id: string;
@@ -29,10 +30,13 @@ const SOURCE_META: Record<string, { label: string; icon: typeof Radio; className
 };
 
 export default function Dashboard() {
-  const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [allIncidents, setAllIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
   const [sourceFilter, setSourceFilter] = useState<"all" | "manual" | "social_media">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "monitoring" | "contained" | "resolved">("all");
+  const [timeRange, setTimeRange] = useState<TimeRange>(ALL_TIME);
+
+  const incidents = allIncidents.filter((i) => isInRange(i.created_at, timeRange));
 
   useEffect(() => {
     const load = async () => {
@@ -43,7 +47,7 @@ export default function Dashboard() {
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) toast.error(error.message);
-      setIncidents((data ?? []) as Incident[]);
+      setAllIncidents((data ?? []) as Incident[]);
       setLoading(false);
     };
     load();
@@ -79,9 +83,12 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-1">Overview of active incidents and risk posture</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">Overview of active incidents and risk posture</p>
+        </div>
+        <TimeRangeFilter value={timeRange} onChange={setTimeRange} />
       </div>
 
       {/* Stats — clickable status filter */}

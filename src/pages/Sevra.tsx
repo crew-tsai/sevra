@@ -9,6 +9,7 @@ import { Twitter, Instagram, Music2, RefreshCw, Sparkles, ExternalLink, AlertTri
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { RiskBadge } from "@/components/RiskBadge";
+import { TimeRangeFilter, ALL_TIME, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
 
 type Mention = {
   id: string;
@@ -151,6 +152,7 @@ export default function Sevra() {
   const [monitorSchedule, setMonitorSchedule] = useState<string | null>(null);
   const [monitorLastRun, setMonitorLastRun] = useState<string | null>(null);
   const [monitorTogglePending, setMonitorTogglePending] = useState(false);
+  const [timeRange, setTimeRange] = useState<TimeRange>(ALL_TIME);
 
   const refreshMonitorStatus = async () => {
     const { data, error } = await supabase.functions.invoke("social-monitor-control", { body: {} });
@@ -280,7 +282,8 @@ export default function Sevra() {
     }
   };
 
-  const filtered = mentions.filter(
+  const timeScoped = mentions.filter((m) => isInRange(m.posted_at ?? m.created_at, timeRange));
+  const filtered = timeScoped.filter(
     (m) =>
       (filter === "all" || m.channel === filter) &&
       (statusFilter === "all" || m.status === statusFilter),
@@ -292,10 +295,10 @@ export default function Sevra() {
   }, {});
 
   const stats = {
-    pending: mentions.filter((m) => m.status === "pending").length,
-    incidents: mentions.filter((m) => m.status === "incident_created").length,
-    linked: mentions.filter((m) => m.status === "linked_to_incident").length,
-    dismissed: mentions.filter((m) => m.status === "dismissed").length,
+    pending: timeScoped.filter((m) => m.status === "pending").length,
+    incidents: timeScoped.filter((m) => m.status === "incident_created").length,
+    linked: timeScoped.filter((m) => m.status === "linked_to_incident").length,
+    dismissed: timeScoped.filter((m) => m.status === "dismissed").length,
   };
 
   return (
@@ -323,6 +326,8 @@ export default function Sevra() {
           </Button>
         </div>
       </div>
+
+      <TimeRangeFilter value={timeRange} onChange={setTimeRange} />
 
       <Card
         className={`p-4 flex items-center gap-4 flex-wrap border-2 ${

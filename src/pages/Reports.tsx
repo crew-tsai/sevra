@@ -5,6 +5,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLe
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Line, LineChart, Pie, PieChart, Cell, ResponsiveContainer } from "recharts";
 import { AlertTriangle, FileText, Radio, Activity } from "lucide-react";
 import { toast } from "sonner";
+import { TimeRangeFilter, ALL_TIME, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
 
 type Incident = { id: string; created_at: string; risk: string; status: string; source: string; incident_type: string };
 type Asset = { id: string; created_at: string; asset_type: string; approval_status: string };
@@ -36,10 +37,15 @@ const RISK_COLORS: Record<string, string> = {
 };
 
 export default function Reports() {
-  const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [assets, setAssets] = useState<Asset[]>([]);
-  const [mentions, setMentions] = useState<Mention[]>([]);
+  const [allIncidents, setAllIncidents] = useState<Incident[]>([]);
+  const [allAssets, setAllAssets] = useState<Asset[]>([]);
+  const [allMentions, setAllMentions] = useState<Mention[]>([]);
   const [loading, setLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState<TimeRange>(ALL_TIME);
+
+  const incidents = useMemo(() => allIncidents.filter((i) => isInRange(i.created_at, timeRange)), [allIncidents, timeRange]);
+  const assets = useMemo(() => allAssets.filter((a) => isInRange(a.created_at, timeRange)), [allAssets, timeRange]);
+  const mentions = useMemo(() => allMentions.filter((m) => isInRange(m.created_at, timeRange)), [allMentions, timeRange]);
 
   useEffect(() => {
     (async () => {
@@ -52,9 +58,9 @@ export default function Reports() {
       if (inc.error) toast.error(inc.error.message);
       if (ast.error) toast.error(ast.error.message);
       if (men.error) toast.error(men.error.message);
-      setIncidents((inc.data ?? []) as Incident[]);
-      setAssets((ast.data ?? []) as Asset[]);
-      setMentions((men.data ?? []) as Mention[]);
+      setAllIncidents((inc.data ?? []) as Incident[]);
+      setAllAssets((ast.data ?? []) as Asset[]);
+      setAllMentions((men.data ?? []) as Mention[]);
       setLoading(false);
     })();
   }, []);
@@ -138,9 +144,12 @@ export default function Reports() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">Reports</h1>
-        <p className="text-sm text-muted-foreground mt-1">Trends across incidents, assets and social intelligence (last 6 months)</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-xl font-semibold text-foreground">Reports</h1>
+          <p className="text-sm text-muted-foreground mt-1">Trends across incidents, assets and social intelligence</p>
+        </div>
+        <TimeRangeFilter value={timeRange} onChange={setTimeRange} />
       </div>
 
       {/* KPIs */}
