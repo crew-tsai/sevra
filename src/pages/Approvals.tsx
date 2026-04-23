@@ -257,6 +257,9 @@ export default function Approvals() {
                 )}
               >
                 <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="outline" className="font-mono text-[10px] tracking-wider border-primary/40 text-primary">
+                    INC-{incidentId.slice(0, 8).toUpperCase()}
+                  </Badge>
                   <h2 className="text-sm font-semibold text-foreground">
                     {inc?.title ?? "Incident"}
                   </h2>
