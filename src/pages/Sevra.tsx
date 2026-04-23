@@ -145,6 +145,21 @@ export default function Sevra() {
   const [filter, setFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "incident_created" | "dismissed" | "linked_to_incident">("all");
   const [approvedIds, setApprovedIds] = useState<Set<string>>(new Set());
+  const [monitorRunning, setMonitorRunning] = useState(false);
+
+  const runMonitorNow = async () => {
+    setMonitorRunning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("social-monitor-cron", { body: {} });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Monitor failed");
+      toast.success(`Monitor ran — ${data.generated ?? 0} new mentions, ${data.analyzed ?? 0} analyzed`);
+    } catch (e: any) {
+      toast.error(e.message || "Failed to run monitor");
+    } finally {
+      setMonitorRunning(false);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -264,14 +279,29 @@ export default function Sevra() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={runMonitorNow} disabled={monitorRunning}>
+            {monitorRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radio className="h-4 w-4" />}
+            Run monitor now
+          </Button>
           <Button variant="outline" onClick={seedMocks}>
-            <RefreshCw className="h-4 w-4" /> Pull new mentions
+            <RefreshCw className="h-4 w-4" /> Pull demo mentions
           </Button>
           <Button onClick={analyzeAllPending} disabled={!stats.pending}>
             <Sparkles className="h-4 w-4" /> Analyze all ({stats.pending})
           </Button>
         </div>
       </div>
+
+      <Card className="p-3 flex items-center gap-3 bg-primary/5 border-primary/20">
+        <span className="relative flex h-2.5 w-2.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary" />
+        </span>
+        <div className="text-xs">
+          <span className="font-semibold text-foreground">Continuous monitoring active</span>
+          <span className="text-muted-foreground"> · SEVRA scans social channels every 15 minutes and auto-creates incidents on high risk.</span>
+        </div>
+      </Card>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {([
