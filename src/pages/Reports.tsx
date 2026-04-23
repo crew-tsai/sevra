@@ -37,10 +37,15 @@ const RISK_COLORS: Record<string, string> = {
 };
 
 export default function Reports() {
-  const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [assets, setAssets] = useState<Asset[]>([]);
-  const [mentions, setMentions] = useState<Mention[]>([]);
+  const [allIncidents, setAllIncidents] = useState<Incident[]>([]);
+  const [allAssets, setAllAssets] = useState<Asset[]>([]);
+  const [allMentions, setAllMentions] = useState<Mention[]>([]);
   const [loading, setLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState<TimeRange>(ALL_TIME);
+
+  const incidents = useMemo(() => allIncidents.filter((i) => isInRange(i.created_at, timeRange)), [allIncidents, timeRange]);
+  const assets = useMemo(() => allAssets.filter((a) => isInRange(a.created_at, timeRange)), [allAssets, timeRange]);
+  const mentions = useMemo(() => allMentions.filter((m) => isInRange(m.created_at, timeRange)), [allMentions, timeRange]);
 
   useEffect(() => {
     (async () => {
@@ -53,9 +58,9 @@ export default function Reports() {
       if (inc.error) toast.error(inc.error.message);
       if (ast.error) toast.error(ast.error.message);
       if (men.error) toast.error(men.error.message);
-      setIncidents((inc.data ?? []) as Incident[]);
-      setAssets((ast.data ?? []) as Asset[]);
-      setMentions((men.data ?? []) as Mention[]);
+      setAllIncidents((inc.data ?? []) as Incident[]);
+      setAllAssets((ast.data ?? []) as Asset[]);
+      setAllMentions((men.data ?? []) as Mention[]);
       setLoading(false);
     })();
   }, []);
