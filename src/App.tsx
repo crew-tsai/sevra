@@ -13,6 +13,7 @@ import Strategy from "@/pages/Strategy";
 import Assets from "@/pages/Assets";
 import Approvals from "@/pages/Approvals";
 import Sevra from "@/pages/Sevra";
+import Reports from "@/pages/Reports";
 import Unsubscribe from "@/pages/Unsubscribe";
 import NotFound from "@/pages/NotFound";
 
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/strategy" element={<Strategy />} />
             <Route path="/assets" element={<Assets />} />
             <Route path="/approvals" element={<Approvals />} />
+            <Route path="/reports" element={<Reports />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
