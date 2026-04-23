@@ -82,8 +82,16 @@ export default function Assets() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  const availableTypes = useMemo(() => {
+    const set = new Set<string>();
+    allAssets.forEach((a) => set.add(a.asset_type));
+    return Array.from(set).sort();
+  }, [allAssets]);
+
   const grouped = useMemo(() => {
-    const filtered = allAssets.filter((a) => isInRange(a.created_at, timeRange));
+    const filtered = allAssets.filter(
+      (a) => isInRange(a.created_at, timeRange) && (typeFilter === "all" || a.asset_type === typeFilter)
+    );
     const groups = new Map<string, Asset[]>();
     for (const a of filtered) {
       if (!groups.has(a.incident_id)) groups.set(a.incident_id, []);
@@ -95,7 +103,7 @@ export default function Assets() {
       const tb = incidents[b]?.created_at ?? groups.get(b)![0].created_at;
       return new Date(tb).getTime() - new Date(ta).getTime();
     });
-  }, [allAssets, incidents, timeRange]);
+  }, [allAssets, incidents, timeRange, typeFilter]);
 
   const toggle = (id: string) => {
     setOpenIds((prev) => {
