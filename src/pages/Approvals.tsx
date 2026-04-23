@@ -265,6 +265,10 @@ export default function Approvals() {
               >
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="outline" className="font-mono text-[10px] tracking-wider border-primary/40 text-primary">
+                    PKG-{incidentId.slice(0, 8).toUpperCase()}
+                  </Badge>
+                  <span className="text-[10px] text-muted-foreground">for</span>
+                  <Badge variant="outline" className="font-mono text-[10px] tracking-wider">
                     INC-{incidentId.slice(0, 8).toUpperCase()}
                   </Badge>
                   <h2 className="text-sm font-semibold text-foreground">
