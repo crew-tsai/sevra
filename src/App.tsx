@@ -14,6 +14,7 @@ import Assets from "@/pages/Assets";
 import Approvals from "@/pages/Approvals";
 import Sevra from "@/pages/Sevra";
 import Reports from "@/pages/Reports";
+import Admin from "@/pages/Admin";
 import Unsubscribe from "@/pages/Unsubscribe";
 import NotFound from "@/pages/NotFound";
 
