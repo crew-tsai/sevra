@@ -155,7 +155,11 @@ export default function Admin() {
     const parsed = inviteSchema.safeParse({ email: inviteEmail, full_name: inviteName || undefined, role: inviteRole });
     if (!parsed.success) return toast({ title: "Datos inválidos", description: parsed.error.issues[0].message, variant: "destructive" });
     setInviting(true);
-    const { error } = await supabase.from("team_members").insert(parsed.data);
+    const { error } = await supabase.from("team_members").insert({
+      email: parsed.data.email,
+      full_name: parsed.data.full_name ?? null,
+      role: parsed.data.role,
+    });
     setInviting(false);
     if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
     setInviteEmail(""); setInviteName(""); setInviteRole("ejecutivo");
