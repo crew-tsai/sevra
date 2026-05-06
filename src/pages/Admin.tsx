@@ -268,36 +268,36 @@ export default function Admin() {
         <TabsContent value="branding" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Logo y colores</CardTitle>
-              <CardDescription>Se aplicarán a los assets generados (emails, comunicados, exports).</CardDescription>
+              <CardTitle>Logo and colors</CardTitle>
+              <CardDescription>Applied to generated assets (emails, communications, exports).</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Label>Logo</Label>
                 <div className="flex items-center gap-4">
                   <div className="h-20 w-20 rounded-md border bg-muted/30 flex items-center justify-center overflow-hidden">
-                    {logoUrl ? <img src={logoUrl} alt="Logo" className="max-h-full max-w-full object-contain" /> : <span className="text-xs text-muted-foreground">Sin logo</span>}
+                    {logoUrl ? <img src={logoUrl} alt="Logo" className="max-h-full max-w-full object-contain" /> : <span className="text-xs text-muted-foreground">No logo</span>}
                   </div>
                   <input ref={logoInput} type="file" accept="image/*" className="hidden"
                     onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadLogo(f); e.currentTarget.value = ""; }} />
                   <Button type="button" variant="outline" onClick={() => logoInput.current?.click()}>
-                    <Upload className="h-4 w-4 mr-2" />Subir logo
+                    <Upload className="h-4 w-4 mr-2" />Upload logo
                   </Button>
-                  {logoUrl && <Button type="button" variant="ghost" onClick={() => setLogoUrl(null)}>Quitar</Button>}
+                  {logoUrl && <Button type="button" variant="ghost" onClick={() => setLogoUrl(null)}>Remove</Button>}
                 </div>
-                <p className="text-xs text-muted-foreground">PNG, JPG o SVG. Máx 5 MB.</p>
+                <p className="text-xs text-muted-foreground">PNG, JPG or SVG. Max 5 MB.</p>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Color primario</Label>
+                  <Label>Primary color</Label>
                   <div className="flex items-center gap-2">
                     <input type="color" value={brandPrimary} onChange={(e) => setBrandPrimary(e.target.value)} className="h-10 w-14 rounded border bg-transparent cursor-pointer" />
                     <Input value={brandPrimary} onChange={(e) => setBrandPrimary(e.target.value)} maxLength={9} />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Color secundario</Label>
+                  <Label>Secondary color</Label>
                   <div className="flex items-center gap-2">
                     <input type="color" value={brandSecondary} onChange={(e) => setBrandSecondary(e.target.value)} className="h-10 w-14 rounded border bg-transparent cursor-pointer" />
                     <Input value={brandSecondary} onChange={(e) => setBrandSecondary(e.target.value)} maxLength={9} />
@@ -306,16 +306,16 @@ export default function Admin() {
               </div>
 
               <div className="rounded-lg border p-4 space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Vista previa</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Preview</p>
                 <div className="rounded-md p-4 flex items-center gap-3" style={{ background: brandSecondary, color: "#fff" }}>
                   {logoUrl && <img src={logoUrl} alt="" className="h-8 w-8 object-contain" />}
-                  <span className="font-semibold">{companyName || "Tu empresa"}</span>
+                  <span className="font-semibold">{companyName || "Your company"}</span>
                   <span className="ml-auto px-3 py-1 rounded text-xs font-medium" style={{ background: brandPrimary }}>CTA</span>
                 </div>
               </div>
 
               <Button onClick={saveSettings} disabled={savingSettings}>
-                {savingSettings && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Guardar
+                {savingSettings && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save
               </Button>
             </CardContent>
           </Card>
