@@ -106,7 +106,7 @@ export default function Admin() {
     if (!userId) return;
     const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: "admin" });
     if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
-    toast({ title: "Eres admin", description: "Ya puedes configurar el sistema." });
+    toast({ title: "You are admin", description: "You can now configure the system." });
     await init();
   }
 
@@ -126,34 +126,34 @@ export default function Admin() {
       : await supabase.from("company_settings").insert(payload);
     setSavingSettings(false);
     if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
-    toast({ title: "Guardado", description: "Configuración actualizada." });
+    toast({ title: "Saved", description: "Settings updated." });
     await loadSettings();
   }
 
   async function uploadLogo(file: File) {
-    if (file.size > 5 * 1024 * 1024) return toast({ title: "Archivo muy grande", description: "Máx 5 MB", variant: "destructive" });
+    if (file.size > 5 * 1024 * 1024) return toast({ title: "File too large", description: "Max 5 MB", variant: "destructive" });
     const path = `logo-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
     const { error } = await supabase.storage.from("branding").upload(path, file, { upsert: true });
-    if (error) return toast({ title: "Error subiendo logo", description: error.message, variant: "destructive" });
+    if (error) return toast({ title: "Logo upload error", description: error.message, variant: "destructive" });
     const { data } = supabase.storage.from("branding").getPublicUrl(path);
     setLogoUrl(data.publicUrl);
-    toast({ title: "Logo subido", description: "Recuerda guardar." });
+    toast({ title: "Logo uploaded", description: "Remember to save." });
   }
 
   async function uploadManual(file: File) {
-    if (file.size > 20 * 1024 * 1024) return toast({ title: "Archivo muy grande", description: "Máx 20 MB", variant: "destructive" });
+    if (file.size > 20 * 1024 * 1024) return toast({ title: "File too large", description: "Max 20 MB", variant: "destructive" });
     const path = `manual-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
     const { error } = await supabase.storage.from("manuals").upload(path, file, { upsert: true });
-    if (error) return toast({ title: "Error subiendo manual", description: error.message, variant: "destructive" });
+    if (error) return toast({ title: "Manual upload error", description: error.message, variant: "destructive" });
     const { data } = await supabase.storage.from("manuals").createSignedUrl(path, 60 * 60 * 24 * 365);
     setManualUrl(data?.signedUrl ?? null);
     setManualName(file.name);
-    toast({ title: "Manual subido", description: "Recuerda guardar." });
+    toast({ title: "Manual uploaded", description: "Remember to save." });
   }
 
   async function inviteMember() {
     const parsed = inviteSchema.safeParse({ email: inviteEmail, full_name: inviteName || undefined, role: inviteRole });
-    if (!parsed.success) return toast({ title: "Datos inválidos", description: parsed.error.issues[0].message, variant: "destructive" });
+    if (!parsed.success) return toast({ title: "Invalid data", description: parsed.error.issues[0].message, variant: "destructive" });
     setInviting(true);
     const { error } = await supabase.from("team_members").insert({
       email: parsed.data.email,
@@ -163,7 +163,7 @@ export default function Admin() {
     setInviting(false);
     if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
     setInviteEmail(""); setInviteName(""); setInviteRole("ejecutivo");
-    toast({ title: "Invitado", description: "Miembro agregado al equipo." });
+    toast({ title: "Invited", description: "Member added to the team." });
     await loadTeam();
   }
 
