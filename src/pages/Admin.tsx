@@ -17,21 +17,21 @@ import { Loader2, Upload, FileText, Trash2, ShieldAlert, Building2, Users, Palet
 import { z } from "zod";
 
 const INDUSTRIES = [
-  "Aviación", "Hospitalidad", "Retail", "Banca y Finanzas", "Salud",
-  "Energía", "Tecnología", "Telecomunicaciones", "Educación", "Gobierno", "Otro",
+  "Aviation", "Hospitality", "Retail", "Banking & Finance", "Healthcare",
+  "Energy", "Technology", "Telecommunications", "Education", "Government", "Other",
 ];
 
 const ROLES = [
   { value: "admin", label: "Admin" },
-  { value: "coordinador", label: "Coordinador" },
+  { value: "coordinador", label: "Coordinator" },
   { value: "manager", label: "Manager" },
-  { value: "ejecutivo", label: "Ejecutivo" },
+  { value: "ejecutivo", label: "Executive" },
 ] as const;
 
 type Role = typeof ROLES[number]["value"];
 
 const inviteSchema = z.object({
-  email: z.string().trim().email("Email inválido").max(255),
+  email: z.string().trim().email("Invalid email").max(255),
   full_name: z.string().trim().max(120).optional(),
   role: z.enum(["admin", "coordinador", "manager", "ejecutivo"]),
 });
