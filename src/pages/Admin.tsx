@@ -325,21 +325,21 @@ export default function Admin() {
         <TabsContent value="team" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Invitar miembro</CardTitle>
-              <CardDescription>Asigna un rol antes o después de que se registren.</CardDescription>
+              <CardTitle>Invite member</CardTitle>
+              <CardDescription>Assign a role before or after they sign up.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid sm:grid-cols-[1fr_1fr_180px_auto] gap-3 items-end">
                 <div className="space-y-2">
                   <Label>Email</Label>
-                  <Input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="persona@empresa.com" />
+                  <Input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="person@company.com" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Nombre</Label>
-                  <Input value={inviteName} onChange={(e) => setInviteName(e.target.value)} placeholder="Opcional" />
+                  <Label>Name</Label>
+                  <Input value={inviteName} onChange={(e) => setInviteName(e.target.value)} placeholder="Optional" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Rol</Label>
+                  <Label>Role</Label>
                   <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as Role)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -348,7 +348,7 @@ export default function Admin() {
                   </Select>
                 </div>
                 <Button onClick={inviteMember} disabled={inviting}>
-                  {inviting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Agregar
+                  {inviting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Add
                 </Button>
               </div>
             </CardContent>
@@ -356,20 +356,20 @@ export default function Admin() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Miembros del equipo</CardTitle>
-              <CardDescription>{team.length} {team.length === 1 ? "miembro" : "miembros"}</CardDescription>
+              <CardTitle>Team members</CardTitle>
+              <CardDescription>{team.length} {team.length === 1 ? "member" : "members"}</CardDescription>
             </CardHeader>
             <CardContent>
               {team.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-6 text-center">No hay miembros invitados todavía.</p>
+                <p className="text-sm text-muted-foreground py-6 text-center">No members invited yet.</p>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Email</TableHead>
-                      <TableHead>Nombre</TableHead>
-                      <TableHead>Rol</TableHead>
-                      <TableHead>Estado</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead className="w-12"></TableHead>
                     </TableRow>
                   </TableHeader>
