@@ -188,13 +188,13 @@ export default function Admin() {
       <div className="max-w-2xl mx-auto py-12">
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-2"><ShieldAlert className="h-5 w-5 text-destructive" /><CardTitle>Acceso restringido</CardTitle></div>
-            <CardDescription>El panel de administrador solo es visible para usuarios con rol <strong>admin</strong>.</CardDescription>
+            <div className="flex items-center gap-2"><ShieldAlert className="h-5 w-5 text-destructive" /><CardTitle>Restricted access</CardTitle></div>
+            <CardDescription>The admin panel is only visible to users with the <strong>admin</strong> role.</CardDescription>
           </CardHeader>
           {!adminExists && (
             <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">No existe ningún administrador todavía. Puedes reclamar este rol para iniciar la configuración.</p>
-              <Button onClick={claimAdmin}>Reclamar rol de admin</Button>
+              <p className="text-sm text-muted-foreground">No administrator exists yet. You can claim this role to start the setup.</p>
+              <Button onClick={claimAdmin}>Claim admin role</Button>
             </CardContent>
           )}
         </Card>
@@ -205,15 +205,15 @@ export default function Admin() {
   return (
     <div className="max-w-5xl mx-auto py-6 space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Panel de administrador</h1>
-        <p className="text-sm text-muted-foreground">Configura tu empresa, equipo y branding.</p>
+        <h1 className="text-2xl font-semibold tracking-tight">Admin panel</h1>
+        <p className="text-sm text-muted-foreground">Configure your company, team, and branding.</p>
       </header>
 
       <Tabs defaultValue="company">
         <TabsList>
-          <TabsTrigger value="company"><Building2 className="h-4 w-4 mr-2" />Empresa</TabsTrigger>
+          <TabsTrigger value="company"><Building2 className="h-4 w-4 mr-2" />Company</TabsTrigger>
           <TabsTrigger value="branding"><Palette className="h-4 w-4 mr-2" />Branding</TabsTrigger>
-          <TabsTrigger value="team"><Users className="h-4 w-4 mr-2" />Equipo y roles</TabsTrigger>
+          <TabsTrigger value="team"><Users className="h-4 w-4 mr-2" />Team & roles</TabsTrigger>
         </TabsList>
 
         {/* COMPANY */}
