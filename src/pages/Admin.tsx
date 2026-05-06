@@ -388,8 +388,8 @@ export default function Admin() {
                         </TableCell>
                         <TableCell>
                           {m.user_id
-                            ? <Badge variant="secondary">Activo</Badge>
-                            : <Badge variant="outline">Pendiente</Badge>}
+                            ? <Badge variant="secondary">Active</Badge>
+                            : <Badge variant="outline">Pending</Badge>}
                         </TableCell>
                         <TableCell>
                           <Button variant="ghost" size="icon" onClick={() => removeMember(m.id)}>
