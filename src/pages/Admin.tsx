@@ -220,19 +220,19 @@ export default function Admin() {
         <TabsContent value="company" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Información de la empresa</CardTitle>
-              <CardDescription>Industria y manual de comunicaciones.</CardDescription>
+              <CardTitle>Company information</CardTitle>
+              <CardDescription>Industry and communications manual.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Nombre de empresa</Label>
+                  <Label>Company name</Label>
                   <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} maxLength={120} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Industria</Label>
+                  <Label>Industry</Label>
                   <Select value={industry} onValueChange={setIndustry}>
-                    <SelectTrigger><SelectValue placeholder="Selecciona industria" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select industry" /></SelectTrigger>
                     <SelectContent>
                       {INDUSTRIES.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}
                     </SelectContent>
@@ -241,12 +241,12 @@ export default function Admin() {
               </div>
 
               <div className="space-y-2">
-                <Label>Manual de comunicaciones</Label>
+                <Label>Communications manual</Label>
                 <div className="flex items-center gap-3">
                   <input ref={manualInput} type="file" accept=".pdf,.doc,.docx,.md,.txt" className="hidden"
                     onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadManual(f); e.currentTarget.value = ""; }} />
                   <Button type="button" variant="outline" onClick={() => manualInput.current?.click()}>
-                    <Upload className="h-4 w-4 mr-2" />Subir manual
+                    <Upload className="h-4 w-4 mr-2" />Upload manual
                   </Button>
                   {manualName && (
                     <a href={manualUrl ?? "#"} target="_blank" rel="noreferrer" className="text-sm text-primary inline-flex items-center gap-2 hover:underline">
@@ -254,11 +254,11 @@ export default function Admin() {
                     </a>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground">PDF, DOC o texto. Máx 20 MB.</p>
+                <p className="text-xs text-muted-foreground">PDF, DOC or text. Max 20 MB.</p>
               </div>
 
               <Button onClick={saveSettings} disabled={savingSettings}>
-                {savingSettings && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Guardar
+                {savingSettings && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save
               </Button>
             </CardContent>
           </Card>
