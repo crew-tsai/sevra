@@ -17,21 +17,21 @@ import { Loader2, Upload, FileText, Trash2, ShieldAlert, Building2, Users, Palet
 import { z } from "zod";
 
 const INDUSTRIES = [
-  "Aviación", "Hospitalidad", "Retail", "Banca y Finanzas", "Salud",
-  "Energía", "Tecnología", "Telecomunicaciones", "Educación", "Gobierno", "Otro",
+  "Aviation", "Hospitality", "Retail", "Banking & Finance", "Healthcare",
+  "Energy", "Technology", "Telecommunications", "Education", "Government", "Other",
 ];
 
 const ROLES = [
   { value: "admin", label: "Admin" },
-  { value: "coordinador", label: "Coordinador" },
+  { value: "coordinador", label: "Coordinator" },
   { value: "manager", label: "Manager" },
-  { value: "ejecutivo", label: "Ejecutivo" },
+  { value: "ejecutivo", label: "Executive" },
 ] as const;
 
 type Role = typeof ROLES[number]["value"];
 
 const inviteSchema = z.object({
-  email: z.string().trim().email("Email inválido").max(255),
+  email: z.string().trim().email("Invalid email").max(255),
   full_name: z.string().trim().max(120).optional(),
   role: z.enum(["admin", "coordinador", "manager", "ejecutivo"]),
 });
@@ -106,7 +106,7 @@ export default function Admin() {
     if (!userId) return;
     const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: "admin" });
     if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
-    toast({ title: "Eres admin", description: "Ya puedes configurar el sistema." });
+    toast({ title: "You are admin", description: "You can now configure the system." });
     await init();
   }
 
@@ -126,34 +126,34 @@ export default function Admin() {
       : await supabase.from("company_settings").insert(payload);
     setSavingSettings(false);
     if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
-    toast({ title: "Guardado", description: "Configuración actualizada." });
+    toast({ title: "Saved", description: "Settings updated." });
     await loadSettings();
   }
 
   async function uploadLogo(file: File) {
-    if (file.size > 5 * 1024 * 1024) return toast({ title: "Archivo muy grande", description: "Máx 5 MB", variant: "destructive" });
+    if (file.size > 5 * 1024 * 1024) return toast({ title: "File too large", description: "Max 5 MB", variant: "destructive" });
     const path = `logo-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
     const { error } = await supabase.storage.from("branding").upload(path, file, { upsert: true });
-    if (error) return toast({ title: "Error subiendo logo", description: error.message, variant: "destructive" });
+    if (error) return toast({ title: "Logo upload error", description: error.message, variant: "destructive" });
     const { data } = supabase.storage.from("branding").getPublicUrl(path);
     setLogoUrl(data.publicUrl);
-    toast({ title: "Logo subido", description: "Recuerda guardar." });
+    toast({ title: "Logo uploaded", description: "Remember to save." });
   }
 
   async function uploadManual(file: File) {
-    if (file.size > 20 * 1024 * 1024) return toast({ title: "Archivo muy grande", description: "Máx 20 MB", variant: "destructive" });
+    if (file.size > 20 * 1024 * 1024) return toast({ title: "File too large", description: "Max 20 MB", variant: "destructive" });
     const path = `manual-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
     const { error } = await supabase.storage.from("manuals").upload(path, file, { upsert: true });
-    if (error) return toast({ title: "Error subiendo manual", description: error.message, variant: "destructive" });
+    if (error) return toast({ title: "Manual upload error", description: error.message, variant: "destructive" });
     const { data } = await supabase.storage.from("manuals").createSignedUrl(path, 60 * 60 * 24 * 365);
     setManualUrl(data?.signedUrl ?? null);
     setManualName(file.name);
-    toast({ title: "Manual subido", description: "Recuerda guardar." });
+    toast({ title: "Manual uploaded", description: "Remember to save." });
   }
 
   async function inviteMember() {
     const parsed = inviteSchema.safeParse({ email: inviteEmail, full_name: inviteName || undefined, role: inviteRole });
-    if (!parsed.success) return toast({ title: "Datos inválidos", description: parsed.error.issues[0].message, variant: "destructive" });
+    if (!parsed.success) return toast({ title: "Invalid data", description: parsed.error.issues[0].message, variant: "destructive" });
     setInviting(true);
     const { error } = await supabase.from("team_members").insert({
       email: parsed.data.email,
@@ -163,7 +163,7 @@ export default function Admin() {
     setInviting(false);
     if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
     setInviteEmail(""); setInviteName(""); setInviteRole("ejecutivo");
-    toast({ title: "Invitado", description: "Miembro agregado al equipo." });
+    toast({ title: "Invited", description: "Member added to the team." });
     await loadTeam();
   }
 
@@ -188,13 +188,13 @@ export default function Admin() {
       <div className="max-w-2xl mx-auto py-12">
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-2"><ShieldAlert className="h-5 w-5 text-destructive" /><CardTitle>Acceso restringido</CardTitle></div>
-            <CardDescription>El panel de administrador solo es visible para usuarios con rol <strong>admin</strong>.</CardDescription>
+            <div className="flex items-center gap-2"><ShieldAlert className="h-5 w-5 text-destructive" /><CardTitle>Restricted access</CardTitle></div>
+            <CardDescription>The admin panel is only visible to users with the <strong>admin</strong> role.</CardDescription>
           </CardHeader>
           {!adminExists && (
             <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">No existe ningún administrador todavía. Puedes reclamar este rol para iniciar la configuración.</p>
-              <Button onClick={claimAdmin}>Reclamar rol de admin</Button>
+              <p className="text-sm text-muted-foreground">No administrator exists yet. You can claim this role to start the setup.</p>
+              <Button onClick={claimAdmin}>Claim admin role</Button>
             </CardContent>
           )}
         </Card>
@@ -205,34 +205,34 @@ export default function Admin() {
   return (
     <div className="max-w-5xl mx-auto py-6 space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Panel de administrador</h1>
-        <p className="text-sm text-muted-foreground">Configura tu empresa, equipo y branding.</p>
+        <h1 className="text-2xl font-semibold tracking-tight">Admin panel</h1>
+        <p className="text-sm text-muted-foreground">Configure your company, team, and branding.</p>
       </header>
 
       <Tabs defaultValue="company">
         <TabsList>
-          <TabsTrigger value="company"><Building2 className="h-4 w-4 mr-2" />Empresa</TabsTrigger>
+          <TabsTrigger value="company"><Building2 className="h-4 w-4 mr-2" />Company</TabsTrigger>
           <TabsTrigger value="branding"><Palette className="h-4 w-4 mr-2" />Branding</TabsTrigger>
-          <TabsTrigger value="team"><Users className="h-4 w-4 mr-2" />Equipo y roles</TabsTrigger>
+          <TabsTrigger value="team"><Users className="h-4 w-4 mr-2" />Team & roles</TabsTrigger>
         </TabsList>
 
         {/* COMPANY */}
         <TabsContent value="company" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Información de la empresa</CardTitle>
-              <CardDescription>Industria y manual de comunicaciones.</CardDescription>
+              <CardTitle>Company information</CardTitle>
+              <CardDescription>Industry and communications manual.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Nombre de empresa</Label>
+                  <Label>Company name</Label>
                   <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} maxLength={120} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Industria</Label>
+                  <Label>Industry</Label>
                   <Select value={industry} onValueChange={setIndustry}>
-                    <SelectTrigger><SelectValue placeholder="Selecciona industria" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select industry" /></SelectTrigger>
                     <SelectContent>
                       {INDUSTRIES.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}
                     </SelectContent>
@@ -241,12 +241,12 @@ export default function Admin() {
               </div>
 
               <div className="space-y-2">
-                <Label>Manual de comunicaciones</Label>
+                <Label>Communications manual</Label>
                 <div className="flex items-center gap-3">
                   <input ref={manualInput} type="file" accept=".pdf,.doc,.docx,.md,.txt" className="hidden"
                     onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadManual(f); e.currentTarget.value = ""; }} />
                   <Button type="button" variant="outline" onClick={() => manualInput.current?.click()}>
-                    <Upload className="h-4 w-4 mr-2" />Subir manual
+                    <Upload className="h-4 w-4 mr-2" />Upload manual
                   </Button>
                   {manualName && (
                     <a href={manualUrl ?? "#"} target="_blank" rel="noreferrer" className="text-sm text-primary inline-flex items-center gap-2 hover:underline">
@@ -254,11 +254,11 @@ export default function Admin() {
                     </a>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground">PDF, DOC o texto. Máx 20 MB.</p>
+                <p className="text-xs text-muted-foreground">PDF, DOC or text. Max 20 MB.</p>
               </div>
 
               <Button onClick={saveSettings} disabled={savingSettings}>
-                {savingSettings && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Guardar
+                {savingSettings && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save
               </Button>
             </CardContent>
           </Card>
@@ -268,36 +268,36 @@ export default function Admin() {
         <TabsContent value="branding" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Logo y colores</CardTitle>
-              <CardDescription>Se aplicarán a los assets generados (emails, comunicados, exports).</CardDescription>
+              <CardTitle>Logo and colors</CardTitle>
+              <CardDescription>Applied to generated assets (emails, communications, exports).</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Label>Logo</Label>
                 <div className="flex items-center gap-4">
                   <div className="h-20 w-20 rounded-md border bg-muted/30 flex items-center justify-center overflow-hidden">
-                    {logoUrl ? <img src={logoUrl} alt="Logo" className="max-h-full max-w-full object-contain" /> : <span className="text-xs text-muted-foreground">Sin logo</span>}
+                    {logoUrl ? <img src={logoUrl} alt="Logo" className="max-h-full max-w-full object-contain" /> : <span className="text-xs text-muted-foreground">No logo</span>}
                   </div>
                   <input ref={logoInput} type="file" accept="image/*" className="hidden"
                     onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadLogo(f); e.currentTarget.value = ""; }} />
                   <Button type="button" variant="outline" onClick={() => logoInput.current?.click()}>
-                    <Upload className="h-4 w-4 mr-2" />Subir logo
+                    <Upload className="h-4 w-4 mr-2" />Upload logo
                   </Button>
-                  {logoUrl && <Button type="button" variant="ghost" onClick={() => setLogoUrl(null)}>Quitar</Button>}
+                  {logoUrl && <Button type="button" variant="ghost" onClick={() => setLogoUrl(null)}>Remove</Button>}
                 </div>
-                <p className="text-xs text-muted-foreground">PNG, JPG o SVG. Máx 5 MB.</p>
+                <p className="text-xs text-muted-foreground">PNG, JPG or SVG. Max 5 MB.</p>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Color primario</Label>
+                  <Label>Primary color</Label>
                   <div className="flex items-center gap-2">
                     <input type="color" value={brandPrimary} onChange={(e) => setBrandPrimary(e.target.value)} className="h-10 w-14 rounded border bg-transparent cursor-pointer" />
                     <Input value={brandPrimary} onChange={(e) => setBrandPrimary(e.target.value)} maxLength={9} />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Color secundario</Label>
+                  <Label>Secondary color</Label>
                   <div className="flex items-center gap-2">
                     <input type="color" value={brandSecondary} onChange={(e) => setBrandSecondary(e.target.value)} className="h-10 w-14 rounded border bg-transparent cursor-pointer" />
                     <Input value={brandSecondary} onChange={(e) => setBrandSecondary(e.target.value)} maxLength={9} />
@@ -306,16 +306,16 @@ export default function Admin() {
               </div>
 
               <div className="rounded-lg border p-4 space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Vista previa</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Preview</p>
                 <div className="rounded-md p-4 flex items-center gap-3" style={{ background: brandSecondary, color: "#fff" }}>
                   {logoUrl && <img src={logoUrl} alt="" className="h-8 w-8 object-contain" />}
-                  <span className="font-semibold">{companyName || "Tu empresa"}</span>
+                  <span className="font-semibold">{companyName || "Your company"}</span>
                   <span className="ml-auto px-3 py-1 rounded text-xs font-medium" style={{ background: brandPrimary }}>CTA</span>
                 </div>
               </div>
 
               <Button onClick={saveSettings} disabled={savingSettings}>
-                {savingSettings && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Guardar
+                {savingSettings && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save
               </Button>
             </CardContent>
           </Card>
@@ -325,21 +325,21 @@ export default function Admin() {
         <TabsContent value="team" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Invitar miembro</CardTitle>
-              <CardDescription>Asigna un rol antes o después de que se registren.</CardDescription>
+              <CardTitle>Invite member</CardTitle>
+              <CardDescription>Assign a role before or after they sign up.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid sm:grid-cols-[1fr_1fr_180px_auto] gap-3 items-end">
                 <div className="space-y-2">
                   <Label>Email</Label>
-                  <Input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="persona@empresa.com" />
+                  <Input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="person@company.com" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Nombre</Label>
-                  <Input value={inviteName} onChange={(e) => setInviteName(e.target.value)} placeholder="Opcional" />
+                  <Label>Name</Label>
+                  <Input value={inviteName} onChange={(e) => setInviteName(e.target.value)} placeholder="Optional" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Rol</Label>
+                  <Label>Role</Label>
                   <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as Role)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -348,7 +348,7 @@ export default function Admin() {
                   </Select>
                 </div>
                 <Button onClick={inviteMember} disabled={inviting}>
-                  {inviting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Agregar
+                  {inviting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Add
                 </Button>
               </div>
             </CardContent>
@@ -356,20 +356,20 @@ export default function Admin() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Miembros del equipo</CardTitle>
-              <CardDescription>{team.length} {team.length === 1 ? "miembro" : "miembros"}</CardDescription>
+              <CardTitle>Team members</CardTitle>
+              <CardDescription>{team.length} {team.length === 1 ? "member" : "members"}</CardDescription>
             </CardHeader>
             <CardContent>
               {team.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-6 text-center">No hay miembros invitados todavía.</p>
+                <p className="text-sm text-muted-foreground py-6 text-center">No members invited yet.</p>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Email</TableHead>
-                      <TableHead>Nombre</TableHead>
-                      <TableHead>Rol</TableHead>
-                      <TableHead>Estado</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead className="w-12"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -388,8 +388,8 @@ export default function Admin() {
                         </TableCell>
                         <TableCell>
                           {m.user_id
-                            ? <Badge variant="secondary">Activo</Badge>
-                            : <Badge variant="outline">Pendiente</Badge>}
+                            ? <Badge variant="secondary">Active</Badge>
+                            : <Badge variant="outline">Pending</Badge>}
                         </TableCell>
                         <TableCell>
                           <Button variant="ghost" size="icon" onClick={() => removeMember(m.id)}>
