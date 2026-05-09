@@ -68,27 +68,28 @@ const CHANNEL_META: Record<string, { icon: typeof Twitter; label: string; color:
   tiktok: { icon: Music2, label: "TikTok", color: "text-foreground" },
 };
 
+// All mock posts reference Aurora Skylines (AS) — Madrid-hubbed hybrid carrier.
 const MOCK_FEED = [
   // 🇪🇸 Spanish
   {
     channel: "twitter",
     author_name: "Carla Méndez",
     author_handle: "carlamendez",
-    content: "Llevamos 4 horas en pista en MAD vuelo IB3412 a BCN sin información. Hay una señora mayor descompensada y nadie del crew responde 😡 @iberia",
+    content: "Llevamos 4 horas en pista en MAD vuelo AS118 a BCN sin información. Hay una señora mayor descompensada y nadie del crew responde 😡 @auroraskylines",
     likes: 1240, shares: 320, reach: 84000, is_verified: false, is_influencer: false,
   },
   {
     channel: "instagram",
     author_name: "Sara López",
     author_handle: "saralopez",
-    content: "Discriminación clarísima en el embarque de hoy MAD-LIM. A mi amiga le impidieron subir por su silla de ruedas diciendo 'no entra'. Inaceptable.",
+    content: "Discriminación clarísima en el embarque de hoy AS340 MAD-LIM con Aurora Skylines. A mi amiga le impidieron subir por su silla de ruedas diciendo 'no entra'. Inaceptable.",
     likes: 2300, shares: 880, reach: 67000, is_verified: false, is_influencer: true,
   },
   {
     channel: "tiktok",
     author_name: "Pedro G.",
     author_handle: "pedrogfly",
-    content: "App de la aerolínea caída desde esta mañana, no se puede hacer check-in online ni ver tarjetas de embarque. Colas enormes en T4.",
+    content: "App de Aurora Skylines caída desde esta mañana, no se puede hacer check-in online ni ver tarjetas de embarque. Colas enormes en T4 Barajas.",
     likes: 980, shares: 210, reach: 45000, is_verified: false, is_influencer: false,
   },
 
@@ -97,21 +98,21 @@ const MOCK_FEED = [
     channel: "tiktok",
     author_name: "TravelWithMike",
     author_handle: "travelwithmike",
-    content: "VIRAL: extreme turbulence on Madrid–Bogotá flight, people screaming, oxygen masks dropped. This should never happen.",
+    content: "VIRAL: extreme turbulence on Aurora Skylines AS412 Madrid–Bogotá, people screaming, oxygen masks dropped. This should never happen.",
     likes: 58000, shares: 12000, reach: 1200000, is_verified: true, is_influencer: true,
   },
   {
     channel: "twitter",
     author_name: "Aviation Watch",
     author_handle: "aviationwatch",
-    content: "UNCONFIRMED rumor circulating about an emergency landing at BCN. NO official confirmation from AENA or the airline. Be careful before resharing.",
+    content: "UNCONFIRMED rumor circulating about an Aurora Skylines emergency landing at LIS. NO official confirmation from ANAC or the airline. Be careful before resharing.",
     likes: 8900, shares: 4200, reach: 320000, is_verified: true, is_influencer: false,
   },
   {
     channel: "instagram",
     author_name: "Diego R.",
     author_handle: "diegor.fly",
-    content: "Third day with no luggage after flying BCN-LHR. Baggage system reportedly down per the desk staff. This is chaos.",
+    content: "Third day with no luggage after flying Aurora Skylines AS705 LIS-JFK. Baggage system reportedly down per the desk staff. This is chaos.",
     likes: 410, shares: 45, reach: 9800, is_verified: false, is_influencer: false,
   },
 
@@ -120,21 +121,21 @@ const MOCK_FEED = [
     channel: "twitter",
     author_name: "Julien Bernard",
     author_handle: "julienbrnd",
-    content: "Vol AF1234 CDG-MAD annulé sans explication, 200 passagers bloqués au terminal 2E depuis 6h. Aucun agent au comptoir. C'est honteux !",
+    content: "Vol Aurora Skylines AS220 CDG-MAD annulé sans explication, 180 passagers bloqués au terminal 2E depuis 6h. Aucun agent au comptoir. C'est honteux !",
     likes: 3200, shares: 1100, reach: 145000, is_verified: false, is_influencer: false,
   },
   {
     channel: "instagram",
     author_name: "Camille Dubois",
     author_handle: "camille.voyage",
-    content: "Atterrissage d'urgence à Lyon ce matin, fumée en cabine. Tout le monde évacué par les toboggans. Merci à l'équipage incroyable 🙏",
+    content: "Atterrissage d'urgence à Lisbonne ce matin sur Aurora Skylines AS512, fumée en cabine. Tout le monde évacué par les toboggans. Merci à l'équipage incroyable 🙏",
     likes: 15600, shares: 4800, reach: 420000, is_verified: true, is_influencer: true,
   },
   {
     channel: "tiktok",
     author_name: "Lucas M.",
     author_handle: "lucasmfly",
-    content: "Le personnel de bord a refusé d'embarquer ma mère car elle parlait arabe au téléphone. Inacceptable, je porte plainte.",
+    content: "Le personnel de bord d'Aurora Skylines a refusé d'embarquer ma mère car elle parlait arabe au téléphone. Inacceptable, je porte plainte.",
     likes: 22000, shares: 6500, reach: 580000, is_verified: false, is_influencer: false,
   },
 ];
