@@ -309,7 +309,7 @@ export default function Admin() {
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Preview</p>
                 <div className="rounded-md p-4 flex items-center gap-3" style={{ background: brandSecondary, color: "#fff" }}>
                   {logoUrl && <img src={logoUrl} alt="" className="h-8 w-8 object-contain" />}
-                  <span className="font-semibold">{companyName || "Your company"}</span>
+                  <span className="font-semibold">{companyName || "Aurora Skylines"}</span>
                   <span className="ml-auto px-3 py-1 rounded text-xs font-medium" style={{ background: brandPrimary }}>CTA</span>
                 </div>
               </div>
@@ -332,11 +332,11 @@ export default function Admin() {
               <div className="grid sm:grid-cols-[1fr_1fr_180px_auto] gap-3 items-end">
                 <div className="space-y-2">
                   <Label>Email</Label>
-                  <Input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="person@company.com" />
+                  <Input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="name@auroraskylines.com" />
                 </div>
                 <div className="space-y-2">
                   <Label>Name</Label>
-                  <Input value={inviteName} onChange={(e) => setInviteName(e.target.value)} placeholder="Optional" />
+                  <Input value={inviteName} onChange={(e) => setInviteName(e.target.value)} placeholder="e.g. Elena Navarro (MAD)" />
                 </div>
                 <div className="space-y-2">
                   <Label>Role</Label>
