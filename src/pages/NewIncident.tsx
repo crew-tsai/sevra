@@ -162,11 +162,11 @@ export default function NewIncident() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="airline">Airline Name</Label>
-              <Input id="airline" placeholder="e.g. Iberia" value={airlineName} onChange={(e) => setAirlineName(e.target.value)} maxLength={100} />
+              <Input id="airline" placeholder="e.g. Aurora Skylines" value={airlineName} onChange={(e) => setAirlineName(e.target.value)} maxLength={100} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="flight">Flight Number</Label>
-              <Input id="flight" placeholder="e.g. IB3214" value={flightNumber} onChange={(e) => setFlightNumber(e.target.value)} maxLength={20} />
+              <Input id="flight" placeholder="e.g. AS412" value={flightNumber} onChange={(e) => setFlightNumber(e.target.value)} maxLength={20} />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-4">
