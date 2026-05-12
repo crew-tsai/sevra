@@ -455,150 +455,64 @@ export default function Approvals() {
                     View incident <ExternalLink className="h-3 w-3" />
                   </Link>
                 </div>
-                <div className="space-y-5">
-                  {(() => {
-                    const byCategory = items.reduce<Record<string, Asset[]>>((acc, a) => {
-                      const k = categoryFor(a.asset_type);
-                      (acc[k] ??= []).push(a);
-                      return acc;
-                    }, {});
-                    const keys = [
-                      ...CATEGORY_ORDER.filter((k) => byCategory[k]?.length),
-                      ...(byCategory.other?.length ? (["other"] as const) : []),
-                    ];
-                    return keys.map((catKey) => {
-                      const meta = CATEGORY_META[catKey as keyof typeof CATEGORY_META];
-                      const CatIcon = meta?.icon ?? FileText;
-                      const catItems = byCategory[catKey];
-                      return (
-                        <div key={catKey} className="space-y-2">
-                          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            <CatIcon className="h-3.5 w-3.5" />
-                            <span>{meta?.label ?? "Other"}</span>
-                            <span className="text-muted-foreground/60 normal-case font-normal">({catItems.length})</span>
-                          </div>
-                          <div className="space-y-3">
-                  {catItems.map((item) => {
-                    const Icon = TYPE_ICON[item.asset_type] ?? FileText;
-                    const isPending = item.approval_status === "pending";
-                    const isApproved = item.approval_status === "approved";
-                    const isRejected = item.approval_status === "rejected";
-                    const isRegenerating = regeneratingId === item.id;
-                    const isExpanded = expandedIds.has(item.id);
-                    const isBusy = busyId === item.id;
-                    const preview = item.content.replace(/\s+/g, " ").trim();
-                    return (
-                      <Card
-                        key={item.id}
-                        className={cn(
-                          "group overflow-hidden transition-colors",
-                          isPending && "hover:border-primary/40",
-                          isApproved && "border-risk-low/40",
-                          isRejected && "border-risk-critical/40",
-                        )}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => toggleExpanded(item.id)}
-                          className="w-full text-left flex items-center gap-3 p-3 hover:bg-muted/30 transition-colors"
-                        >
-                          <div className="h-9 w-9 rounded-md bg-muted flex items-center justify-center shrink-0 text-muted-foreground">
-                            <Icon className="h-4 w-4" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm font-semibold text-foreground truncate">{item.title}</span>
-                              {item.channel && (
-                                <Badge variant="secondary" className="text-[10px]">{item.channel}</Badge>
-                              )}
-                              {isApproved && (
-                                <Badge className="text-[10px] border-0 bg-risk-low-bg text-risk-low">approved</Badge>
-                              )}
-                              {isRejected && (
-                                <Badge className="text-[10px] border-0 bg-risk-critical-bg text-risk-critical">rejected</Badge>
-                              )}
-                            </div>
-                            {!isExpanded && (
-                              <p className="text-xs text-muted-foreground truncate mt-0.5">{preview}</p>
-                            )}
-                          </div>
-                          {isPending && (
-                            <div className="hidden sm:flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 px-2 text-risk-critical hover:text-risk-critical hover:bg-risk-critical-bg"
-                                onClick={() => updateStatus(item.id, "rejected")}
-                                disabled={isBusy}
-                              >
-                                <XCircle className="h-3.5 w-3.5" /> Reject
-                              </Button>
-                              <Button
-                                size="sm"
-                                onClick={() => updateStatus(item.id, "approved")}
-                                disabled={isBusy}
-                              >
-                                {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                                Approve
-                              </Button>
-                            </div>
-                          )}
-                          <ChevronDown
-                            className={cn(
-                              "h-4 w-4 text-muted-foreground shrink-0 transition-transform",
-                              isExpanded && "rotate-180",
-                            )}
-                          />
-                        </button>
+                {(() => {
+                  const byTab = items.reduce<Record<string, Asset[]>>((acc, a) => {
+                    const k = tabFor(a.asset_type);
+                    (acc[k] ??= []).push(a);
+                    return acc;
+                  }, {});
+                  const firstWithItems = TAB_DEFS.find((t) => byTab[t.key]?.length)?.key ?? TAB_DEFS[0].key;
+                  return (
+                    <Tabs defaultValue={firstWithItems} className="w-full">
+                      <TabsList className="flex flex-wrap h-auto justify-start gap-1 bg-muted/40">
+                        {TAB_DEFS.map((t) => {
+                          const TIcon = t.icon;
+                          const count = byTab[t.key]?.length ?? 0;
+                          return (
+                            <TabsTrigger key={t.key} value={t.key} className="gap-1.5 data-[state=active]:bg-background">
+                              <TIcon className="h-3.5 w-3.5" />
+                              <span>{t.label}</span>
+                              <span className="text-[10px] text-muted-foreground">({count})</span>
+                            </TabsTrigger>
+                          );
+                        })}
+                      </TabsList>
 
-                        {isExpanded && (
-                          <div className="px-3 pb-3 pt-0 border-t border-border/50">
-                            <pre className="text-sm text-muted-foreground leading-relaxed mt-3 whitespace-pre-wrap font-sans">
-                              {item.content}
-                            </pre>
-                            <div className="flex items-center gap-2 mt-3 flex-wrap">
-                              <Button size="sm" variant="outline" onClick={() => copy(item.content)}>
-                                <Copy className="h-3.5 w-3.5" /> Copy
-                              </Button>
-                              {isPending && (
-                                <>
-                                  <Button size="sm" onClick={() => updateStatus(item.id, "approved")} disabled={isBusy}>
-                                    {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                                    Approve
-                                  </Button>
-                                  <Button size="sm" variant="outline" onClick={() => updateStatus(item.id, "rejected")} disabled={isBusy}>
-                                    <XCircle className="h-3.5 w-3.5" /> Reject
-                                  </Button>
-                                </>
-                              )}
-                              {isApproved && isEmailAsset(item.asset_type) && (
-                                <Button size="sm" onClick={() => setEmailDialogAsset(item)}>
-                                  <Mail className="h-3.5 w-3.5" /> Send email
-                                </Button>
-                              )}
-                              {isApproved && isSocialAsset(item.asset_type) && (
-                                <Button size="sm" onClick={() => setSocialDialogAsset(item)}>
-                                  <Send className="h-3.5 w-3.5" /> Publish to {socialNetworkLabel(item.asset_type)}
-                                </Button>
-                              )}
-                              {(isPending || isRejected) && (
-                                <Button size="sm" variant="outline" onClick={() => regenerateAsset(item)} disabled={isRegenerating}>
-                                  {isRegenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                                  Regenerate
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </Card>
-                    );
-                  })}
-                          </div>
-                        </div>
-                      );
-                    });
-                  })()}
-                </div>
+                      {TAB_DEFS.map((t) => {
+                        const tabItems = byTab[t.key] ?? [];
+                        return (
+                          <TabsContent key={t.key} value={t.key} className="mt-3">
+                            {tabItems.length === 0 ? (
+                              <Card className="p-6 text-center text-xs text-muted-foreground border-dashed">
+                                No {t.label.toLowerCase()} assets for this incident yet.
+                              </Card>
+                            ) : t.key === "qna" ? (
+                              <div className="space-y-4">
+                                {QNA_AUDIENCES.map((aud) => {
+                                  const audItems = tabItems.filter((i) => i.asset_type === aud.type);
+                                  if (!audItems.length) return null;
+                                  const AIcon = aud.icon;
+                                  return (
+                                    <div key={aud.type} className="space-y-2">
+                                      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <AIcon className="h-3.5 w-3.5" />
+                                        <span>{aud.label}</span>
+                                        <span className="text-muted-foreground/60 normal-case font-normal">({audItems.length})</span>
+                                      </div>
+                                      <div className="space-y-3">{audItems.map(renderAssetRow)}</div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <div className="space-y-3">{tabItems.map(renderAssetRow)}</div>
+                            )}
+                          </TabsContent>
+                        );
+                      })}
+                    </Tabs>
+                  );
+                })()}
               </div>
             );
           })}
