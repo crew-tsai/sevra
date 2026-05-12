@@ -217,6 +217,122 @@ export default function Approvals() {
     setSearchParams(next, { replace: true });
   };
 
+  const renderAssetRow = (item: Asset) => {
+    const Icon = TYPE_ICON[item.asset_type] ?? FileText;
+    const isPending = item.approval_status === "pending";
+    const isApproved = item.approval_status === "approved";
+    const isRejected = item.approval_status === "rejected";
+    const isRegenerating = regeneratingId === item.id;
+    const isExpanded = expandedIds.has(item.id);
+    const isBusy = busyId === item.id;
+    const preview = item.content.replace(/\s+/g, " ").trim();
+    return (
+      <Card
+        key={item.id}
+        className={cn(
+          "group overflow-hidden transition-colors",
+          isPending && "hover:border-primary/40",
+          isApproved && "border-risk-low/40",
+          isRejected && "border-risk-critical/40",
+        )}
+      >
+        <button
+          type="button"
+          onClick={() => toggleExpanded(item.id)}
+          className="w-full text-left flex items-center gap-3 p-3 hover:bg-muted/30 transition-colors"
+        >
+          <div className="h-9 w-9 rounded-md bg-muted flex items-center justify-center shrink-0 text-muted-foreground">
+            <Icon className="h-4 w-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-semibold text-foreground truncate">{item.title}</span>
+              {item.channel && (
+                <Badge variant="secondary" className="text-[10px]">{item.channel}</Badge>
+              )}
+              {isApproved && (
+                <Badge className="text-[10px] border-0 bg-risk-low-bg text-risk-low">approved</Badge>
+              )}
+              {isRejected && (
+                <Badge className="text-[10px] border-0 bg-risk-critical-bg text-risk-critical">rejected</Badge>
+              )}
+            </div>
+            {!isExpanded && (
+              <p className="text-xs text-muted-foreground truncate mt-0.5">{preview}</p>
+            )}
+          </div>
+          {isPending && (
+            <div className="hidden sm:flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 px-2 text-risk-critical hover:text-risk-critical hover:bg-risk-critical-bg"
+                onClick={() => updateStatus(item.id, "rejected")}
+                disabled={isBusy}
+              >
+                <XCircle className="h-3.5 w-3.5" /> Reject
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => updateStatus(item.id, "approved")}
+                disabled={isBusy}
+              >
+                {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                Approve
+              </Button>
+            </div>
+          )}
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 text-muted-foreground shrink-0 transition-transform",
+              isExpanded && "rotate-180",
+            )}
+          />
+        </button>
+
+        {isExpanded && (
+          <div className="px-3 pb-3 pt-0 border-t border-border/50">
+            <pre className="text-sm text-muted-foreground leading-relaxed mt-3 whitespace-pre-wrap font-sans">
+              {item.content}
+            </pre>
+            <div className="flex items-center gap-2 mt-3 flex-wrap">
+              <Button size="sm" variant="outline" onClick={() => copy(item.content)}>
+                <Copy className="h-3.5 w-3.5" /> Copy
+              </Button>
+              {isPending && (
+                <>
+                  <Button size="sm" onClick={() => updateStatus(item.id, "approved")} disabled={isBusy}>
+                    {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                    Approve
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => updateStatus(item.id, "rejected")} disabled={isBusy}>
+                    <XCircle className="h-3.5 w-3.5" /> Reject
+                  </Button>
+                </>
+              )}
+              {isApproved && isEmailAsset(item.asset_type) && (
+                <Button size="sm" onClick={() => setEmailDialogAsset(item)}>
+                  <Mail className="h-3.5 w-3.5" /> Send email
+                </Button>
+              )}
+              {isApproved && isSocialAsset(item.asset_type) && (
+                <Button size="sm" onClick={() => setSocialDialogAsset(item)}>
+                  <Send className="h-3.5 w-3.5" /> Publish to {socialNetworkLabel(item.asset_type)}
+                </Button>
+              )}
+              {(isPending || isRejected) && (
+                <Button size="sm" variant="outline" onClick={() => regenerateAsset(item)} disabled={isRegenerating}>
+                  {isRegenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                  Regenerate
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+      </Card>
+    );
+  };
+
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <Breadcrumbs
