@@ -334,7 +334,7 @@ export default function Approvals() {
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-6">
       <Breadcrumbs
         items={
           focusIncidentId
@@ -464,19 +464,21 @@ export default function Approvals() {
                   const firstWithItems = TAB_DEFS.find((t) => byTab[t.key]?.length)?.key ?? TAB_DEFS[0].key;
                   return (
                     <Tabs defaultValue={firstWithItems} className="w-full">
-                      <TabsList className="flex flex-wrap h-auto justify-start gap-1 bg-muted/40">
-                        {TAB_DEFS.map((t) => {
-                          const TIcon = t.icon;
-                          const count = byTab[t.key]?.length ?? 0;
-                          return (
-                            <TabsTrigger key={t.key} value={t.key} className="gap-1.5 data-[state=active]:bg-background">
-                              <TIcon className="h-3.5 w-3.5" />
-                              <span>{t.label}</span>
-                              <span className="text-[10px] text-muted-foreground">({count})</span>
-                            </TabsTrigger>
-                          );
-                        })}
-                      </TabsList>
+                      <div className="-mx-1 overflow-x-auto sm:mx-0 sm:overflow-visible">
+                        <TabsList className="flex w-max sm:w-full flex-nowrap sm:flex-wrap h-auto justify-start gap-1 bg-muted/40 px-1">
+                          {TAB_DEFS.map((t) => {
+                            const TIcon = t.icon;
+                            const count = byTab[t.key]?.length ?? 0;
+                            return (
+                              <TabsTrigger key={t.key} value={t.key} className="gap-1.5 shrink-0 data-[state=active]:bg-background">
+                                <TIcon className="h-3.5 w-3.5" />
+                                <span>{t.label}</span>
+                                <span className="text-[10px] text-muted-foreground">({count})</span>
+                              </TabsTrigger>
+                            );
+                          })}
+                        </TabsList>
+                      </div>
 
                       {TAB_DEFS.map((t) => {
                         const tabItems = byTab[t.key] ?? [];
