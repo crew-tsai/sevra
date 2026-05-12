@@ -450,6 +450,11 @@ export default function Approvals() {
                       </Card>
                     );
                   })}
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               </div>
             );
