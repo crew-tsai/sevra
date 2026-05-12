@@ -42,6 +42,21 @@ const TYPE_ICON: Record<string, typeof FileText> = {
   customer_faq: HelpCircle,
 };
 
+const CATEGORY_META: Record<string, { label: string; icon: typeof FileText; types: string[] }> = {
+  press: { label: "Press & media", icon: Megaphone, types: ["press_release", "holding_statement"] },
+  social: { label: "Social media", icon: MessageSquare, types: ["post_x", "post_instagram", "tiktok_script"] },
+  internal: { label: "Internal", icon: Users, types: ["internal_memo"] },
+  customer: { label: "Customer", icon: HelpCircle, types: ["customer_faq"] },
+};
+const CATEGORY_ORDER: Array<keyof typeof CATEGORY_META> = ["press", "social", "internal", "customer"];
+
+function categoryFor(assetType: string): string {
+  for (const key of CATEGORY_ORDER) {
+    if (CATEGORY_META[key].types.includes(assetType)) return key;
+  }
+  return "other";
+}
+
 export default function Approvals() {
   const [searchParams, setSearchParams] = useSearchParams();
   const focusIncidentId = searchParams.get("incident");
