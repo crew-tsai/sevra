@@ -14,6 +14,10 @@ const ASSET_SPEC = [
   { key: "tiktok_script", title: "TikTok script", channel: "social", description: "30-45 seconds, conversational spoken script. Include scene directions in [brackets]." },
   { key: "internal_memo", title: "Internal memo", channel: "internal", description: "Internal communication for all employees. Explains the situation, what we're doing, what we expect from each team." },
   { key: "customer_faq", title: "Customer FAQ", channel: "support", description: "5-7 anticipated customer questions with clear, empathetic answers, formatted as Q: / A:." },
+  { key: "faq_media", title: "Q&A — Media", channel: "press", description: "6-8 tough questions journalists are likely to ask, with on-message bridging answers. Format Q: / A:. Include difficult/hostile questions with safe responses." },
+  { key: "faq_employees", title: "Q&A — Employees", channel: "internal", description: "6-8 questions employees will ask internally (safety, job impact, what to say externally, support resources). Format Q: / A:, empathetic and clear." },
+  { key: "faq_authorities", title: "Q&A — Authorities", channel: "regulatory", description: "5-7 questions regulators/authorities (CAA, EASA, NTSB-style) will ask. Format Q: / A:. Factual, compliance-aware, no speculation, reference cooperation and procedures." },
+  { key: "faq_partners", title: "Q&A — Partners", channel: "b2b", description: "5-7 questions from commercial partners (codeshare airlines, airports, suppliers, corporate clients). Format Q: / A:. Reassure on operational continuity and contractual commitments." },
 ];
 
 Deno.serve(async (req) => {
