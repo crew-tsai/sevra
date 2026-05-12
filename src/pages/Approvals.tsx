@@ -322,8 +322,30 @@ export default function Approvals() {
                     View incident <ExternalLink className="h-3 w-3" />
                   </Link>
                 </div>
-                <div className="space-y-3">
-                  {items.map((item) => {
+                <div className="space-y-5">
+                  {(() => {
+                    const byCategory = items.reduce<Record<string, Asset[]>>((acc, a) => {
+                      const k = categoryFor(a.asset_type);
+                      (acc[k] ??= []).push(a);
+                      return acc;
+                    }, {});
+                    const keys = [
+                      ...CATEGORY_ORDER.filter((k) => byCategory[k]?.length),
+                      ...(byCategory.other?.length ? (["other"] as const) : []),
+                    ];
+                    return keys.map((catKey) => {
+                      const meta = CATEGORY_META[catKey as keyof typeof CATEGORY_META];
+                      const CatIcon = meta?.icon ?? FileText;
+                      const catItems = byCategory[catKey];
+                      return (
+                        <div key={catKey} className="space-y-2">
+                          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            <CatIcon className="h-3.5 w-3.5" />
+                            <span>{meta?.label ?? "Other"}</span>
+                            <span className="text-muted-foreground/60 normal-case font-normal">({catItems.length})</span>
+                          </div>
+                          <div className="space-y-3">
+                  {catItems.map((item) => {
                     const Icon = TYPE_ICON[item.asset_type] ?? FileText;
                     const isPending = item.approval_status === "pending";
                     const isRejected = item.approval_status === "rejected";
