@@ -42,17 +42,27 @@ const TYPE_ICON: Record<string, typeof FileText> = {
   customer_faq: HelpCircle,
 };
 
-const CATEGORY_META: Record<string, { label: string; icon: typeof FileText; types: string[] }> = {
-  press: { label: "Press & media", icon: Megaphone, types: ["press_release", "holding_statement"] },
-  social: { label: "Social media", icon: MessageSquare, types: ["post_x", "post_instagram", "tiktok_script"] },
-  internal: { label: "Internal", icon: Users, types: ["internal_memo"] },
-  customer: { label: "Customer", icon: HelpCircle, types: ["customer_faq"] },
-};
-const CATEGORY_ORDER: Array<keyof typeof CATEGORY_META> = ["press", "social", "internal", "customer"];
+type TabKey = "press" | "internal" | "social" | "scripts" | "qna" | "customers";
 
-function categoryFor(assetType: string): string {
-  for (const key of CATEGORY_ORDER) {
-    if (CATEGORY_META[key].types.includes(assetType)) return key;
+const TAB_DEFS: Array<{ key: TabKey; label: string; icon: typeof FileText; types: string[] }> = [
+  { key: "press", label: "Press", icon: Megaphone, types: ["press_release", "holding_statement"] },
+  { key: "internal", label: "Internal Releases", icon: Users, types: ["internal_memo"] },
+  { key: "social", label: "Social", icon: MessageSquare, types: ["post_x", "post_instagram"] },
+  { key: "scripts", label: "Scripts", icon: Film, types: ["tiktok_script"] },
+  { key: "qna", label: "Q&As", icon: HelpCircle, types: ["faq_media", "faq_employees", "faq_authorities", "faq_partners"] },
+  { key: "customers", label: "Customers", icon: Headphones, types: ["customer_faq"] },
+];
+
+const QNA_AUDIENCES: Array<{ type: string; label: string; icon: typeof FileText }> = [
+  { type: "faq_media", label: "Media", icon: Newspaper },
+  { type: "faq_employees", label: "Employees", icon: Users },
+  { type: "faq_authorities", label: "Authorities", icon: Building2 },
+  { type: "faq_partners", label: "Partners", icon: Briefcase },
+];
+
+function tabFor(assetType: string): TabKey | "other" {
+  for (const t of TAB_DEFS) {
+    if (t.types.includes(assetType)) return t.key;
   }
   return "other";
 }
