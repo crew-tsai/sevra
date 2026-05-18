@@ -47,6 +47,7 @@ type Incident = {
   risk: "critical" | "high" | "medium" | "low";
   status: "active" | "monitoring" | "contained" | "resolved";
   risk_score: number;
+  crisis_level: number | null;
   assignee: string | null;
   approval_status: string;
   approved_at: string | null;
