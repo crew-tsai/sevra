@@ -30,6 +30,15 @@ type IncidentLite = {
   id: string;
   title: string;
   risk: string;
+  crisis_level: number | null;
+};
+
+const CRISIS_LEVEL_META: Record<number, { label: string; className: string }> = {
+  0: { label: "L0 · Routine", className: "bg-risk-low-bg text-risk-low" },
+  1: { label: "L1 · Localized", className: "bg-risk-low-bg text-risk-low" },
+  2: { label: "L2 · Significant", className: "bg-risk-medium-bg text-risk-medium" },
+  3: { label: "L3 · Major", className: "bg-risk-high-bg text-risk-high" },
+  4: { label: "L4 · Catastrophic", className: "bg-risk-critical-bg text-risk-critical" },
 };
 
 const TYPE_ICON: Record<string, typeof FileText> = {
