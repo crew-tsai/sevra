@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RiskBadge } from "@/components/RiskBadge";
+import { CrisisLevelBadge } from "@/components/CrisisLevelBadge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import {
@@ -46,6 +47,7 @@ type Incident = {
   risk: "critical" | "high" | "medium" | "low";
   status: "active" | "monitoring" | "contained" | "resolved";
   risk_score: number;
+  crisis_level: number | null;
   assignee: string | null;
   approval_status: string;
   approved_at: string | null;
@@ -227,6 +229,7 @@ export default function IncidentDetail() {
               {incidentRef}
             </Badge>
             <RiskBadge level={incident.risk} />
+            <CrisisLevelBadge level={incident.crisis_level} />
             <StatusBadge status={incident.status} />
             <Badge variant="outline" className="text-[10px]">{incident.incident_type}</Badge>
             {incident.sub_type && <Badge variant="outline" className="text-[10px]">{incident.sub_type}</Badge>}

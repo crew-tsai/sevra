@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { RiskBadge } from "@/components/RiskBadge";
+import { CrisisLevelBadge } from "@/components/CrisisLevelBadge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
@@ -31,6 +32,7 @@ type Incident = {
   airline_name: string | null;
   flight_number: string | null;
   risk_score: number;
+  crisis_level: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -82,7 +84,7 @@ export default function Dashboard() {
       const [incRes, menRes] = await Promise.all([
         supabase
           .from("incidents")
-          .select("id, title, risk, status, source, assignee, airline_name, flight_number, risk_score, created_at, updated_at")
+          .select("id, title, risk, status, source, assignee, airline_name, flight_number, risk_score, crisis_level, created_at, updated_at")
           .order("created_at", { ascending: false })
           .limit(200),
         supabase
@@ -213,6 +215,7 @@ export default function Dashboard() {
                 className="flex items-center gap-3 rounded-md bg-card/60 hover:bg-card px-3 py-2 transition-colors group"
               >
                 <RiskBadge level={inc.risk as any} />
+                <CrisisLevelBadge level={inc.crisis_level} compact />
                 <span className="text-sm text-foreground flex-1 min-w-0 truncate">{inc.title}</span>
                 <span className="text-xs text-muted-foreground hidden sm:inline">
                   {formatDistanceToNow(new Date(inc.created_at), { addSuffix: true })}
@@ -273,6 +276,7 @@ export default function Dashboard() {
                     className="flex items-center gap-3 px-4 py-3 hover:bg-accent/50 transition-colors"
                   >
                     <RiskBadge level={incident.risk as any} />
+                    <CrisisLevelBadge level={incident.crisis_level} compact />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-foreground truncate">{incident.title}</p>
                       <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
