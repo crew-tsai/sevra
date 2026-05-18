@@ -229,6 +229,7 @@ export default function IncidentDetail() {
               {incidentRef}
             </Badge>
             <RiskBadge level={incident.risk} />
+            <CrisisLevelBadge level={incident.crisis_level} />
             <StatusBadge status={incident.status} />
             <Badge variant="outline" className="text-[10px]">{incident.incident_type}</Badge>
             {incident.sub_type && <Badge variant="outline" className="text-[10px]">{incident.sub_type}</Badge>}
