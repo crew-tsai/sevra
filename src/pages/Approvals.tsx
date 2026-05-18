@@ -30,6 +30,15 @@ type IncidentLite = {
   id: string;
   title: string;
   risk: string;
+  crisis_level: number | null;
+};
+
+const CRISIS_LEVEL_META: Record<number, { label: string; className: string }> = {
+  0: { label: "L0 · Routine", className: "bg-risk-low-bg text-risk-low" },
+  1: { label: "L1 · Localized", className: "bg-risk-low-bg text-risk-low" },
+  2: { label: "L2 · Significant", className: "bg-risk-medium-bg text-risk-medium" },
+  3: { label: "L3 · Major", className: "bg-risk-high-bg text-risk-high" },
+  4: { label: "L4 · Catastrophic", className: "bg-risk-critical-bg text-risk-critical" },
 };
 
 const TYPE_ICON: Record<string, typeof FileText> = {
@@ -103,7 +112,7 @@ export default function Approvals() {
     if (ids.length) {
       const { data: incData } = await supabase
         .from("incidents")
-        .select("id, title, risk")
+        .select("id, title, risk, crisis_level")
         .in("id", ids);
       const map: Record<string, IncidentLite> = {};
       (incData ?? []).forEach((i: any) => (map[i.id] = i));
@@ -444,6 +453,11 @@ export default function Approvals() {
                   <h2 className="text-sm font-semibold text-foreground">
                     {inc?.title ?? "Incident"}
                   </h2>
+                  {typeof inc?.crisis_level === "number" && CRISIS_LEVEL_META[inc.crisis_level] && (
+                    <Badge className={`text-[10px] border-0 ${CRISIS_LEVEL_META[inc.crisis_level].className}`}>
+                      {CRISIS_LEVEL_META[inc.crisis_level].label}
+                    </Badge>
+                  )}
                   {inc?.risk && (
                     <Badge variant="outline" className="text-[10px] uppercase">{inc.risk}</Badge>
                   )}
