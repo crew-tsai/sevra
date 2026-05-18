@@ -84,7 +84,7 @@ export default function Dashboard() {
       const [incRes, menRes] = await Promise.all([
         supabase
           .from("incidents")
-          .select("id, title, risk, status, source, assignee, airline_name, flight_number, risk_score, created_at, updated_at")
+          .select("id, title, risk, status, source, assignee, airline_name, flight_number, risk_score, crisis_level, created_at, updated_at")
           .order("created_at", { ascending: false })
           .limit(200),
         supabase
