@@ -26,6 +26,7 @@ const workflowItems = [
   { title: "Assets", url: "/assets", icon: FileText },
   { title: "Approvals", url: "/approvals", icon: CheckCircle },
   { title: "Reports", url: "/reports", icon: BarChart3 },
+  { title: "Audit Log", url: "/audit-log", icon: History },
   { title: "Admin", url: "/admin", icon: Settings },
 ];
 
