@@ -207,6 +207,7 @@ export type Database = {
           country: string | null
           created_at: string
           created_by: string | null
+          crisis_level: number
           description: string | null
           estimated_passengers_impacted: number | null
           flight_number: string | null
@@ -235,6 +236,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           created_by?: string | null
+          crisis_level?: number
           description?: string | null
           estimated_passengers_impacted?: number | null
           flight_number?: string | null
@@ -263,6 +265,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           created_by?: string | null
+          crisis_level?: number
           description?: string | null
           estimated_passengers_impacted?: number | null
           flight_number?: string | null
