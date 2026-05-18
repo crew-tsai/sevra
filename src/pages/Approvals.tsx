@@ -453,6 +453,11 @@ export default function Approvals() {
                   <h2 className="text-sm font-semibold text-foreground">
                     {inc?.title ?? "Incident"}
                   </h2>
+                  {typeof inc?.crisis_level === "number" && CRISIS_LEVEL_META[inc.crisis_level] && (
+                    <Badge className={`text-[10px] border-0 ${CRISIS_LEVEL_META[inc.crisis_level].className}`}>
+                      {CRISIS_LEVEL_META[inc.crisis_level].label}
+                    </Badge>
+                  )}
                   {inc?.risk && (
                     <Badge variant="outline" className="text-[10px] uppercase">{inc.risk}</Badge>
                   )}
