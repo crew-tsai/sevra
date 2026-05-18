@@ -276,6 +276,7 @@ export default function Dashboard() {
                     className="flex items-center gap-3 px-4 py-3 hover:bg-accent/50 transition-colors"
                   >
                     <RiskBadge level={incident.risk as any} />
+                    <CrisisLevelBadge level={incident.crisis_level} compact />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-foreground truncate">{incident.title}</p>
                       <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
