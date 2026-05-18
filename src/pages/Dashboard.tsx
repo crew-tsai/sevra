@@ -215,6 +215,7 @@ export default function Dashboard() {
                 className="flex items-center gap-3 rounded-md bg-card/60 hover:bg-card px-3 py-2 transition-colors group"
               >
                 <RiskBadge level={inc.risk as any} />
+                <CrisisLevelBadge level={inc.crisis_level} compact />
                 <span className="text-sm text-foreground flex-1 min-w-0 truncate">{inc.title}</span>
                 <span className="text-xs text-muted-foreground hidden sm:inline">
                   {formatDistanceToNow(new Date(inc.created_at), { addSuffix: true })}
