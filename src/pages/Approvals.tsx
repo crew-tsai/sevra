@@ -112,7 +112,7 @@ export default function Approvals() {
     if (ids.length) {
       const { data: incData } = await supabase
         .from("incidents")
-        .select("id, title, risk")
+        .select("id, title, risk, crisis_level")
         .in("id", ids);
       const map: Record<string, IncidentLite> = {};
       (incData ?? []).forEach((i: any) => (map[i.id] = i));
