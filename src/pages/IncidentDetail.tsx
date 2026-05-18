@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RiskBadge } from "@/components/RiskBadge";
+import { CrisisLevelBadge } from "@/components/CrisisLevelBadge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import {
