@@ -196,6 +196,50 @@ export type Database = {
           },
         ]
       }
+      incident_audit_log: {
+        Row: {
+          change_source: string | null
+          changed_at: string
+          changed_by: string | null
+          field_name: string
+          id: string
+          incident_id: string
+          incident_title: string | null
+          new_value: string | null
+          old_value: string | null
+        }
+        Insert: {
+          change_source?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          field_name: string
+          id?: string
+          incident_id: string
+          incident_title?: string | null
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Update: {
+          change_source?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          field_name?: string
+          id?: string
+          incident_id?: string
+          incident_title?: string | null
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_audit_log_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incidents: {
         Row: {
           airline_name: string | null

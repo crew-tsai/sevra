@@ -1,4 +1,4 @@
-import { LayoutDashboard, Plus, Shield, FileText, CheckCircle, LogOut, Radio, BarChart3, Settings } from "lucide-react";
+import { LayoutDashboard, Plus, Shield, FileText, CheckCircle, LogOut, Radio, BarChart3, Settings, History } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +26,7 @@ const workflowItems = [
   { title: "Assets", url: "/assets", icon: FileText },
   { title: "Approvals", url: "/approvals", icon: CheckCircle },
   { title: "Reports", url: "/reports", icon: BarChart3 },
+  { title: "Audit Log", url: "/audit-log", icon: History },
   { title: "Admin", url: "/admin", icon: Settings },
 ];
 
