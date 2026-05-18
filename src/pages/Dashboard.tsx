@@ -32,6 +32,7 @@ type Incident = {
   airline_name: string | null;
   flight_number: string | null;
   risk_score: number;
+  crisis_level: number | null;
   created_at: string;
   updated_at: string;
 };
