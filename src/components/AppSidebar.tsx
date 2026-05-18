@@ -1,4 +1,4 @@
-import { LayoutDashboard, Plus, Shield, FileText, CheckCircle, LogOut, Radio, BarChart3, Settings } from "lucide-react";
+import { LayoutDashboard, Plus, Shield, FileText, CheckCircle, LogOut, Radio, BarChart3, Settings, History } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
