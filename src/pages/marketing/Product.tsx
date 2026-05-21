@@ -2,7 +2,9 @@ import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Activity, Megaphone, ShieldAlert, FileCheck2, Radar, Bot, History, Layers, ArrowRight } from "lucide-react";
 import { BrowserMockup } from "@/components/marketing/BrowserMockup";
+import { DeviceMockup } from "@/components/marketing/DeviceMockup";
 import dashboardShot from "@/assets/product-dashboard.png";
+import dashboardMobileShot from "@/assets/product-dashboard-mobile.png";
 import sevraAiShot from "@/assets/product-sevra-ai.png";
 
 const MODULES = [
