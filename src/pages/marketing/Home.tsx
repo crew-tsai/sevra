@@ -202,6 +202,21 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Product preview */}
+      <section className="border-t border-border bg-secondary/20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="text-center max-w-2xl mx-auto">
+            <p className="text-xs uppercase tracking-widest text-primary">The command center</p>
+            <h2 className="mt-3 text-3xl sm:text-4xl font-bold tracking-tight">Your crisis dashboard, at a glance.</h2>
+            <p className="mt-4 text-muted-foreground">
+              Active incidents, crisis levels, owners and trends — all in one real-time view your whole team can rely on.
+            </p>
+          </div>
+          <div className="mt-12 max-w-5xl mx-auto">
+            <BrowserMockup src={dashboardShot} alt="Sevra crisis dashboard" url="app.sevra.ai/dashboard" />
+          </div>
+        </div>
+
       {/* Stats */}
       <section className="border-t border-border bg-secondary/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 grid sm:grid-cols-3 gap-8">
