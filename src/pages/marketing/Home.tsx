@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
 import { ShieldAlert, Megaphone, Activity, Sparkles, Users, Clock, Check, ArrowRight } from "lucide-react";
+import { BrowserMockup } from "@/components/marketing/BrowserMockup";
+import dashboardShot from "@/assets/product-dashboard.png";
 
 const leadSchema = z.object({
   name: z.string().trim().min(1, "Name required").max(100),
