@@ -76,6 +76,8 @@ export default function Product() {
 
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {MODULES.map((m) => (
+            <Card key={m.title} className="bg-card border-border p-6 flex flex-col">
               <div className="h-10 w-10 rounded-md bg-primary/15 flex items-center justify-center text-primary mb-4">
                 <m.icon className="h-5 w-5" />
               </div>
