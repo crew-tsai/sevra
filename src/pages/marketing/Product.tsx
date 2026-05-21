@@ -95,6 +95,20 @@ export default function Product() {
         </div>
       </section>
 
+      {/* Sevra AI screenshot */}
+      <section className="border-t border-border">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <p className="text-xs uppercase tracking-widest text-primary">Sevra AI</p>
+            <h2 className="mt-3 text-3xl sm:text-4xl font-bold tracking-tight">Social signals, instantly classified.</h2>
+            <p className="mt-4 text-muted-foreground">
+              SEVRA monitors social channels 24/7, analyzes severity and auto-creates incidents — so nothing slips through.
+            </p>
+          </div>
+          <BrowserMockup src={sevraAiShot} alt="Sevra AI social intel" url="app.sevra.ai/sevra" />
+        </div>
+      </section>
+
       <section className="border-t border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">See Sevra in action.</h2>
