@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,6 +18,10 @@ import Admin from "@/pages/Admin";
 import AuditLog from "@/pages/AuditLog";
 import Unsubscribe from "@/pages/Unsubscribe";
 import NotFound from "@/pages/NotFound";
+import MarketingLayout from "@/components/marketing/MarketingLayout";
+import Home from "@/pages/marketing/Home";
+import Product from "@/pages/marketing/Product";
+import About from "@/pages/marketing/About";
 
 const queryClient = new QueryClient();
 
@@ -30,7 +34,11 @@ const App = () => (
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/unsubscribe" element={<Unsubscribe />} />
-          <Route path="/" element={<Navigate to="/sevra" replace />} />
+          <Route element={<MarketingLayout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/product" element={<Product />} />
+            <Route path="/about" element={<About />} />
+          </Route>
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route path="/sevra" element={<Sevra />} />
             <Route path="/dashboard" element={<Dashboard />} />

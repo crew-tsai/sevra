@@ -330,6 +330,36 @@ export type Database = {
         }
         Relationships: []
       }
+      leads: {
+        Row: {
+          company: string | null
+          created_at: string
+          email: string
+          id: string
+          industry: string | null
+          message: string | null
+          name: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          industry?: string | null
+          message?: string | null
+          name: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          industry?: string | null
+          message?: string | null
+          name?: string
+        }
+        Relationships: []
+      }
       social_mentions: {
         Row: {
           ai_extracted: Json | null
