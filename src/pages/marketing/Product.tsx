@@ -2,7 +2,9 @@ import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Activity, Megaphone, ShieldAlert, FileCheck2, Radar, Bot, History, Layers, ArrowRight } from "lucide-react";
 import { BrowserMockup } from "@/components/marketing/BrowserMockup";
+import { DeviceMockup } from "@/components/marketing/DeviceMockup";
 import dashboardShot from "@/assets/product-dashboard.png";
+import dashboardMobileShot from "@/assets/product-dashboard-mobile.png";
 import sevraAiShot from "@/assets/product-sevra-ai.png";
 
 const MODULES = [
@@ -69,9 +71,9 @@ export default function Product() {
       </section>
 
       {/* Dashboard screenshot */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-        <BrowserMockup src={dashboardShot} alt="Sevra crisis dashboard" url="app.sevra.ai/dashboard" />
-        <p className="mt-4 text-center text-sm text-muted-foreground">Live Dashboard — your real-time crisis command center.</p>
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 sm:pb-28">
+        <DeviceMockup desktopSrc={dashboardShot} mobileSrc={dashboardMobileShot} alt="Sevra crisis dashboard" url="app.sevra.ai/dashboard" />
+        <p className="mt-10 text-center text-sm text-muted-foreground">Live Dashboard — desktop & mobile, same source of truth.</p>
       </section>
 
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
