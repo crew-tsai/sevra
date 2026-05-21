@@ -34,7 +34,11 @@ const App = () => (
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/unsubscribe" element={<Unsubscribe />} />
-          <Route path="/" element={<Navigate to="/sevra" replace />} />
+          <Route element={<MarketingLayout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/product" element={<Product />} />
+            <Route path="/about" element={<About />} />
+          </Route>
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route path="/sevra" element={<Sevra />} />
             <Route path="/dashboard" element={<Dashboard />} />
