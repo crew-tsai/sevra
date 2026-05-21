@@ -33,7 +33,7 @@ export default function Home() {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.from("leads").insert(parsed.data);
+    const { error } = await supabase.from("leads").insert([parsed.data]);
     setLoading(false);
     if (error) {
       toast.error("Could not submit. Please try again.");
