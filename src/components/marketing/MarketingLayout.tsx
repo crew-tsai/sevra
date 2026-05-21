@@ -17,9 +17,9 @@ export default function MarketingLayout() {
   return (
     <div className="marketing min-h-screen flex flex-col bg-background text-foreground">
       <header className="sticky top-0 z-40 backdrop-blur-md bg-background/80 border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-28 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-36 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <img src={sevraLogo} alt="Sevra" className="h-20 md:h-24 w-auto" />
+            <img src={sevraLogo} alt="Sevra" className="h-28 md:h-32 w-auto" />
           </Link>
           <nav className="hidden md:flex items-center gap-8">
             {NAV.map((n) => (
