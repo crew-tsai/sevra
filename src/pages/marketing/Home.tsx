@@ -216,6 +216,9 @@ export default function Home() {
             <BrowserMockup src={dashboardShot} alt="Sevra crisis dashboard" url="app.sevra.ai/dashboard" />
           </div>
         </div>
+      </section>
+
+
 
       {/* Stats */}
       <section className="border-t border-border bg-secondary/30">
