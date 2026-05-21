@@ -18,6 +18,10 @@ import Admin from "@/pages/Admin";
 import AuditLog from "@/pages/AuditLog";
 import Unsubscribe from "@/pages/Unsubscribe";
 import NotFound from "@/pages/NotFound";
+import MarketingLayout from "@/components/marketing/MarketingLayout";
+import Home from "@/pages/marketing/Home";
+import Product from "@/pages/marketing/Product";
+import About from "@/pages/marketing/About";
 
 const queryClient = new QueryClient();
 
