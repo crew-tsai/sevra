@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
 import { ShieldAlert, Megaphone, Activity, Sparkles, Users, Clock, Check, ArrowRight } from "lucide-react";
+import { BrowserMockup } from "@/components/marketing/BrowserMockup";
+import dashboardShot from "@/assets/product-dashboard.png";
 
 const leadSchema = z.object({
   name: z.string().trim().min(1, "Name required").max(100),
@@ -199,6 +201,24 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      {/* Product preview */}
+      <section className="border-t border-border bg-secondary/20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="text-center max-w-2xl mx-auto">
+            <p className="text-xs uppercase tracking-widest text-primary">The command center</p>
+            <h2 className="mt-3 text-3xl sm:text-4xl font-bold tracking-tight">Your crisis dashboard, at a glance.</h2>
+            <p className="mt-4 text-muted-foreground">
+              Active incidents, crisis levels, owners and trends — all in one real-time view your whole team can rely on.
+            </p>
+          </div>
+          <div className="mt-12 max-w-5xl mx-auto">
+            <BrowserMockup src={dashboardShot} alt="Sevra crisis dashboard" url="app.sevra.ai/dashboard" />
+          </div>
+        </div>
+      </section>
+
+
 
       {/* Stats */}
       <section className="border-t border-border bg-secondary/30">

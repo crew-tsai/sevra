@@ -1,6 +1,9 @@
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Activity, Megaphone, ShieldAlert, FileCheck2, Radar, Bot, History, Layers, ArrowRight } from "lucide-react";
+import { BrowserMockup } from "@/components/marketing/BrowserMockup";
+import dashboardShot from "@/assets/product-dashboard.png";
+import sevraAiShot from "@/assets/product-sevra-ai.png";
 
 const MODULES = [
   {
@@ -65,6 +68,12 @@ export default function Product() {
         </p>
       </section>
 
+      {/* Dashboard screenshot */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+        <BrowserMockup src={dashboardShot} alt="Sevra crisis dashboard" url="app.sevra.ai/dashboard" />
+        <p className="mt-4 text-center text-sm text-muted-foreground">Live Dashboard — your real-time crisis command center.</p>
+      </section>
+
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {MODULES.map((m) => (
@@ -83,6 +92,20 @@ export default function Product() {
               </ul>
             </Card>
           ))}
+        </div>
+      </section>
+
+      {/* Sevra AI screenshot */}
+      <section className="border-t border-border">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <p className="text-xs uppercase tracking-widest text-primary">Sevra AI</p>
+            <h2 className="mt-3 text-3xl sm:text-4xl font-bold tracking-tight">Social signals, instantly classified.</h2>
+            <p className="mt-4 text-muted-foreground">
+              SEVRA monitors social channels 24/7, analyzes severity and auto-creates incidents — so nothing slips through.
+            </p>
+          </div>
+          <BrowserMockup src={sevraAiShot} alt="Sevra AI social intel" url="app.sevra.ai/sevra" />
         </div>
       </section>
 
