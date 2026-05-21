@@ -213,8 +213,8 @@ export default function Home() {
               Active incidents, crisis levels, owners and trends — all in one real-time view your whole team can rely on.
             </p>
           </div>
-          <div className="mt-12 max-w-5xl mx-auto">
-            <BrowserMockup src={dashboardShot} alt="Sevra crisis dashboard" url="app.sevra.ai/dashboard" />
+          <div className="mt-12 max-w-5xl mx-auto pb-12 sm:pb-16">
+            <DeviceMockup desktopSrc={dashboardShot} mobileSrc={dashboardMobileShot} alt="Sevra crisis dashboard" url="app.sevra.ai/dashboard" />
           </div>
         </div>
       </section>
