@@ -7,6 +7,7 @@ import { RiskBadge } from "@/components/RiskBadge";
 import { CrisisLevelBadge } from "@/components/CrisisLevelBadge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TimeRangeFilter, ALL_TIME, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import {
@@ -329,6 +330,13 @@ export default function Dashboard() {
         <TimeRangeFilter value={timeRange} onChange={setTimeRange} />
       </header>
 
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="issues-log">Issues log</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6 mt-0">
       {/* 1. Top 3 critical */}
       <section className="space-y-2">
         <div className="flex items-center gap-2">
@@ -667,9 +675,10 @@ export default function Dashboard() {
           </p>
         </Card>
       </section>
+        </TabsContent>
 
-
-      {/* 4. All issues */}
+        <TabsContent value="issues-log" className="space-y-6 mt-0">
+      {/* Issues log */}
       <section className="space-y-2">
         <div className="flex items-center justify-between">
           <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -759,6 +768,8 @@ export default function Dashboard() {
           </div>
         )}
       </section>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
