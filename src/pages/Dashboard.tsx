@@ -402,10 +402,12 @@ export default function Dashboard() {
       <section className="space-y-2">
         <div className="flex items-center justify-between">
           <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            All issues
+            All issues {!loading && allIssues.length > 0 && (
+              <span className="ml-1 text-muted-foreground/70 normal-case tracking-normal">({allIssues.length})</span>
+            )}
           </h2>
           <Link to="/incidents" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
-            View all <ArrowRight className="h-3 w-3" />
+            Open full list <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
         <Card className="divide-y divide-border">
@@ -414,7 +416,7 @@ export default function Dashboard() {
           ) : allIssues.length === 0 ? (
             <div className="p-6 text-center text-sm text-muted-foreground">No issues in range.</div>
           ) : (
-            allIssues.map((i) => (
+            pagedIssues.map((i) => (
               <Link
                 key={i.id}
                 to={`/incidents/${i.id}`}
@@ -435,6 +437,34 @@ export default function Dashboard() {
             ))
           )}
         </Card>
+        {!loading && allIssues.length > PAGE_SIZE && (
+          <div className="flex items-center justify-between pt-1">
+            <p className="text-[11px] text-muted-foreground">
+              Showing {issuesPage * PAGE_SIZE + 1}–{Math.min(allIssues.length, (issuesPage + 1) * PAGE_SIZE)} of {allIssues.length}
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setIssuesPage((p) => Math.max(0, p - 1))}
+                disabled={issuesPage === 0}
+                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-foreground hover:bg-accent/40 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ArrowRight className="h-3 w-3 rotate-180" /> Prev
+              </button>
+              <span className="text-[11px] text-muted-foreground px-2">
+                Page {issuesPage + 1} / {issuesPageCount}
+              </span>
+              <button
+                type="button"
+                onClick={() => setIssuesPage((p) => Math.min(issuesPageCount - 1, p + 1))}
+                disabled={issuesPage >= issuesPageCount - 1}
+                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-foreground hover:bg-accent/40 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Next <ArrowRight className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+        )}
       </section>
     </div>
   );
