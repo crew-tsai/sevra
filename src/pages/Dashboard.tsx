@@ -675,9 +675,10 @@ export default function Dashboard() {
           </p>
         </Card>
       </section>
+        </TabsContent>
 
-
-      {/* 4. All issues */}
+        <TabsContent value="issues-log" className="space-y-6 mt-0">
+      {/* Issues log */}
       <section className="space-y-2">
         <div className="flex items-center justify-between">
           <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
