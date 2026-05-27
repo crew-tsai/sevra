@@ -174,7 +174,7 @@ export default function Dashboard() {
   const influencerCount = mentions.filter((m) => m.is_influencer).length;
   const totalReach = mentions.reduce((s, m) => s + (m.reach ?? 0), 0);
 
-  // 4. All issues
+  // 4. All issues (sorted, paginated)
   const allIssues = useMemo(
     () =>
       incidents
@@ -183,10 +183,17 @@ export default function Dashboard() {
           const r = (RISK_RANK[b.risk] ?? 0) - (RISK_RANK[a.risk] ?? 0);
           if (r) return r;
           return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-        })
-        .slice(0, 10),
+        }),
     [incidents],
   );
+  const PAGE_SIZE = 10;
+  const [issuesPage, setIssuesPage] = useState(0);
+  const issuesPageCount = Math.max(1, Math.ceil(allIssues.length / PAGE_SIZE));
+  useEffect(() => { setIssuesPage(0); }, [timeRange]);
+  useEffect(() => {
+    if (issuesPage >= issuesPageCount) setIssuesPage(0);
+  }, [issuesPage, issuesPageCount]);
+  const pagedIssues = allIssues.slice(issuesPage * PAGE_SIZE, issuesPage * PAGE_SIZE + PAGE_SIZE);
 
   // 5. Sentiment analysis (derived from ai_risk of mentions)
   const sentiment = useMemo(() => {
