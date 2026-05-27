@@ -679,9 +679,16 @@ export default function Dashboard() {
               <p className="text-[10px] text-muted-foreground">{sentiment.positive} mentions</p>
             </div>
           </div>
-          <p className="text-[10px] text-muted-foreground">
-            Derived from AI risk scoring across {sentiment.total} mentions in range.
-          </p>
+          <div className="space-y-1 pt-1 border-t border-border/60">
+            <p className="text-[10px] text-muted-foreground">
+              Reach-weighted across {sentiment.total} mentions ({formatNum(sentiment.totalReach)} impressions).
+            </p>
+            <p className="text-[10px] text-muted-foreground/80 leading-relaxed">
+              <span className="text-risk-critical font-medium">Negative</span> = critical/high risk posts (attacks, complaints, threats) ·{" "}
+              <span className="text-risk-medium font-medium">Neutral</span> = medium-risk or informational ·{" "}
+              <span className="text-risk-low font-medium">Positive</span> = low-risk posts with supportive engagement (likes ≥ shares).
+            </p>
+          </div>
         </Card>
       </section>
         </TabsContent>
