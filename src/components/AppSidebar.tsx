@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/sidebar";
 
 const mainItems = [
-  { title: "Welcome", url: "/welcome", icon: Home },
+  { title: "Hub", url: "/welcome", icon: Home },
   { title: "SEVRA · Social Intel", url: "/sevra", icon: Radio },
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Manual Incident", url: "/incidents/new", icon: Plus },
