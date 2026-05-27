@@ -15,7 +15,7 @@ Return STRICT JSON only:
 {
   "posts": [
     {
-      "channel": "twitter" | "instagram" | "tiktok",
+      "channel": "twitter" | "instagram" | "tiktok" | "facebook",
       "author_name": "Realistic full name",
       "author_handle": "handle_no_at",
       "content": "The post text (1-3 sentences, can include emojis & mentions)",
