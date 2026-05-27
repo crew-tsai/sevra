@@ -16,7 +16,7 @@ export default function Login() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate("/sevra", { replace: true });
+      if (data.session) navigate("/welcome", { replace: true });
     });
   }, [navigate]);
 
@@ -29,7 +29,7 @@ export default function Login() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: `${window.location.origin}/sevra` },
+          options: { emailRedirectTo: `${window.location.origin}/welcome` },
         });
         if (error) throw error;
         toast.success("Account created");
@@ -37,7 +37,7 @@ export default function Login() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
-      navigate("/sevra", { replace: true });
+      navigate("/welcome", { replace: true });
     } catch (err: any) {
       toast.error(err.message || "Authentication failed");
     } finally {
