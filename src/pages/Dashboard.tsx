@@ -768,6 +768,8 @@ export default function Dashboard() {
           </div>
         )}
       </section>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
