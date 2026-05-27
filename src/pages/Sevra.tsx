@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Twitter, Instagram, Music2, RefreshCw, Sparkles, ExternalLink, AlertTriangle, CheckCircle2, Loader2, Radio, Power, PowerOff } from "lucide-react";
+import { Twitter, Instagram, Music2, Facebook, RefreshCw, Sparkles, ExternalLink, AlertTriangle, CheckCircle2, Loader2, Radio, Power, PowerOff } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { RiskBadge } from "@/components/RiskBadge";
@@ -66,6 +66,7 @@ const CHANNEL_META: Record<string, { icon: typeof Twitter; label: string; color:
   twitter: { icon: Twitter, label: "X / Twitter", color: "text-sky-500" },
   instagram: { icon: Instagram, label: "Instagram", color: "text-pink-500" },
   tiktok: { icon: Music2, label: "TikTok", color: "text-foreground" },
+  facebook: { icon: Facebook, label: "Facebook", color: "text-blue-600" },
 };
 
 // All mock posts reference Aurora Skylines (AS) — Madrid-hubbed hybrid carrier.
@@ -137,6 +138,20 @@ const MOCK_FEED = [
     author_handle: "lucasmfly",
     content: "Le personnel de bord d'Aurora Skylines a refusé d'embarquer ma mère car elle parlait arabe au téléphone. Inacceptable, je porte plainte.",
     likes: 22000, shares: 6500, reach: 580000, is_verified: false, is_influencer: false,
+  },
+  {
+    channel: "facebook",
+    author_name: "Marta Ruiz",
+    author_handle: "marta.ruiz",
+    content: "Aurora Skylines AS118 MAD-BCN cancelado de nuevo. Tercera vez este mes. ¿Alguien sabe cómo reclamar la compensación EU261? @auroraskylines",
+    likes: 540, shares: 180, reach: 22000, is_verified: false, is_influencer: false,
+  },
+  {
+    channel: "facebook",
+    author_name: "James O'Connor",
+    author_handle: "james.oconnor",
+    content: "Huge thanks to the Aurora Skylines crew on AS705 LIS-JFK last night — handled a medical emergency onboard with total professionalism. Diverted to Boston, all good. 👏",
+    likes: 8900, shares: 1200, reach: 156000, is_verified: false, is_influencer: false,
   },
 ];
 
@@ -412,6 +427,7 @@ export default function Sevra() {
           <TabsTrigger value="twitter">X</TabsTrigger>
           <TabsTrigger value="instagram">Instagram</TabsTrigger>
           <TabsTrigger value="tiktok">TikTok</TabsTrigger>
+          <TabsTrigger value="facebook">Facebook</TabsTrigger>
         </TabsList>
       </Tabs>
 

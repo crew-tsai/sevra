@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const CHANNELS = ["twitter", "instagram", "tiktok"] as const;
+const CHANNELS = ["twitter", "instagram", "tiktok", "facebook"] as const;
 
 const GEN_PROMPT = `Generate 2 realistic, DISTINCT social media posts (in Spanish, English, or French — mix languages) about possible incidents happening RIGHT NOW with AURORA SKYLINES, a Madrid-hubbed hybrid network airline (primary hub MAD Barajas T4, secondary hub LIS Lisbon). All posts MUST mention Aurora Skylines (handle @auroraskylines) and use Aurora flight numbers with the AS prefix (e.g. AS118, AS220, AS340, AS412, AS512, AS705). Vary routes from Aurora's network: MAD-BCN, MAD-LIS, MAD-CDG, MAD-LHR, MAD-FCO, MAD-BOG, MAD-LIM, MAD-EZE, MAD-GRU, MAD-MEX, MAD-JFK, MAD-MIA, LIS-GRU, LIS-JFK, CDG-MAD. Mix risk levels: include 1 likely real incident (delay, safety, customer treatment, outage, etc.) and 1 lower-risk or noise post (joke, vague complaint, or unrelated). Never mention competitor airlines.
 
@@ -15,7 +15,7 @@ Return STRICT JSON only:
 {
   "posts": [
     {
-      "channel": "twitter" | "instagram" | "tiktok",
+      "channel": "twitter" | "instagram" | "tiktok" | "facebook",
       "author_name": "Realistic full name",
       "author_handle": "handle_no_at",
       "content": "The post text (1-3 sentences, can include emojis & mentions)",
