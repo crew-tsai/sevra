@@ -174,8 +174,9 @@ export default function Dashboard() {
   const influencerCount = mentions.filter((m) => m.is_influencer).length;
   const totalReach = mentions.reduce((s, m) => s + (m.reach ?? 0), 0);
 
-  // 4. All issues (sorted, paginated)
-  const allIssues = useMemo(
+  // 4. All issues (sorted, filtered, paginated)
+  const [riskFilter, setRiskFilter] = useState<"all" | RiskLevel>("all");
+  const sortedIssues = useMemo(
     () =>
       incidents
         .slice()
@@ -186,8 +187,18 @@ export default function Dashboard() {
         }),
     [incidents],
   );
+  const riskCounts = useMemo(() => {
+    const c = { critical: 0, high: 0, medium: 0, low: 0 };
+    for (const i of sortedIssues) if (i.risk in c) (c as any)[i.risk] += 1;
+    return c;
+  }, [sortedIssues]);
+  const allIssues = useMemo(
+    () => riskFilter === "all" ? sortedIssues : sortedIssues.filter((i) => i.risk === riskFilter),
+    [sortedIssues, riskFilter],
+  );
   const PAGE_SIZE = 10;
   const [issuesPage, setIssuesPage] = useState(0);
+  useEffect(() => { setIssuesPage(0); }, [riskFilter]);
   const issuesPageCount = Math.max(1, Math.ceil(allIssues.length / PAGE_SIZE));
   useEffect(() => { setIssuesPage(0); }, [timeRange]);
   useEffect(() => {
