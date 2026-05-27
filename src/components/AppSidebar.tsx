@@ -1,4 +1,4 @@
-import { LayoutDashboard, Plus, Shield, FileText, CheckCircle, LogOut, Radio, BarChart3, Settings, History } from "lucide-react";
+import { LayoutDashboard, Plus, Shield, FileText, CheckCircle, LogOut, Radio, BarChart3, Settings, History, Home } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/sidebar";
 
 const mainItems = [
+  { title: "Welcome", url: "/welcome", icon: Home },
   { title: "SEVRA · Social Intel", url: "/sevra", icon: Radio },
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Manual Incident", url: "/incidents/new", icon: Plus },
