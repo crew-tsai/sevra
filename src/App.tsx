@@ -7,6 +7,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
+import Welcome from "@/pages/Welcome";
 import NewIncident from "@/pages/NewIncident";
 import IncidentDetail from "@/pages/IncidentDetail";
 import Strategy from "@/pages/Strategy";
