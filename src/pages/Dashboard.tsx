@@ -297,25 +297,47 @@ export default function Dashboard() {
   }, [issuesPage, issuesPageCount]);
   const pagedIssues = allIssues.slice(issuesPage * PAGE_SIZE, issuesPage * PAGE_SIZE + PAGE_SIZE);
 
-  // 5. Sentiment analysis — crisis-calibrated
-  // Negative  = ai_risk critical|high (attacks, complaints, regulator/threat narratives)
-  // Positive  = ai_risk low AND engagement signal (likes >= shares, i.e. supportive amplification)
-  // Neutral   = everything else (medium risk, unscored, informational)
-  // Percentages are REACH-weighted so one viral post outweighs many tiny ones.
+  // 5. Sentiment analysis — language-based, crisis-calibrated
+  // Classifies the TONE of the post text (not engagement, not risk-as-sentiment).
+  // High-risk posts are forced negative — a crash post with likes is still negative.
+  // Reach-weighted so virality dominates volume.
+  const NEG_TERMS = [
+    "angry", "furious", "awful", "terrible", "horrible", "worst", "hate", "disgusting",
+    "disgrace", "shame", "shameful", "scandal", "fail", "failed", "failure", "broken",
+    "crash", "crashed", "died", "death", "killed", "injured", "injury", "fatal",
+    "lawsuit", "sue", "suing", "fraud", "scam", "lie", "lying", "liar", "cover-up",
+    "refund", "boycott", "cancel", "cancelled", "never again", "avoid", "incompetent",
+    "negligent", "negligence", "unsafe", "danger", "dangerous", "outrage", "outrageous",
+    "appalling", "ridiculous", "unacceptable", "complaint", "complain", "ruined",
+    "stranded", "delayed", "missed", "lost", "stolen", "rude", "disrespect",
+  ];
+  const POS_TERMS = [
+    "love", "loved", "amazing", "excellent", "great", "fantastic", "wonderful",
+    "thank you", "thanks", "thank", "kudos", "brilliant", "perfect", "outstanding",
+    "impressed", "impressive", "recommend", "highly recommend", "best", "smooth",
+    "helpful", "kind", "professional", "friendly", "appreciate", "appreciated",
+    "well done", "bravo", "above and beyond", "exceptional",
+  ];
+  const classifySentiment = (m: Mention): "negative" | "neutral" | "positive" => {
+    if (m.ai_risk === "critical" || m.ai_risk === "high") return "negative";
+    const text = `${m.content ?? ""} ${m.ai_summary ?? ""}`.toLowerCase();
+    if (!text.trim()) return "neutral";
+    const hasNeg = NEG_TERMS.some((t) => text.includes(t));
+    const hasPos = POS_TERMS.some((t) => text.includes(t));
+    if (hasNeg) return "negative";
+    if (hasPos) return "positive";
+    return "neutral";
+  };
   const sentiment = useMemo(() => {
     let negCount = 0, neuCount = 0, posCount = 0;
     let negReach = 0, neuReach = 0, posReach = 0;
     for (const m of mentions) {
-      const r = m.ai_risk;
-      const reach = Math.max(1, m.reach ?? 0); // floor so zero-reach still counts a little
-      const likes = m.likes ?? 0;
-      const shares = m.shares ?? 0;
-      const supportive = r === "low" && likes >= shares && likes > 0;
-      if (r === "critical" || r === "high") { negCount += 1; negReach += reach; }
-      else if (supportive) { posCount += 1; posReach += reach; }
+      const reach = Math.max(1, m.reach ?? 0);
+      const bucket = classifySentiment(m);
+      if (bucket === "negative") { negCount += 1; negReach += reach; }
+      else if (bucket === "positive") { posCount += 1; posReach += reach; }
       else { neuCount += 1; neuReach += reach; }
     }
-    const totalCount = Math.max(1, negCount + neuCount + posCount);
     const totalReach = Math.max(1, negReach + neuReach + posReach);
     return {
       negative: negCount, neutral: neuCount, positive: posCount,
@@ -326,6 +348,7 @@ export default function Dashboard() {
       totalReach: negReach + neuReach + posReach,
     };
   }, [mentions]);
+
 
 
   return (
