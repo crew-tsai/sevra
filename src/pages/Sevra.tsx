@@ -427,6 +427,7 @@ export default function Sevra() {
           <TabsTrigger value="twitter">X</TabsTrigger>
           <TabsTrigger value="instagram">Instagram</TabsTrigger>
           <TabsTrigger value="tiktok">TikTok</TabsTrigger>
+          <TabsTrigger value="facebook">Facebook</TabsTrigger>
         </TabsList>
       </Tabs>
 
