@@ -25,6 +25,17 @@ import {
   MessageCircle,
   Newspaper,
   Globe,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Eye,
+  Heart,
+  Share2,
+  BadgeCheck,
+  Flame,
+  Users,
+  ExternalLink,
+  Zap,
 } from "lucide-react";
 import type { RiskLevel } from "@/lib/mock-data";
 
