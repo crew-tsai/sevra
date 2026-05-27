@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import sevraLogo from "@/assets/welcome-logo.png";
+import sevraLogo from "@/assets/sevra-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
