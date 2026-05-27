@@ -60,12 +60,16 @@ type Mention = {
   channel: string;
   author_handle: string | null;
   author_name: string | null;
+  author_avatar_url: string | null;
   is_influencer: boolean | null;
+  is_verified: boolean | null;
   reach: number | null;
   likes: number | null;
   shares: number | null;
   ai_risk: string | null;
+  ai_summary: string | null;
   incident_id: string | null;
+  post_url: string | null;
   posted_at: string | null;
   created_at: string;
 };
