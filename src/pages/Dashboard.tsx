@@ -297,27 +297,36 @@ export default function Dashboard() {
   }, [issuesPage, issuesPageCount]);
   const pagedIssues = allIssues.slice(issuesPage * PAGE_SIZE, issuesPage * PAGE_SIZE + PAGE_SIZE);
 
-  // 5. Sentiment analysis (derived from ai_risk of mentions)
+  // 5. Sentiment analysis — crisis-calibrated
+  // Negative  = ai_risk critical|high (attacks, complaints, regulator/threat narratives)
+  // Positive  = ai_risk low AND engagement signal (likes >= shares, i.e. supportive amplification)
+  // Neutral   = everything else (medium risk, unscored, informational)
+  // Percentages are REACH-weighted so one viral post outweighs many tiny ones.
   const sentiment = useMemo(() => {
-    let negative = 0, neutral = 0, positive = 0;
+    let negCount = 0, neuCount = 0, posCount = 0;
+    let negReach = 0, neuReach = 0, posReach = 0;
     for (const m of mentions) {
       const r = m.ai_risk;
-      if (r === "critical" || r === "high") negative += 1;
-      else if (r === "medium") neutral += 1;
-      else if (r === "low") positive += 1;
-      else neutral += 1;
+      const reach = Math.max(1, m.reach ?? 0); // floor so zero-reach still counts a little
+      const likes = m.likes ?? 0;
+      const shares = m.shares ?? 0;
+      const supportive = r === "low" && likes >= shares && likes > 0;
+      if (r === "critical" || r === "high") { negCount += 1; negReach += reach; }
+      else if (supportive) { posCount += 1; posReach += reach; }
+      else { neuCount += 1; neuReach += reach; }
     }
-    const total = Math.max(1, negative + neutral + positive);
+    const totalCount = Math.max(1, negCount + neuCount + posCount);
+    const totalReach = Math.max(1, negReach + neuReach + posReach);
     return {
-      negative,
-      neutral,
-      positive,
-      total,
-      negPct: Math.round((negative / total) * 100),
-      neuPct: Math.round((neutral / total) * 100),
-      posPct: Math.round((positive / total) * 100),
+      negative: negCount, neutral: neuCount, positive: posCount,
+      total: negCount + neuCount + posCount,
+      negPct: Math.round((negReach / totalReach) * 100),
+      neuPct: Math.round((neuReach / totalReach) * 100),
+      posPct: Math.round((posReach / totalReach) * 100),
+      totalReach: negReach + neuReach + posReach,
     };
   }, [mentions]);
+
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 space-y-6">
@@ -670,9 +679,16 @@ export default function Dashboard() {
               <p className="text-[10px] text-muted-foreground">{sentiment.positive} mentions</p>
             </div>
           </div>
-          <p className="text-[10px] text-muted-foreground">
-            Derived from AI risk scoring across {sentiment.total} mentions in range.
-          </p>
+          <div className="space-y-1 pt-1 border-t border-border/60">
+            <p className="text-[10px] text-muted-foreground">
+              Reach-weighted across {sentiment.total} mentions ({formatNum(sentiment.totalReach)} impressions).
+            </p>
+            <p className="text-[10px] text-muted-foreground/80 leading-relaxed">
+              <span className="text-risk-critical font-medium">Negative</span> = critical/high risk posts (attacks, complaints, threats) ·{" "}
+              <span className="text-risk-medium font-medium">Neutral</span> = medium-risk or informational ·{" "}
+              <span className="text-risk-low font-medium">Positive</span> = low-risk posts with supportive engagement (likes ≥ shares).
+            </p>
+          </div>
         </Card>
       </section>
         </TabsContent>
