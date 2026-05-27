@@ -110,9 +110,9 @@ export default function Dashboard() {
           .limit(300),
         supabase
           .from("social_mentions")
-          .select("id, content, channel, author_handle, author_name, is_influencer, reach, likes, shares, ai_risk, incident_id, posted_at, created_at")
+          .select("id, content, channel, author_handle, author_name, author_avatar_url, is_influencer, is_verified, reach, likes, shares, ai_risk, ai_summary, incident_id, post_url, posted_at, created_at")
           .order("created_at", { ascending: false })
-          .limit(300),
+          .limit(500),
       ]);
       if (incRes.error) toast.error(incRes.error.message);
       if (menRes.error) toast.error(menRes.error.message);
