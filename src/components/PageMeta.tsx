@@ -9,6 +9,7 @@ interface PageMetaProps {
 }
 
 const SITE = "https://demo.safesevra.com";
+const OG_IMAGE = `${SITE}/og-share.jpg`;
 
 export function PageMeta({ title, description, path = "/", type = "website", noindex }: PageMetaProps) {
   const url = `${SITE}${path}`;
@@ -21,8 +22,13 @@ export function PageMeta({ title, description, path = "/", type = "website", noi
       <meta property="og:description" content={description} />
       <meta property="og:url" content={url} />
       <meta property="og:type" content={type} />
+      <meta property="og:image" content={OG_IMAGE} />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
+      <meta name="twitter:image" content={OG_IMAGE} />
       {noindex && <meta name="robots" content="noindex,nofollow" />}
     </Helmet>
   );
