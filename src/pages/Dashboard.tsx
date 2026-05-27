@@ -171,14 +171,20 @@ export default function Dashboard() {
     { key: "resolved", label: "Resolved", count: statusCounts.resolved, icon: CheckCircle, color: "bg-risk-low", textColor: "text-risk-low", bg: "bg-risk-low-bg" },
   ];
 
-  // 3. Social mentions status — by channel
+  // 3. Social mentions — rich decision view
+  const RISK_WEIGHT: Record<string, number> = { critical: 100, high: 60, medium: 25, low: 5 };
   const channelStats = useMemo(() => {
-    const map = new Map<string, { count: number; reach: number }>();
+    const map = new Map<
+      string,
+      { count: number; reach: number; negative: number; influencers: number }
+    >();
     for (const m of mentions) {
       const k = (m.channel ?? "web").toLowerCase();
-      const cur = map.get(k) ?? { count: 0, reach: 0 };
+      const cur = map.get(k) ?? { count: 0, reach: 0, negative: 0, influencers: 0 };
       cur.count += 1;
       cur.reach += m.reach ?? 0;
+      if (m.ai_risk === "critical" || m.ai_risk === "high") cur.negative += 1;
+      if (m.is_influencer) cur.influencers += 1;
       map.set(k, cur);
     }
     return Array.from(map.entries())
@@ -187,7 +193,76 @@ export default function Dashboard() {
   }, [mentions]);
   const mentionsTotal = mentions.length;
   const influencerCount = mentions.filter((m) => m.is_influencer).length;
+  const verifiedCount = mentions.filter((m) => m.is_verified).length;
   const totalReach = mentions.reduce((s, m) => s + (m.reach ?? 0), 0);
+  const totalEngagement = mentions.reduce(
+    (s, m) => s + (m.likes ?? 0) + (m.shares ?? 0),
+    0,
+  );
+  const mentionRiskCounts = useMemo(() => {
+    const c = { critical: 0, high: 0, medium: 0, low: 0, unscored: 0 };
+    for (const m of mentions) {
+      const r = m.ai_risk;
+      if (r && r in c) (c as any)[r] += 1;
+      else c.unscored += 1;
+    }
+    return c;
+  }, [mentions]);
+  const negativeShare = mentionsTotal
+    ? Math.round(((mentionRiskCounts.critical + mentionRiskCounts.high) / mentionsTotal) * 100)
+    : 0;
+
+  // Velocity: last hour vs the hour before
+  const velocity = useMemo(() => {
+    const now = Date.now();
+    const H = 60 * 60 * 1000;
+    let last = 0, prev = 0;
+    for (const m of mentions) {
+      const t = new Date(m.posted_at ?? m.created_at).getTime();
+      if (now - t <= H) last += 1;
+      else if (now - t <= 2 * H) prev += 1;
+    }
+    const delta = last - prev;
+    const pct = prev === 0 ? (last > 0 ? 100 : 0) : Math.round(((last - prev) / prev) * 100);
+    return { last, prev, delta, pct };
+  }, [mentions]);
+
+  // Crisis pressure score (0–100) — blends volume, negativity, reach, influencer weight
+  const pressure = useMemo(() => {
+    if (mentionsTotal === 0) return 0;
+    const weighted = mentions.reduce(
+      (s, m) => s + (RISK_WEIGHT[m.ai_risk ?? ""] ?? 10) * (m.is_influencer ? 2 : 1),
+      0,
+    );
+    const score = Math.min(100, Math.round(weighted / mentionsTotal));
+    return score;
+  }, [mentions, mentionsTotal]);
+  const pressureTone =
+    pressure >= 70
+      ? { label: "High", color: "text-risk-critical", bg: "bg-risk-critical", bgSoft: "bg-risk-critical-bg" }
+      : pressure >= 40
+      ? { label: "Elevated", color: "text-risk-high", bg: "bg-risk-high", bgSoft: "bg-risk-high-bg" }
+      : pressure >= 20
+      ? { label: "Watch", color: "text-risk-medium", bg: "bg-risk-medium", bgSoft: "bg-risk-medium-bg" }
+      : { label: "Calm", color: "text-risk-low", bg: "bg-risk-low", bgSoft: "bg-risk-low-bg" };
+
+  // Top urgent mentions for decision-making
+  const topUrgent = useMemo(
+    () =>
+      mentions
+        .slice()
+        .sort((a, b) => {
+          const r =
+            (RISK_WEIGHT[b.ai_risk ?? ""] ?? 0) - (RISK_WEIGHT[a.ai_risk ?? ""] ?? 0);
+          if (r) return r;
+          const inf = Number(!!b.is_influencer) - Number(!!a.is_influencer);
+          if (inf) return inf;
+          return (b.reach ?? 0) - (a.reach ?? 0);
+        })
+        .slice(0, 4),
+    [mentions],
+  );
+
 
   // 4. All issues (sorted, filtered, paginated)
   const [riskFilter, setRiskFilter] = useState<"all" | RiskLevel>("all");
