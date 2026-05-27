@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { RouteMeta } from "@/components/RouteMeta";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Welcome from "@/pages/Welcome";
@@ -32,6 +33,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <RouteMeta />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/unsubscribe" element={<Unsubscribe />} />
