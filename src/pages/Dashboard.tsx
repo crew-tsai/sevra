@@ -174,8 +174,9 @@ export default function Dashboard() {
   const influencerCount = mentions.filter((m) => m.is_influencer).length;
   const totalReach = mentions.reduce((s, m) => s + (m.reach ?? 0), 0);
 
-  // 4. All issues (sorted, paginated)
-  const allIssues = useMemo(
+  // 4. All issues (sorted, filtered, paginated)
+  const [riskFilter, setRiskFilter] = useState<"all" | RiskLevel>("all");
+  const sortedIssues = useMemo(
     () =>
       incidents
         .slice()
@@ -186,8 +187,18 @@ export default function Dashboard() {
         }),
     [incidents],
   );
+  const riskCounts = useMemo(() => {
+    const c = { critical: 0, high: 0, medium: 0, low: 0 };
+    for (const i of sortedIssues) if (i.risk in c) (c as any)[i.risk] += 1;
+    return c;
+  }, [sortedIssues]);
+  const allIssues = useMemo(
+    () => riskFilter === "all" ? sortedIssues : sortedIssues.filter((i) => i.risk === riskFilter),
+    [sortedIssues, riskFilter],
+  );
   const PAGE_SIZE = 10;
   const [issuesPage, setIssuesPage] = useState(0);
+  useEffect(() => { setIssuesPage(0); }, [riskFilter]);
   const issuesPageCount = Math.max(1, Math.ceil(allIssues.length / PAGE_SIZE));
   useEffect(() => { setIssuesPage(0); }, [timeRange]);
   useEffect(() => {
@@ -409,6 +420,28 @@ export default function Dashboard() {
           <Link to="/incidents" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
             Open full list <ArrowRight className="h-3 w-3" />
           </Link>
+        </div>
+        <div className="flex items-center gap-1 flex-wrap">
+          {([
+            { key: "all", label: "All", count: sortedIssues.length, active: "bg-foreground text-background", idle: "bg-muted text-muted-foreground hover:bg-accent" },
+            { key: "critical", label: "Critical", count: riskCounts.critical, active: "bg-risk-critical text-white", idle: "bg-risk-critical-bg text-risk-critical hover:opacity-80" },
+            { key: "high", label: "High", count: riskCounts.high, active: "bg-risk-high text-white", idle: "bg-risk-high-bg text-risk-high hover:opacity-80" },
+            { key: "medium", label: "Medium", count: riskCounts.medium, active: "bg-risk-medium text-white", idle: "bg-risk-medium-bg text-risk-medium hover:opacity-80" },
+            { key: "low", label: "Low", count: riskCounts.low, active: "bg-risk-low text-white", idle: "bg-risk-low-bg text-risk-low hover:opacity-80" },
+          ] as const).map((t) => {
+            const isActive = riskFilter === t.key;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setRiskFilter(t.key as any)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${isActive ? t.active : t.idle}`}
+              >
+                {t.label}
+                <span className={`rounded-full px-1.5 text-[10px] ${isActive ? "bg-background/20" : "bg-background/60"}`}>{t.count}</span>
+              </button>
+            );
+          })}
         </div>
         <Card className="divide-y divide-border">
           {loading ? (
