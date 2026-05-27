@@ -707,9 +707,9 @@ export default function Dashboard() {
               Reach-weighted across {sentiment.total} mentions ({formatNum(sentiment.totalReach)} impressions).
             </p>
             <p className="text-[10px] text-muted-foreground/80 leading-relaxed">
-              <span className="text-risk-critical font-medium">Negative</span> = critical/high risk posts (attacks, complaints, threats) ·{" "}
-              <span className="text-risk-medium font-medium">Neutral</span> = medium-risk or informational ·{" "}
-              <span className="text-risk-low font-medium">Positive</span> = low-risk posts with supportive engagement (likes ≥ shares).
+              <span className="text-risk-critical font-medium">Negative</span> = negative-tone language (angry, crash, lawsuit, refund…) or crisis-grade risk ·{" "}
+              <span className="text-risk-medium font-medium">Neutral</span> = factual, informational, or mixed tone ·{" "}
+              <span className="text-risk-low font-medium">Positive</span> = supportive language (love, thank you, recommend…) with no negative markers.
             </p>
           </div>
         </Card>
