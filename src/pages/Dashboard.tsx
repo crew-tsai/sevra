@@ -1,26 +1,32 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { RiskBadge } from "@/components/RiskBadge";
 import { CrisisLevelBadge } from "@/components/CrisisLevelBadge";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Badge } from "@/components/ui/badge";
-import { Link } from "react-router-dom";
+import { TimeRangeFilter, ALL_TIME, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
+import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 import {
   AlertTriangle,
   Activity,
   Shield,
   CheckCircle,
   Radio,
-  Hand,
-  Clock,
-  UserX,
-  TrendingUp,
-  Flame,
   ArrowRight,
+  Smile,
+  Meh,
+  Frown,
+  Twitter,
+  Instagram,
+  Facebook,
+  MessageCircle,
+  Newspaper,
+  Globe,
 } from "lucide-react";
-import { toast } from "sonner";
-import { TimeRangeFilter, ALL_TIME, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
-import { formatDistanceToNow } from "date-fns";
+import type { RiskLevel } from "@/lib/mock-data";
 
 type Incident = {
   id: string;
@@ -44,29 +50,29 @@ type Mention = {
   author_handle: string | null;
   author_name: string | null;
   is_influencer: boolean | null;
-  is_verified: boolean | null;
   reach: number | null;
   likes: number | null;
   shares: number | null;
   ai_risk: string | null;
-  ai_risk_score: number | null;
   incident_id: string | null;
   posted_at: string | null;
   created_at: string;
 };
 
-const SOURCE_META: Record<string, { label: string; icon: typeof Radio; className: string }> = {
-  social_media: { label: "Social", icon: Radio, className: "border-primary/40 text-primary" },
-  manual: { label: "Manual", icon: Hand, className: "border-border text-muted-foreground" },
-  internal_ops: { label: "Internal", icon: Hand, className: "border-border text-muted-foreground" },
-  news: { label: "News", icon: Hand, className: "border-border text-muted-foreground" },
-  customer_complaint: { label: "Complaint", icon: Hand, className: "border-border text-muted-foreground" },
-  regulator: { label: "Regulator", icon: Hand, className: "border-border text-muted-foreground" },
+const RISK_RANK: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
+
+const CHANNEL_META: Record<string, { icon: typeof Radio; color: string }> = {
+  twitter: { icon: Twitter, color: "text-sky-500" },
+  x: { icon: Twitter, color: "text-foreground" },
+  instagram: { icon: Instagram, color: "text-pink-500" },
+  facebook: { icon: Facebook, color: "text-blue-600" },
+  tiktok: { icon: MessageCircle, color: "text-rose-500" },
+  reddit: { icon: MessageCircle, color: "text-orange-500" },
+  news: { icon: Newspaper, color: "text-amber-500" },
+  web: { icon: Globe, color: "text-muted-foreground" },
 };
 
-const RISK_ORDER: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
-
-const formatReach = (n: number) => {
+const formatNum = (n: number) => {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return String(n);
@@ -86,12 +92,12 @@ export default function Dashboard() {
           .from("incidents")
           .select("id, title, risk, status, source, assignee, airline_name, flight_number, risk_score, crisis_level, created_at, updated_at")
           .order("created_at", { ascending: false })
-          .limit(200),
+          .limit(300),
         supabase
           .from("social_mentions")
-          .select("id, content, channel, author_handle, author_name, is_influencer, is_verified, reach, likes, shares, ai_risk, ai_risk_score, incident_id, posted_at, created_at")
+          .select("id, content, channel, author_handle, author_name, is_influencer, reach, likes, shares, ai_risk, incident_id, posted_at, created_at")
           .order("created_at", { ascending: false })
-          .limit(200),
+          .limit(300),
       ]);
       if (incRes.error) toast.error(incRes.error.message);
       if (menRes.error) toast.error(menRes.error.message);
@@ -117,288 +123,312 @@ export default function Dashboard() {
     [allMentions, timeRange],
   );
 
-  // Critical alerts: active + critical/high risk
-  const criticalAlerts = useMemo(
+  // 1. Top 3 critical (Hub-style)
+  const topCritical = useMemo(
     () =>
       incidents
-        .filter((i) => (i.status === "active" || i.status === "monitoring") && (i.risk === "critical" || i.risk === "high"))
+        .filter((i) => i.status === "active" || i.status === "monitoring")
         .sort((a, b) => {
-          const r = (RISK_ORDER[b.risk] ?? 0) - (RISK_ORDER[a.risk] ?? 0);
+          const c = (b.crisis_level ?? 0) - (a.crisis_level ?? 0);
+          if (c) return c;
+          const r = (RISK_RANK[b.risk] ?? 0) - (RISK_RANK[a.risk] ?? 0);
           if (r) return r;
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          return (b.risk_score ?? 0) - (a.risk_score ?? 0);
         })
-        .slice(0, 5),
+        .slice(0, 3),
     [incidents],
   );
 
-  // Stats
-  const openIncidents = incidents.filter((i) => i.status !== "resolved");
-  const unassigned = openIncidents.filter((i) => !i.assignee).length;
-  const stale = openIncidents.filter(
-    (i) => Date.now() - new Date(i.updated_at).getTime() > 4 * 60 * 60 * 1000,
-  ).length;
-
-  const stats = [
-    { key: "active", label: "Active", value: incidents.filter((i) => i.status === "active").length, icon: AlertTriangle, color: "text-risk-critical", to: "/incidents?status=active" },
-    { key: "monitoring", label: "Monitoring", value: incidents.filter((i) => i.status === "monitoring").length, icon: Activity, color: "text-risk-high", to: "/incidents?status=monitoring" },
-    { key: "unassigned", label: "Unassigned", value: unassigned, icon: UserX, color: "text-risk-medium", to: "/incidents" },
-    { key: "stale", label: "Stale > 4h", value: stale, icon: Clock, color: "text-risk-medium", to: "/incidents" },
-  ] as const;
-
-  // Trend last 24h (hourly buckets)
-  const trend = useMemo(() => {
-    const buckets = Array.from({ length: 24 }, (_, i) => ({ h: 23 - i, count: 0 }));
-    const now = Date.now();
-    for (const i of allIncidents) {
-      const diffH = Math.floor((now - new Date(i.created_at).getTime()) / (60 * 60 * 1000));
-      if (diffH >= 0 && diffH < 24) buckets[diffH].count += 1;
+  // 2. Issues status bar
+  const statusCounts = useMemo(() => {
+    const c = { active: 0, monitoring: 0, contained: 0, resolved: 0 };
+    for (const i of incidents) {
+      if (i.status in c) (c as any)[i.status] += 1;
     }
-    return buckets.reverse();
-  }, [allIncidents]);
-  const trendMax = Math.max(1, ...trend.map((b) => b.count));
-  const trendTotal = trend.reduce((s, b) => s + b.count, 0);
+    return c;
+  }, [incidents]);
+  const statusTotal = Math.max(1, incidents.length);
 
-  // Top viral mentions (high reach + risk)
-  const viralMentions = useMemo(
-    () =>
-      [...mentions]
-        .sort((a, b) => {
-          const ra = (a.reach ?? 0) + (a.likes ?? 0) * 2 + (a.shares ?? 0) * 5;
-          const rb = (b.reach ?? 0) + (b.likes ?? 0) * 2 + (b.shares ?? 0) * 5;
-          return rb - ra;
-        })
-        .slice(0, 5),
-    [mentions],
-  );
+  const statusBar = [
+    { key: "active", label: "Active", count: statusCounts.active, icon: AlertTriangle, color: "bg-risk-critical", textColor: "text-risk-critical", bg: "bg-risk-critical-bg" },
+    { key: "monitoring", label: "Monitoring", count: statusCounts.monitoring, icon: Activity, color: "bg-risk-high", textColor: "text-risk-high", bg: "bg-risk-high-bg" },
+    { key: "contained", label: "Contained", count: statusCounts.contained, icon: Shield, color: "bg-risk-medium", textColor: "text-risk-medium", bg: "bg-risk-medium-bg" },
+    { key: "resolved", label: "Resolved", count: statusCounts.resolved, icon: CheckCircle, color: "bg-risk-low", textColor: "text-risk-low", bg: "bg-risk-low-bg" },
+  ];
 
-  // Priority queue: open incidents sorted by risk score then recency
-  const priorityQueue = useMemo(
+  // 3. Social mentions status — by channel
+  const channelStats = useMemo(() => {
+    const map = new Map<string, { count: number; reach: number }>();
+    for (const m of mentions) {
+      const k = (m.channel ?? "web").toLowerCase();
+      const cur = map.get(k) ?? { count: 0, reach: 0 };
+      cur.count += 1;
+      cur.reach += m.reach ?? 0;
+      map.set(k, cur);
+    }
+    return Array.from(map.entries())
+      .map(([channel, v]) => ({ channel, ...v }))
+      .sort((a, b) => b.count - a.count);
+  }, [mentions]);
+  const mentionsTotal = mentions.length;
+  const influencerCount = mentions.filter((m) => m.is_influencer).length;
+  const totalReach = mentions.reduce((s, m) => s + (m.reach ?? 0), 0);
+
+  // 4. All issues
+  const allIssues = useMemo(
     () =>
-      openIncidents
+      incidents
         .slice()
         .sort((a, b) => {
-          const r = (RISK_ORDER[b.risk] ?? 0) - (RISK_ORDER[a.risk] ?? 0);
+          const r = (RISK_RANK[b.risk] ?? 0) - (RISK_RANK[a.risk] ?? 0);
           if (r) return r;
-          if (b.risk_score !== a.risk_score) return b.risk_score - a.risk_score;
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
         })
-        .slice(0, 8),
-    [openIncidents],
+        .slice(0, 10),
+    [incidents],
   );
 
+  // 5. Sentiment analysis (derived from ai_risk of mentions)
+  const sentiment = useMemo(() => {
+    let negative = 0, neutral = 0, positive = 0;
+    for (const m of mentions) {
+      const r = m.ai_risk;
+      if (r === "critical" || r === "high") negative += 1;
+      else if (r === "medium") neutral += 1;
+      else if (r === "low") positive += 1;
+      else neutral += 1;
+    }
+    const total = Math.max(1, negative + neutral + positive);
+    return {
+      negative,
+      neutral,
+      positive,
+      total,
+      negPct: Math.round((negative / total) * 100),
+      neuPct: Math.round((neutral / total) * 100),
+      posPct: Math.round((positive / total) * 100),
+    };
+  }, [mentions]);
+
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">Crisis Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Detect, prioritize, and respond. Real-time view of risk posture.
-          </p>
+    <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 space-y-6">
+      {/* Header */}
+      <header className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground">Crisis dashboard</p>
+          <h1 className="text-2xl font-semibold tracking-tight">Real-time risk posture</h1>
         </div>
         <TimeRangeFilter value={timeRange} onChange={setTimeRange} />
-      </div>
+      </header>
 
-      {/* Critical alert banner */}
-      {!loading && criticalAlerts.length > 0 && (
-        <div className="rounded-lg border border-risk-critical/40 bg-risk-critical-bg/40 p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle className="h-4 w-4 text-risk-critical" />
-            <h2 className="text-sm font-semibold text-foreground">
-              {criticalAlerts.length} critical {criticalAlerts.length === 1 ? "incident needs" : "incidents need"} attention
-            </h2>
-          </div>
-          <div className="space-y-2">
-            {criticalAlerts.map((inc) => (
-              <Link
-                key={inc.id}
-                to={`/incidents/${inc.id}`}
-                className="flex items-center gap-3 rounded-md bg-card/60 hover:bg-card px-3 py-2 transition-colors group"
-              >
-                <RiskBadge level={inc.risk as any} />
-                <CrisisLevelBadge level={inc.crisis_level} compact />
-                <span className="text-sm text-foreground flex-1 min-w-0 truncate">{inc.title}</span>
-                <span className="text-xs text-muted-foreground hidden sm:inline">
-                  {formatDistanceToNow(new Date(inc.created_at), { addSuffix: true })}
-                </span>
-                <span className="text-xs text-muted-foreground w-20 text-right truncate hidden md:inline">
-                  {inc.assignee ?? "Unassigned"}
-                </span>
-                <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
+      {/* 1. Top 3 critical */}
+      <section className="space-y-2">
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="h-3.5 w-3.5 text-risk-high" />
+          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Critical · top 3
+          </h2>
+        </div>
+        {loading ? (
+          <Card className="p-3 text-xs text-muted-foreground">Loading…</Card>
+        ) : topCritical.length === 0 ? (
+          <Card className="p-3 text-xs text-muted-foreground">Nothing critical right now. You're all clear.</Card>
+        ) : (
+          <div className="grid gap-2">
+            {topCritical.map((i) => (
+              <Link key={i.id} to={`/incidents/${i.id}`} className="group">
+                <Card className="px-3 py-2.5 flex items-center gap-3 hover:bg-accent/40 transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                      <CrisisLevelBadge level={i.crisis_level} compact />
+                      <RiskBadge level={(i.risk as RiskLevel) ?? "medium"} />
+                      <Badge variant="outline" className="text-[10px] capitalize">
+                        {i.status}
+                      </Badge>
+                      <p className="text-sm font-medium truncate">{i.title}</p>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Updated {formatDistanceToNow(new Date(i.updated_at), { addSuffix: true })}
+                      {i.assignee ? ` · ${i.assignee}` : " · Unassigned"}
+                    </p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+                </Card>
               </Link>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </section>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {stats.map((stat) => (
-          <Link
-            key={stat.key}
-            to={stat.to}
-            className="rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/50"
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
-              <span className="text-xs font-medium text-muted-foreground">{stat.label}</span>
-            </div>
-            <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-          </Link>
-        ))}
-      </div>
-
-      {/* Two-column main */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Priority queue */}
-        <div className="lg:col-span-2 rounded-lg border border-border bg-card">
-          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">Priority queue</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Open incidents ranked by risk</p>
-            </div>
-            <Link to="/incidents" className="text-xs text-primary hover:underline">View all</Link>
-          </div>
-          {loading ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>
-          ) : !priorityQueue.length ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">No open incidents. All clear.</div>
-          ) : (
-            <div className="divide-y divide-border">
-              {priorityQueue.map((incident) => {
-                const meta = SOURCE_META[incident.source] ?? SOURCE_META.manual;
-                const SourceIcon = meta.icon;
-                const ageH = (Date.now() - new Date(incident.updated_at).getTime()) / (60 * 60 * 1000);
-                const isStale = ageH > 4 && incident.status !== "resolved";
-                return (
-                  <Link
-                    key={incident.id}
-                    to={`/incidents/${incident.id}`}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-accent/50 transition-colors"
-                  >
-                    <RiskBadge level={incident.risk as any} />
-                    <CrisisLevelBadge level={incident.crisis_level} compact />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-foreground truncate">{incident.title}</p>
-                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                        <Badge variant="outline" className={`gap-1 text-[10px] py-0 ${meta.className}`}>
-                          <SourceIcon className="h-2.5 w-2.5" />
-                          {meta.label}
-                        </Badge>
-                        <span>·</span>
-                        <span className="truncate">{incident.assignee ?? "Unassigned"}</span>
-                        {isStale && (
-                          <>
-                            <span>·</span>
-                            <span className="inline-flex items-center gap-1 text-risk-medium">
-                              <Clock className="h-2.5 w-2.5" />
-                              stale
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <StatusBadge status={incident.status as any} />
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Right column: trend + viral */}
-        <div className="space-y-6">
-          {/* Trend */}
-          <div className="rounded-lg border border-border bg-card p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                  <TrendingUp className="h-3.5 w-3.5 text-primary" />
-                  24h trend
-                </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">{trendTotal} new incidents</p>
-              </div>
-            </div>
-            <div className="flex items-end gap-0.5 h-16">
-              {trend.map((b, idx) => (
+      {/* 2. Issues status bar */}
+      <section className="space-y-2">
+        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Issues status
+        </h2>
+        <Card className="p-4 space-y-3">
+          {/* segmented bar */}
+          <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
+            {statusBar.map((s) =>
+              s.count > 0 ? (
                 <div
-                  key={idx}
-                  className="flex-1 bg-primary/70 hover:bg-primary rounded-sm transition-colors min-h-[2px]"
-                  style={{ height: `${(b.count / trendMax) * 100}%` }}
-                  title={`${b.count} incidents ${b.h}h ago`}
+                  key={s.key}
+                  className={s.color}
+                  style={{ width: `${(s.count / statusTotal) * 100}%` }}
+                  title={`${s.label}: ${s.count}`}
                 />
-              ))}
-            </div>
-            <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-              <span>24h ago</span>
-              <span>now</span>
-            </div>
-          </div>
-
-          {/* Viral mentions */}
-          <div className="rounded-lg border border-border bg-card">
-            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                <Flame className="h-3.5 w-3.5 text-risk-high" />
-                Top signals
-              </h2>
-              <Link to="/sevra" className="text-xs text-primary hover:underline">Social Intel</Link>
-            </div>
-            {loading ? (
-              <div className="p-6 text-center text-sm text-muted-foreground">Loading…</div>
-            ) : !viralMentions.length ? (
-              <div className="p-6 text-center text-sm text-muted-foreground">No mentions yet.</div>
-            ) : (
-              <div className="divide-y divide-border">
-                {viralMentions.map((m) => (
-                  <Link
-                    key={m.id}
-                    to={m.incident_id ? `/incidents/${m.incident_id}` : "/sevra"}
-                    className="block px-4 py-3 hover:bg-accent/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="outline" className="text-[10px] py-0 capitalize">
-                        {m.channel}
-                      </Badge>
-                      {m.is_influencer && (
-                        <Badge variant="outline" className="text-[10px] py-0 border-risk-high/40 text-risk-high">
-                          Influencer
-                        </Badge>
-                      )}
-                      {m.ai_risk && <RiskBadge level={m.ai_risk as any} className="text-[10px] py-0" />}
-                    </div>
-                    <p className="text-xs text-foreground line-clamp-2">{m.content}</p>
-                    <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">
-                      <span>{m.author_handle ?? m.author_name ?? "anon"}</span>
-                      <span>· reach {formatReach(m.reach ?? 0)}</span>
-                      {(m.shares ?? 0) > 0 && <span>· {formatReach(m.shares ?? 0)} shares</span>}
-                    </div>
-                  </Link>
-                ))}
-              </div>
+              ) : null,
             )}
           </div>
-        </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {statusBar.map((s) => (
+              <Link
+                key={s.key}
+                to={`/incidents?status=${s.key}`}
+                className={`rounded-md ${s.bg} px-3 py-2 hover:opacity-90 transition-opacity`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <s.icon className={`h-3.5 w-3.5 ${s.textColor}`} />
+                  <span className={`text-[11px] font-medium ${s.textColor}`}>{s.label}</span>
+                </div>
+                <p className={`text-xl font-semibold ${s.textColor} mt-0.5`}>{s.count}</p>
+              </Link>
+            ))}
+          </div>
+        </Card>
+      </section>
+
+      {/* 3 & 5 side by side */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* 3. Social mentions status */}
+        <section className="space-y-2">
+          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Social mentions
+          </h2>
+          <Card className="p-4 space-y-3">
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-md bg-primary/10 px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wider text-primary">Total</p>
+                <p className="text-xl font-semibold text-primary">{mentionsTotal}</p>
+              </div>
+              <div className="rounded-md bg-risk-high-bg px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wider text-risk-high">Influencers</p>
+                <p className="text-xl font-semibold text-risk-high">{influencerCount}</p>
+              </div>
+              <div className="rounded-md bg-muted px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Reach</p>
+                <p className="text-xl font-semibold text-foreground">{formatNum(totalReach)}</p>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-[11px] text-muted-foreground">By channel</p>
+              {channelStats.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No mentions in range.</p>
+              ) : (
+                channelStats.map((c) => {
+                  const meta = CHANNEL_META[c.channel] ?? { icon: Globe, color: "text-muted-foreground" };
+                  const Icon = meta.icon;
+                  const pct = (c.count / Math.max(1, mentionsTotal)) * 100;
+                  return (
+                    <div key={c.channel} className="flex items-center gap-2">
+                      <Icon className={`h-3.5 w-3.5 ${meta.color}`} />
+                      <span className="text-xs capitalize w-20 shrink-0">{c.channel}</span>
+                      <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div className={`h-full ${meta.color.replace("text-", "bg-")}`} style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="text-xs text-muted-foreground w-10 text-right">{c.count}</span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+            <Link to="/sevra" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
+              Open Social Intel <ArrowRight className="h-3 w-3" />
+            </Link>
+          </Card>
+        </section>
+
+        {/* 5. Sentiment analysis */}
+        <section className="space-y-2">
+          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Sentiment analysis
+          </h2>
+          <Card className="p-4 space-y-3">
+            <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
+              <div className="bg-risk-critical" style={{ width: `${sentiment.negPct}%` }} title={`Negative ${sentiment.negPct}%`} />
+              <div className="bg-risk-medium" style={{ width: `${sentiment.neuPct}%` }} title={`Neutral ${sentiment.neuPct}%`} />
+              <div className="bg-risk-low" style={{ width: `${sentiment.posPct}%` }} title={`Positive ${sentiment.posPct}%`} />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-md bg-risk-critical-bg px-3 py-2">
+                <div className="flex items-center gap-1.5">
+                  <Frown className="h-3.5 w-3.5 text-risk-critical" />
+                  <span className="text-[11px] font-medium text-risk-critical">Negative</span>
+                </div>
+                <p className="text-xl font-semibold text-risk-critical mt-0.5">{sentiment.negPct}%</p>
+                <p className="text-[10px] text-muted-foreground">{sentiment.negative} mentions</p>
+              </div>
+              <div className="rounded-md bg-risk-medium-bg px-3 py-2">
+                <div className="flex items-center gap-1.5">
+                  <Meh className="h-3.5 w-3.5 text-risk-medium" />
+                  <span className="text-[11px] font-medium text-risk-medium">Neutral</span>
+                </div>
+                <p className="text-xl font-semibold text-risk-medium mt-0.5">{sentiment.neuPct}%</p>
+                <p className="text-[10px] text-muted-foreground">{sentiment.neutral} mentions</p>
+              </div>
+              <div className="rounded-md bg-risk-low-bg px-3 py-2">
+                <div className="flex items-center gap-1.5">
+                  <Smile className="h-3.5 w-3.5 text-risk-low" />
+                  <span className="text-[11px] font-medium text-risk-low">Positive</span>
+                </div>
+                <p className="text-xl font-semibold text-risk-low mt-0.5">{sentiment.posPct}%</p>
+                <p className="text-[10px] text-muted-foreground">{sentiment.positive} mentions</p>
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Derived from AI risk scoring across {sentiment.total} mentions in range.
+            </p>
+          </Card>
+        </section>
       </div>
 
-      {/* Resolution summary */}
-      {!loading && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: "Contained", value: incidents.filter((i) => i.status === "contained").length, icon: Shield, color: "text-risk-medium" },
-            { label: "Resolved", value: incidents.filter((i) => i.status === "resolved").length, icon: CheckCircle, color: "text-risk-low" },
-            { label: "Total in range", value: incidents.length, icon: Activity, color: "text-muted-foreground" },
-            { label: "Social mentions", value: mentions.length, icon: Radio, color: "text-primary" },
-          ].map((s) => (
-            <div key={s.label} className="rounded-lg border border-border bg-card/50 p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <s.icon className={`h-3.5 w-3.5 ${s.color}`} />
-                <span className="text-xs text-muted-foreground">{s.label}</span>
-              </div>
-              <p className="text-lg font-semibold text-foreground">{s.value}</p>
-            </div>
-          ))}
+      {/* 4. All issues */}
+      <section className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            All issues
+          </h2>
+          <Link to="/incidents" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
+            View all <ArrowRight className="h-3 w-3" />
+          </Link>
         </div>
-      )}
+        <Card className="divide-y divide-border">
+          {loading ? (
+            <div className="p-6 text-center text-sm text-muted-foreground">Loading…</div>
+          ) : allIssues.length === 0 ? (
+            <div className="p-6 text-center text-sm text-muted-foreground">No issues in range.</div>
+          ) : (
+            allIssues.map((i) => (
+              <Link
+                key={i.id}
+                to={`/incidents/${i.id}`}
+                className="flex items-center gap-3 px-3 py-2.5 hover:bg-accent/40 transition-colors"
+              >
+                <CrisisLevelBadge level={i.crisis_level} compact />
+                <RiskBadge level={(i.risk as RiskLevel) ?? "medium"} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm truncate">{i.title}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {i.assignee ?? "Unassigned"} ·{" "}
+                    {formatDistanceToNow(new Date(i.updated_at), { addSuffix: true })}
+                  </p>
+                </div>
+                <StatusBadge status={i.status as any} />
+                <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              </Link>
+            ))
+          )}
+        </Card>
+      </section>
     </div>
   );
 }
