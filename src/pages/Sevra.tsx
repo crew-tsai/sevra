@@ -66,6 +66,7 @@ const CHANNEL_META: Record<string, { icon: typeof Twitter; label: string; color:
   twitter: { icon: Twitter, label: "X / Twitter", color: "text-sky-500" },
   instagram: { icon: Instagram, label: "Instagram", color: "text-pink-500" },
   tiktok: { icon: Music2, label: "TikTok", color: "text-foreground" },
+  facebook: { icon: Facebook, label: "Facebook", color: "text-blue-600" },
 };
 
 // All mock posts reference Aurora Skylines (AS) — Madrid-hubbed hybrid carrier.
