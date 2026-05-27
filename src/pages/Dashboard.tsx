@@ -330,6 +330,13 @@ export default function Dashboard() {
         <TimeRangeFilter value={timeRange} onChange={setTimeRange} />
       </header>
 
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="issues-log">Issues log</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6 mt-0">
       {/* 1. Top 3 critical */}
       <section className="space-y-2">
         <div className="flex items-center gap-2">
