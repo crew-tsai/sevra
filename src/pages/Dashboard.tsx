@@ -421,6 +421,28 @@ export default function Dashboard() {
             Open full list <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
+        <div className="flex items-center gap-1 flex-wrap">
+          {([
+            { key: "all", label: "All", count: sortedIssues.length, active: "bg-foreground text-background", idle: "bg-muted text-muted-foreground hover:bg-accent" },
+            { key: "critical", label: "Critical", count: riskCounts.critical, active: "bg-risk-critical text-white", idle: "bg-risk-critical-bg text-risk-critical hover:opacity-80" },
+            { key: "high", label: "High", count: riskCounts.high, active: "bg-risk-high text-white", idle: "bg-risk-high-bg text-risk-high hover:opacity-80" },
+            { key: "medium", label: "Medium", count: riskCounts.medium, active: "bg-risk-medium text-white", idle: "bg-risk-medium-bg text-risk-medium hover:opacity-80" },
+            { key: "low", label: "Low", count: riskCounts.low, active: "bg-risk-low text-white", idle: "bg-risk-low-bg text-risk-low hover:opacity-80" },
+          ] as const).map((t) => {
+            const isActive = riskFilter === t.key;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setRiskFilter(t.key as any)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${isActive ? t.active : t.idle}`}
+              >
+                {t.label}
+                <span className={`rounded-full px-1.5 text-[10px] ${isActive ? "bg-background/20" : "bg-background/60"}`}>{t.count}</span>
+              </button>
+            );
+          })}
+        </div>
         <Card className="divide-y divide-border">
           {loading ? (
             <div className="p-6 text-center text-sm text-muted-foreground">Loading…</div>
