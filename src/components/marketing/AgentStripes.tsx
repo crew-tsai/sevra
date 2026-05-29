@@ -183,7 +183,7 @@ export default function AgentStripes() {
               </div>
               <div>
                 <p className="text-sm font-semibold leading-none">Ask Agent Stripes</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Sevra crisis assistant</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Your calm in the chaos — ready 24/7</p>
               </div>
             </div>
             <button
