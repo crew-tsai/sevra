@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.social-monitor-control]
 verify_jwt = false
+
+[functions.agent-stripes]
+verify_jwt = false
