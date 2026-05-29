@@ -1,10 +1,11 @@
 // Distribution lists for crisis communications.
 // Stored in localStorage so it can be configured per-user without backend tables.
-// Lists are keyed by asset type.
 
 export type DistributionLists = Record<string, string[]>;
 
 const STORAGE_KEY = "sevra.distribution_lists.v1";
+const NAMED_LISTS_KEY = "sevra.email_lists.v1";
+const RACI_KEY = "sevra.responsibility_matrix.v1";
 
 export const DEFAULT_LISTS: DistributionLists = {
   press_release: [],
@@ -64,6 +65,169 @@ export function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
 
+// ─────────────────────────────────────────────────────────────
+// Named email lists (built in Admin → Email lists)
+// ─────────────────────────────────────────────────────────────
+
+export type EmailList = {
+  id: string;
+  name: string;
+  description?: string;
+  emails: string[];
+};
+
+const DEFAULT_NAMED_LISTS: EmailList[] = [
+  {
+    id: "exec",
+    name: "Executive Team",
+    description: "C-level and crisis decision makers",
+    emails: [],
+  },
+  {
+    id: "press",
+    name: "Press & Media",
+    description: "Journalists, PR agencies, media outlets",
+    emails: [],
+  },
+  {
+    id: "ops",
+    name: "Operations & Frontline",
+    description: "On-the-ground operations and customer-facing staff",
+    emails: [],
+  },
+  {
+    id: "regulators",
+    name: "Regulators & Authorities",
+    description: "Aviation authorities, government contacts",
+    emails: [],
+  },
+  {
+    id: "internal-all",
+    name: "All Employees",
+    description: "Company-wide internal distribution",
+    emails: [],
+  },
+];
+
+export function loadEmailLists(): EmailList[] {
+  try {
+    const raw = localStorage.getItem(NAMED_LISTS_KEY);
+    if (!raw) return [...DEFAULT_NAMED_LISTS];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [...DEFAULT_NAMED_LISTS];
+    return parsed as EmailList[];
+  } catch {
+    return [...DEFAULT_NAMED_LISTS];
+  }
+}
+
+export function saveEmailLists(lists: EmailList[]) {
+  localStorage.setItem(NAMED_LISTS_KEY, JSON.stringify(lists));
+}
+
+// ─────────────────────────────────────────────────────────────
+// Responsibility matrix (RACI)
+// Maps each asset type → list IDs by responsibility level.
+// ─────────────────────────────────────────────────────────────
+
+export type RaciLevel = "responsible" | "accountable" | "consulted" | "informed";
+
+export type ResponsibilityMatrix = Record<string, Record<RaciLevel, string[]>>;
+
+const EMPTY_RACI: Record<RaciLevel, string[]> = {
+  responsible: [],
+  accountable: [],
+  consulted: [],
+  informed: [],
+};
+
+const DEFAULT_MATRIX: ResponsibilityMatrix = {
+  press_release: {
+    responsible: ["press"],
+    accountable: ["exec"],
+    consulted: ["regulators"],
+    informed: ["internal-all"],
+  },
+  holding_statement: {
+    responsible: ["press", "ops"],
+    accountable: ["exec"],
+    consulted: [],
+    informed: ["internal-all"],
+  },
+  internal_memo: {
+    responsible: ["internal-all"],
+    accountable: ["exec"],
+    consulted: ["ops"],
+    informed: [],
+  },
+  customer_faq: {
+    responsible: ["ops"],
+    accountable: ["exec"],
+    consulted: ["press"],
+    informed: ["internal-all"],
+  },
+};
+
+export const RACI_LABELS: Record<RaciLevel, string> = {
+  responsible: "Responsible",
+  accountable: "Accountable",
+  consulted: "Consulted",
+  informed: "Informed",
+};
+
+export const RACI_DESCRIPTIONS: Record<RaciLevel, string> = {
+  responsible: "Does the work — drafts and sends the comms",
+  accountable: "Owns the decision — must sign off before send",
+  consulted: "Input needed before publishing",
+  informed: "Kept in the loop after sending",
+};
+
+export function loadResponsibilityMatrix(): ResponsibilityMatrix {
+  try {
+    const raw = localStorage.getItem(RACI_KEY);
+    if (!raw) return { ...DEFAULT_MATRIX };
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULT_MATRIX, ...parsed };
+  } catch {
+    return { ...DEFAULT_MATRIX };
+  }
+}
+
+export function saveResponsibilityMatrix(matrix: ResponsibilityMatrix) {
+  localStorage.setItem(RACI_KEY, JSON.stringify(matrix));
+}
+
+export function getMatrixFor(assetType: string): Record<RaciLevel, string[]> {
+  const matrix = loadResponsibilityMatrix();
+  return matrix[assetType] ?? { ...EMPTY_RACI };
+}
+
+/**
+ * Recommended email lists for a given asset type, ordered by priority
+ * (responsible → accountable → consulted → informed).
+ */
+export function getRecommendedLists(
+  assetType: string,
+): Array<{ list: EmailList; level: RaciLevel }> {
+  const matrix = getMatrixFor(assetType);
+  const lists = loadEmailLists();
+  const byId = new Map(lists.map((l) => [l.id, l]));
+  const out: Array<{ list: EmailList; level: RaciLevel }> = [];
+  const seen = new Set<string>();
+  (["responsible", "accountable", "consulted", "informed"] as RaciLevel[]).forEach(
+    (level) => {
+      for (const id of matrix[level] ?? []) {
+        if (seen.has(id)) continue;
+        const list = byId.get(id);
+        if (!list) continue;
+        seen.add(id);
+        out.push({ list, level });
+      }
+    },
+  );
+  return out;
+}
+
 // Social network URLs for "copy + open" flow
 export function socialNetworkUrl(assetType: string, content: string): string {
   const text = encodeURIComponent(content);
@@ -71,7 +235,6 @@ export function socialNetworkUrl(assetType: string, content: string): string {
     case "post_x":
       return `https://twitter.com/intent/tweet?text=${text}`;
     case "post_instagram":
-      // Instagram has no web composer — open the app/site
       return "https://www.instagram.com/";
     case "tiktok_script":
       return "https://www.tiktok.com/upload";
