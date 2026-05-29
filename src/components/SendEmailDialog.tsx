@@ -14,13 +14,24 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ASSET_TYPE_LABELS,
+  RACI_LABELS,
+  RaciLevel,
+  EmailList,
   getListFor,
+  getRecommendedLists,
   isValidEmail,
   loadDistributionLists,
   saveDistributionLists,
 } from "@/lib/distribution";
-import { Loader2, Mail, Plus, Send, X } from "lucide-react";
+import { Loader2, Mail, Plus, Send, Sparkles, Users, X } from "lucide-react";
 import { toast } from "sonner";
+
+const LEVEL_BADGE: Record<RaciLevel, string> = {
+  responsible: "bg-primary/15 text-primary border-primary/30",
+  accountable: "bg-destructive/10 text-destructive border-destructive/30",
+  consulted: "bg-amber-500/10 text-amber-600 border-amber-500/30 dark:text-amber-400",
+  informed: "bg-muted text-muted-foreground border-border",
+};
 
 type Props = {
   open: boolean;
@@ -45,9 +56,19 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
     [asset],
   );
 
+  const recommended = useMemo(
+    () => (asset ? getRecommendedLists(asset.asset_type) : []),
+    [asset, open],
+  );
+
   useEffect(() => {
     if (open && asset) {
-      setRecipients(getListFor(asset.asset_type));
+      // Pre-fill with the saved per-asset list AND every "responsible" list from the matrix.
+      const base = new Set<string>(getListFor(asset.asset_type));
+      for (const { list, level } of getRecommendedLists(asset.asset_type)) {
+        if (level === "responsible") list.emails.forEach((e) => base.add(e));
+      }
+      setRecipients(Array.from(base));
       setNewEmail("");
       setPersistToList(false);
     }
@@ -57,6 +78,19 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
 
   const incidentRef = `INC-${asset.incident_id.slice(0, 8).toUpperCase()}`;
   const packageRef = `PKG-${asset.incident_id.slice(0, 8).toUpperCase()}`;
+
+  const addListEmails = (list: EmailList) => {
+    if (!list.emails.length) {
+      toast.info(`"${list.name}" has no contacts yet`);
+      return;
+    }
+    setRecipients((prev) => {
+      const merged = new Set(prev);
+      list.emails.forEach((e) => merged.add(e));
+      return Array.from(merged);
+    });
+    toast.success(`Added ${list.emails.length} from ${list.name}`);
+  };
 
   const addEmail = () => {
     const trimmed = newEmail.trim().toLowerCase();
@@ -149,6 +183,37 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
         </DialogHeader>
 
         <div className="space-y-4">
+          {recommended.length > 0 && (
+            <div className="rounded-md border border-primary/20 bg-primary/5 p-3 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-medium text-primary">
+                <Sparkles className="h-3.5 w-3.5" />
+                Recommended lists for {typeLabel.toLowerCase()}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {recommended.map(({ list, level }) => (
+                  <button
+                    key={list.id}
+                    type="button"
+                    onClick={() => addListEmails(list)}
+                    className={`group inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs hover:scale-[1.02] transition ${LEVEL_BADGE[level]}`}
+                    title={`Add ${list.emails.length} contacts from ${list.name}`}
+                  >
+                    <Users className="h-3 w-3" />
+                    <span className="font-medium">{list.name}</span>
+                    <span className="opacity-70">({list.emails.length})</span>
+                    <span className="ml-1 text-[9px] uppercase tracking-wider opacity-80">
+                      {RACI_LABELS[level]}
+                    </span>
+                    <Plus className="h-3 w-3 opacity-60 group-hover:opacity-100" />
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Based on your responsibility matrix. Edit lists & matrix in Admin.
+              </p>
+            </div>
+          )}
+
           <div>
             <Label className="text-xs">Recipients</Label>
             <div className="flex flex-wrap gap-1.5 mt-2 min-h-[36px] p-2 rounded-md border bg-muted/30">

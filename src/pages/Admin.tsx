@@ -13,8 +13,10 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Upload, FileText, Trash2, ShieldAlert, Building2, Users, Palette } from "lucide-react";
+import { Loader2, Upload, FileText, Trash2, ShieldAlert, Building2, Users, Palette, Mail, Network } from "lucide-react";
 import { z } from "zod";
+import EmailListsManager from "@/components/admin/EmailListsManager";
+import ResponsibilityMatrixEditor from "@/components/admin/ResponsibilityMatrixEditor";
 
 const INDUSTRIES = [
   "Aviation", "Hospitality", "Retail", "Banking & Finance", "Healthcare",
@@ -210,10 +212,12 @@ export default function Admin() {
       </header>
 
       <Tabs defaultValue="company">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="company"><Building2 className="h-4 w-4 mr-2" />Company</TabsTrigger>
           <TabsTrigger value="branding"><Palette className="h-4 w-4 mr-2" />Branding</TabsTrigger>
           <TabsTrigger value="team"><Users className="h-4 w-4 mr-2" />Team & roles</TabsTrigger>
+          <TabsTrigger value="lists"><Mail className="h-4 w-4 mr-2" />Email lists</TabsTrigger>
+          <TabsTrigger value="raci"><Network className="h-4 w-4 mr-2" />Responsibility matrix</TabsTrigger>
         </TabsList>
 
         {/* COMPANY */}
@@ -403,6 +407,16 @@ export default function Admin() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* EMAIL LISTS */}
+        <TabsContent value="lists" className="space-y-4">
+          <EmailListsManager />
+        </TabsContent>
+
+        {/* RESPONSIBILITY MATRIX */}
+        <TabsContent value="raci" className="space-y-4">
+          <ResponsibilityMatrixEditor />
         </TabsContent>
       </Tabs>
     </div>
