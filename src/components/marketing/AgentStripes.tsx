@@ -1,7 +1,43 @@
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
-import { MessageCircle, X, Send, Loader2 } from "lucide-react";
+import { X, Send, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+function ZebraIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 64 64"
+      className={className}
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      {/* Head */}
+      <ellipse cx="32" cy="34" rx="18" ry="20" fill="currentColor" />
+      {/* Ears */}
+      <ellipse cx="20" cy="14" rx="4" ry="6" fill="currentColor" transform="rotate(-20 20 14)" />
+      <ellipse cx="44" cy="14" rx="4" ry="6" fill="currentColor" transform="rotate(20 44 14)" />
+      {/* Mane */}
+      <path d="M32 8 L28 18 L32 14 L36 18 Z" fill="currentColor" />
+      {/* Stripes (cut-outs) */}
+      <g stroke="hsl(var(--primary))" strokeWidth="2.2" strokeLinecap="round">
+        <path d="M18 26 Q24 24 30 26" />
+        <path d="M34 26 Q40 24 46 26" />
+        <path d="M16 34 Q24 32 32 34" />
+        <path d="M32 34 Q40 32 48 34" />
+        <path d="M20 42 Q26 40 32 42" />
+        <path d="M32 42 Q38 40 44 42" />
+      </g>
+      {/* Eyes */}
+      <circle cx="25" cy="32" r="2" fill="hsl(var(--primary))" />
+      <circle cx="39" cy="32" r="2" fill="hsl(var(--primary))" />
+      {/* Nose */}
+      <ellipse cx="32" cy="48" rx="6" ry="4" fill="hsl(var(--primary))" opacity="0.35" />
+      <circle cx="29" cy="48" r="1" fill="hsl(var(--primary))" />
+      <circle cx="35" cy="48" r="1" fill="hsl(var(--primary))" />
+    </svg>
+  );
+}
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -123,11 +159,11 @@ export default function AgentStripes() {
       >
         <span className="relative flex h-10 w-10 items-center justify-center rounded-full bg-primary-foreground/15">
           <span className="absolute inset-0 rounded-full animate-ping bg-primary-foreground/20" />
-          <MessageCircle className="h-5 w-5" />
+          <ZebraIcon className="h-7 w-7 text-primary-foreground" />
         </span>
         <span className="text-left leading-tight">
-          <span className="block text-sm font-semibold">Agent Stripes</span>
-          <span className="block text-xs opacity-80">Ask me anything about crisis</span>
+          <span className="block text-sm font-semibold">Ask Agent Stripes</span>
+          <span className="block text-xs opacity-80">Crisis, emails & past cases</span>
         </span>
       </button>
 
@@ -143,10 +179,10 @@ export default function AgentStripes() {
             <div className="flex items-center gap-3">
               <div className="relative h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center">
                 <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-green-500 border-2 border-card" />
-                <span className="text-sm font-bold text-primary">AS</span>
+                <ZebraIcon className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-semibold leading-none">Agent Stripes</p>
+                <p className="text-sm font-semibold leading-none">Ask Agent Stripes</p>
                 <p className="text-xs text-muted-foreground mt-0.5">Sevra crisis assistant</p>
               </div>
             </div>
