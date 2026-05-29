@@ -14,13 +14,24 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ASSET_TYPE_LABELS,
+  RACI_LABELS,
+  RaciLevel,
+  EmailList,
   getListFor,
+  getRecommendedLists,
   isValidEmail,
   loadDistributionLists,
   saveDistributionLists,
 } from "@/lib/distribution";
-import { Loader2, Mail, Plus, Send, X } from "lucide-react";
+import { Loader2, Mail, Plus, Send, Sparkles, Users, X } from "lucide-react";
 import { toast } from "sonner";
+
+const LEVEL_BADGE: Record<RaciLevel, string> = {
+  responsible: "bg-primary/15 text-primary border-primary/30",
+  accountable: "bg-destructive/10 text-destructive border-destructive/30",
+  consulted: "bg-amber-500/10 text-amber-600 border-amber-500/30 dark:text-amber-400",
+  informed: "bg-muted text-muted-foreground border-border",
+};
 
 type Props = {
   open: boolean;
@@ -45,9 +56,19 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
     [asset],
   );
 
+  const recommended = useMemo(
+    () => (asset ? getRecommendedLists(asset.asset_type) : []),
+    [asset, open],
+  );
+
   useEffect(() => {
     if (open && asset) {
-      setRecipients(getListFor(asset.asset_type));
+      // Pre-fill with the saved per-asset list AND every "responsible" list from the matrix.
+      const base = new Set<string>(getListFor(asset.asset_type));
+      for (const { list, level } of getRecommendedLists(asset.asset_type)) {
+        if (level === "responsible") list.emails.forEach((e) => base.add(e));
+      }
+      setRecipients(Array.from(base));
       setNewEmail("");
       setPersistToList(false);
     }
@@ -55,8 +76,18 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
 
   if (!asset) return null;
 
-  const incidentRef = `INC-${asset.incident_id.slice(0, 8).toUpperCase()}`;
-  const packageRef = `PKG-${asset.incident_id.slice(0, 8).toUpperCase()}`;
+  const addListEmails = (list: EmailList) => {
+    if (!list.emails.length) {
+      toast.info(`"${list.name}" has no contacts yet`);
+      return;
+    }
+    setRecipients((prev) => {
+      const merged = new Set(prev);
+      list.emails.forEach((e) => merged.add(e));
+      return Array.from(merged);
+    });
+    toast.success(`Added ${list.emails.length} from ${list.name}`);
+  };
 
   const addEmail = () => {
     const trimmed = newEmail.trim().toLowerCase();
