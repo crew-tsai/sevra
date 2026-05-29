@@ -163,7 +163,7 @@ export default function AgentStripes() {
         </span>
         <span className="text-left leading-tight">
           <span className="block text-sm font-semibold">Ask Agent Stripes</span>
-          <span className="block text-xs opacity-80">Crisis, emails & past cases</span>
+          <span className="block text-xs opacity-80">Your calm in the chaos — ready 24/7</span>
         </span>
       </button>
 
