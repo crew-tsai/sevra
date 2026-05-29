@@ -183,6 +183,37 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
         </DialogHeader>
 
         <div className="space-y-4">
+          {recommended.length > 0 && (
+            <div className="rounded-md border border-primary/20 bg-primary/5 p-3 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-medium text-primary">
+                <Sparkles className="h-3.5 w-3.5" />
+                Recommended lists for {typeLabel.toLowerCase()}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {recommended.map(({ list, level }) => (
+                  <button
+                    key={list.id}
+                    type="button"
+                    onClick={() => addListEmails(list)}
+                    className={`group inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs hover:scale-[1.02] transition ${LEVEL_BADGE[level]}`}
+                    title={`Add ${list.emails.length} contacts from ${list.name}`}
+                  >
+                    <Users className="h-3 w-3" />
+                    <span className="font-medium">{list.name}</span>
+                    <span className="opacity-70">({list.emails.length})</span>
+                    <span className="ml-1 text-[9px] uppercase tracking-wider opacity-80">
+                      {RACI_LABELS[level]}
+                    </span>
+                    <Plus className="h-3 w-3 opacity-60 group-hover:opacity-100" />
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Based on your responsibility matrix. Edit lists & matrix in Admin.
+              </p>
+            </div>
+          )}
+
           <div>
             <Label className="text-xs">Recipients</Label>
             <div className="flex flex-wrap gap-1.5 mt-2 min-h-[36px] p-2 rounded-md border bg-muted/30">
