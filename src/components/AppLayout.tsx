@@ -24,6 +24,7 @@ export function AppLayout() {
             <Outlet />
           </main>
         </div>
+        <AgentStripes />
       </div>
     </SidebarProvider>
   );
