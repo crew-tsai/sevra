@@ -6,6 +6,7 @@ import { DeviceMockup } from "@/components/marketing/DeviceMockup";
 import dashboardShot from "@/assets/product-dashboard.png";
 import dashboardMobileShot from "@/assets/product-dashboard-mobile.png";
 import sevraAiShot from "@/assets/product-sevra-ai.png";
+import AgentStripes from "@/components/marketing/AgentStripes";
 
 const MODULES = [
   {
