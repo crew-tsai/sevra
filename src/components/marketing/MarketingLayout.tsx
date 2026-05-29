@@ -64,6 +64,8 @@ export default function MarketingLayout() {
           </div>
         </div>
       </footer>
+
+      <AgentStripes />
     </div>
   );
 }
