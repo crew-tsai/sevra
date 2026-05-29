@@ -13,8 +13,10 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Upload, FileText, Trash2, ShieldAlert, Building2, Users, Palette } from "lucide-react";
+import { Loader2, Upload, FileText, Trash2, ShieldAlert, Building2, Users, Palette, Mail, Network } from "lucide-react";
 import { z } from "zod";
+import EmailListsManager from "@/components/admin/EmailListsManager";
+import ResponsibilityMatrixEditor from "@/components/admin/ResponsibilityMatrixEditor";
 
 const INDUSTRIES = [
   "Aviation", "Hospitality", "Retail", "Banking & Finance", "Healthcare",
