@@ -76,6 +76,9 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
 
   if (!asset) return null;
 
+  const incidentRef = `INC-${asset.incident_id.slice(0, 8).toUpperCase()}`;
+  const packageRef = `PKG-${asset.incident_id.slice(0, 8).toUpperCase()}`;
+
   const addListEmails = (list: EmailList) => {
     if (!list.emails.length) {
       toast.info(`"${list.name}" has no contacts yet`);
