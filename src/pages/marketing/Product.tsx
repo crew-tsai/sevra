@@ -126,6 +126,8 @@ export default function Product() {
           </Link>
         </div>
       </section>
+
+      <AgentStripes />
     </div>
   );
 }
