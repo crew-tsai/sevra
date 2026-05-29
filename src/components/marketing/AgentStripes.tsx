@@ -159,11 +159,11 @@ export default function AgentStripes() {
       >
         <span className="relative flex h-10 w-10 items-center justify-center rounded-full bg-primary-foreground/15">
           <span className="absolute inset-0 rounded-full animate-ping bg-primary-foreground/20" />
-          <MessageCircle className="h-5 w-5" />
+          <ZebraIcon className="h-7 w-7 text-primary-foreground" />
         </span>
         <span className="text-left leading-tight">
-          <span className="block text-sm font-semibold">Agent Stripes</span>
-          <span className="block text-xs opacity-80">Ask me anything about crisis</span>
+          <span className="block text-sm font-semibold">Ask Agent Stripes</span>
+          <span className="block text-xs opacity-80">Crisis, emails & past cases</span>
         </span>
       </button>
 
