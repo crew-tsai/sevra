@@ -1,7 +1,6 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import sevraLogo from "@/assets/sevra-logo-dark.png";
-import AgentStripes from "@/components/marketing/AgentStripes";
 
 const NAV = [
   { to: "/", label: "Home", end: true },
@@ -65,7 +64,6 @@ export default function MarketingLayout() {
         </div>
       </footer>
 
-      <AgentStripes />
     </div>
   );
 }
