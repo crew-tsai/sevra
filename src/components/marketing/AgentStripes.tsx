@@ -179,10 +179,10 @@ export default function AgentStripes() {
             <div className="flex items-center gap-3">
               <div className="relative h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center">
                 <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-green-500 border-2 border-card" />
-                <span className="text-sm font-bold text-primary">AS</span>
+                <ZebraIcon className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-semibold leading-none">Agent Stripes</p>
+                <p className="text-sm font-semibold leading-none">Ask Agent Stripes</p>
                 <p className="text-xs text-muted-foreground mt-0.5">Sevra crisis assistant</p>
               </div>
             </div>
