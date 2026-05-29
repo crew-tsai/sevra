@@ -408,6 +408,16 @@ export default function Admin() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* EMAIL LISTS */}
+        <TabsContent value="lists" className="space-y-4">
+          <EmailListsManager />
+        </TabsContent>
+
+        {/* RESPONSIBILITY MATRIX */}
+        <TabsContent value="raci" className="space-y-4">
+          <ResponsibilityMatrixEditor />
+        </TabsContent>
       </Tabs>
     </div>
   );
