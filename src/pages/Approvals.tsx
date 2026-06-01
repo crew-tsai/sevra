@@ -357,6 +357,9 @@ export default function Approvals() {
               <Button size="sm" variant="outline" onClick={() => copy(item.content)}>
                 <Copy className="h-3.5 w-3.5" /> Copy
               </Button>
+              <Button size="sm" variant="outline" onClick={() => openEdit(item)}>
+                <Pencil className="h-3.5 w-3.5" /> Edit
+              </Button>
               {isPending && (
                 <>
                   <Button size="sm" onClick={() => updateStatus(item.id, "approved")} disabled={isBusy}>
