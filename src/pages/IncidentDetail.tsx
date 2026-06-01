@@ -289,6 +289,27 @@ export default function IncidentDetail() {
             </Card>
           )}
 
+          <Card className="p-4 border-primary/30">
+            <div className="flex items-center gap-2 mb-3">
+              <Lightbulb className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-semibold text-foreground">Strategic recommendations</h2>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
+              Proactive next steps tailored to this incident's profile, risk level and operational context.
+            </p>
+            <ul className="space-y-2">
+              {buildRecommendations(incident).map((rec, idx) => (
+                <li key={idx} className="flex items-start gap-2 text-sm text-foreground">
+                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                  <div>
+                    <span className="font-medium">{rec.title}.</span>{" "}
+                    <span className="text-muted-foreground">{rec.detail}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </Card>
+
           <Card className="p-4">
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="h-4 w-4 text-primary" />
