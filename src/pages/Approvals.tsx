@@ -422,14 +422,24 @@ export default function Approvals() {
                 </>
               )}
               {isApproved && isEmailAsset(item.asset_type) && (
-                <Button size="sm" onClick={() => setEmailDialogAsset(item)}>
-                  <Mail className="h-3.5 w-3.5" /> Send email
-                </Button>
+                <>
+                  <Button size="sm" onClick={() => setEmailDialogAsset(item)}>
+                    <Mail className="h-3.5 w-3.5" /> Send email
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => shareOnWhatsApp(item)}>
+                    <MessageCircle className="h-3.5 w-3.5" /> Share on WhatsApp
+                  </Button>
+                </>
               )}
               {isApproved && isSocialAsset(item.asset_type) && (
-                <Button size="sm" onClick={() => setSocialDialogAsset(item)}>
-                  <Send className="h-3.5 w-3.5" /> Publish to {socialNetworkLabel(item.asset_type)}
-                </Button>
+                <>
+                  <Button size="sm" onClick={() => setSocialDialogAsset(item)}>
+                    <Send className="h-3.5 w-3.5" /> Publish to {socialNetworkLabel(item.asset_type)}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => shareOnWhatsApp(item)}>
+                    <MessageCircle className="h-3.5 w-3.5" /> Share on WhatsApp
+                  </Button>
+                </>
               )}
               {(isPending || isRejected) && (
                 <Button size="sm" variant="outline" onClick={() => regenerateAsset(item)} disabled={isRegenerating}>
