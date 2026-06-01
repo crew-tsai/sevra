@@ -198,6 +198,11 @@ export default function Approvals() {
     toast.success("Copied to clipboard");
   };
 
+  const shareOnWhatsApp = (item: Asset) => {
+    const text = `${item.title}\n\n${item.content}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+  };
+
   const regenerateAsset = async (asset: Asset) => {
     setRegeneratingId(asset.id);
     const { data, error } = await supabase.functions.invoke("generate-incident-assets", {
