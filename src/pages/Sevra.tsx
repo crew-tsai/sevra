@@ -161,7 +161,7 @@ export default function Sevra() {
   const [loading, setLoading] = useState(true);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "incident_created" | "dismissed" | "linked_to_incident">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "noise" | "crisis_level">("all");
   const [approvedIds, setApprovedIds] = useState<Set<string>>(new Set());
   const [monitorRunning, setMonitorRunning] = useState(false);
   const [monitorActive, setMonitorActive] = useState<boolean | null>(null);
@@ -302,7 +302,9 @@ export default function Sevra() {
   const filtered = timeScoped.filter(
     (m) =>
       (filter === "all" || m.channel === filter) &&
-      (statusFilter === "all" || m.status === statusFilter),
+      (statusFilter === "all" ||
+        (statusFilter === "noise" && m.status === "dismissed") ||
+        (statusFilter === "crisis_level" && m.status !== "dismissed")),
   );
 
   const incidentMentionCounts = mentions.reduce<Record<string, number>>((acc, m) => {
@@ -311,10 +313,8 @@ export default function Sevra() {
   }, {});
 
   const stats = {
-    pending: timeScoped.filter((m) => m.status === "pending").length,
-    incidents: timeScoped.filter((m) => m.status === "incident_created").length,
-    linked: timeScoped.filter((m) => m.status === "linked_to_incident").length,
-    dismissed: timeScoped.filter((m) => m.status === "dismissed").length,
+    noise: timeScoped.filter((m) => m.status === "dismissed").length,
+    crisis_level: timeScoped.filter((m) => m.status !== "dismissed").length,
   };
 
   return (
@@ -337,8 +337,8 @@ export default function Sevra() {
           <Button variant="outline" size="sm" onClick={seedMocks} className="flex-1 sm:flex-none">
             <RefreshCw className="h-4 w-4" /> <span className="hidden xs:inline">Pull demo mentions</span><span className="xs:hidden">Pull</span>
           </Button>
-          <Button size="sm" onClick={analyzeAllPending} disabled={!stats.pending} className="flex-1 sm:flex-none">
-            <Sparkles className="h-4 w-4" /> Analyze all ({stats.pending})
+          <Button size="sm" onClick={analyzeAllPending} disabled={!stats.crisis_level} className="flex-1 sm:flex-none">
+            <Sparkles className="h-4 w-4" /> Analyze all ({stats.crisis_level})
           </Button>
         </div>
       </div>
@@ -399,13 +399,11 @@ export default function Sevra() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         {([
-          { key: "pending", label: "Pending", value: stats.pending, color: "text-foreground" },
-          { key: "incident_created", label: "Incidents created", value: stats.incidents, color: "text-primary" },
-          { key: "linked_to_incident", label: "Linked (deduped)", value: stats.linked, color: "text-foreground" },
-          { key: "dismissed", label: "Dismissed (noise)", value: stats.dismissed, color: "text-muted-foreground" },
-        ] as const).map((s) => {
+          { key: "crisis_level" as const, label: "Crisis level", value: stats.crisis_level, color: "text-primary" },
+          { key: "noise" as const, label: "Noise", value: stats.noise, color: "text-muted-foreground" },
+        ]).map((s) => {
           const active = statusFilter === s.key;
           return (
             <Card
