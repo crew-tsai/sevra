@@ -323,8 +323,25 @@ export default function Sevra() {
       (filter === "all" || m.channel === filter) &&
       (statusFilter === "all" ||
         (statusFilter === "noise" && m.status === "dismissed") ||
-        (statusFilter === "crisis_level" && m.status !== "dismissed")),
+        (statusFilter === "crisis_level" && m.status !== "dismissed")) &&
+      (statusFilter !== "crisis_level" || levelFilter === "all" || mentionCrisisLevel(m) === levelFilter),
   );
+
+  const incidentMentionCounts = mentions.reduce<Record<string, number>>((acc, m) => {
+    if (m.incident_id) acc[m.incident_id] = (acc[m.incident_id] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  const crisisMentions = timeScoped.filter((m) => m.status !== "dismissed");
+  const levelCounts: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
+  crisisMentions.forEach((m) => {
+    levelCounts[mentionCrisisLevel(m)]++;
+  });
+
+  const stats = {
+    noise: timeScoped.filter((m) => m.status === "dismissed").length,
+    crisis_level: crisisMentions.length,
+  };
 
   const incidentMentionCounts = mentions.reduce<Record<string, number>>((acc, m) => {
     if (m.incident_id) acc[m.incident_id] = (acc[m.incident_id] ?? 0) + 1;
