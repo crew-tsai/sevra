@@ -302,7 +302,9 @@ export default function Sevra() {
   const filtered = timeScoped.filter(
     (m) =>
       (filter === "all" || m.channel === filter) &&
-      (statusFilter === "all" || m.status === statusFilter),
+      (statusFilter === "all" ||
+        (statusFilter === "noise" && m.status === "dismissed") ||
+        (statusFilter === "crisis_level" && m.status !== "dismissed")),
   );
 
   const incidentMentionCounts = mentions.reduce<Record<string, number>>((acc, m) => {
