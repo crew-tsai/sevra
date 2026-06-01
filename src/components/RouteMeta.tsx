@@ -25,7 +25,7 @@ const META: MetaEntry[] = [
   { pattern: "/dashboard", title: "Dashboard — Sevra", description: "Crisis dashboard: critical issues, status, social mentions, and sentiment analysis.", noindex: true },
   { pattern: "/incidents/new", title: "New Incident — Sevra", description: "Manually log a new crisis incident for triage and response.", noindex: true },
   { pattern: "/incidents/:id", title: "Incident Detail — Sevra", description: "Full incident timeline, signals, assets, and response actions.", noindex: true },
-  { pattern: "/strategy", title: "Strategy — Sevra", description: "Crisis response strategy playbooks and recommended actions.", noindex: true },
+  
   { pattern: "/assets", title: "Assets — Sevra", description: "AI-generated communications assets ready for review and approval.", noindex: true },
   { pattern: "/approvals", title: "Approvals — Sevra", description: "Review and approve crisis communications before publishing.", noindex: true },
   { pattern: "/reports", title: "Reports — Sevra", description: "Performance and incident reports across your crisis program.", noindex: true },

@@ -11,7 +11,7 @@ import Dashboard from "@/pages/Dashboard";
 import Welcome from "@/pages/Welcome";
 import NewIncident from "@/pages/NewIncident";
 import IncidentDetail from "@/pages/IncidentDetail";
-import Strategy from "@/pages/Strategy";
+
 import Assets from "@/pages/Assets";
 import Approvals from "@/pages/Approvals";
 import Sevra from "@/pages/Sevra";
@@ -48,7 +48,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/incidents/new" element={<NewIncident />} />
             <Route path="/incidents/:id" element={<IncidentDetail />} />
-            <Route path="/strategy" element={<Strategy />} />
+            
             <Route path="/assets" element={<Assets />} />
             <Route path="/approvals" element={<Approvals />} />
             <Route path="/reports" element={<Reports />} />
