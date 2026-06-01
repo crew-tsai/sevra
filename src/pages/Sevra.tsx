@@ -335,11 +335,30 @@ export default function Sevra() {
       navigate("/login");
       return;
     }
+    // Fetch incidents so we can attach mentions to matching ones (by flight number).
+    const { data: incidentRows } = await supabase
+      .from("incidents")
+      .select("id, flight_number, title");
+    const byFlight = new Map<string, string>();
+    (incidentRows ?? []).forEach((i) => {
+      if (i.flight_number) byFlight.set(i.flight_number.toUpperCase(), i.id);
+    });
+    const findIncidentId = (content: string): string | null => {
+      const m = content.toUpperCase().match(/AS\s?\d{2,4}/g);
+      if (m) {
+        for (const flight of m) {
+          const norm = flight.replace(/\s+/g, "");
+          if (byFlight.has(norm)) return byFlight.get(norm)!;
+        }
+      }
+      return null;
+    };
     const rows = MOCK_FEED.map((m) => ({
       status: "pending",
       ...m,
       created_by: userId,
       posted_at: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 30).toISOString(),
+      incident_id: findIncidentId(m.content),
     }));
     const { error } = await supabase.from("social_mentions").insert(rows);
     if (error) return toast.error(error.message);
