@@ -24,6 +24,7 @@ import {
   ShieldAlert,
   Package,
   LayoutDashboard,
+  Lightbulb,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -288,6 +289,27 @@ export default function IncidentDetail() {
             </Card>
           )}
 
+          <Card className="p-4 border-primary/30">
+            <div className="flex items-center gap-2 mb-3">
+              <Lightbulb className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-semibold text-foreground">Strategic recommendations</h2>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
+              Proactive next steps tailored to this incident's profile, risk level and operational context.
+            </p>
+            <ul className="space-y-2">
+              {buildRecommendations(incident).map((rec, idx) => (
+                <li key={idx} className="flex items-start gap-2 text-sm text-foreground">
+                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                  <div>
+                    <span className="font-medium">{rec.title}.</span>{" "}
+                    <span className="text-muted-foreground">{rec.detail}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </Card>
+
           <Card className="p-4">
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="h-4 w-4 text-primary" />
@@ -437,4 +459,69 @@ function DetailRow({
       <span className="text-foreground font-medium truncate">{value}</span>
     </div>
   );
+}
+
+function buildRecommendations(inc: Incident): { title: string; detail: string }[] {
+  const recs: { title: string; detail: string }[] = [];
+  const isCrisis = (inc.crisis_level ?? 0) >= 3 || inc.risk === "critical" || inc.risk === "high";
+
+  // 1. Activation level
+  recs.push(
+    isCrisis
+      ? {
+          title: "Activate CCC at full level",
+          detail: "Convene the Crisis Communications Center, assign an incident commander and open a 24/7 duty rotation across OCC, Legal, Customer Experience and Corporate Affairs.",
+        }
+      : {
+          title: "Maintain monitoring posture",
+          detail: "Keep the duty Communications Officer on standby, log developments hourly and pre-stage a holding statement in case sentiment escalates.",
+        },
+  );
+
+  // 2. Stakeholder / regulator
+  if (inc.injury_fatality || inc.regulator_involved) {
+    recs.push({
+      title: "Notify regulators and authorities promptly",
+      detail: "Coordinate mandatory reporting with EASA, the national CAA and CIAIAC within the regulatory window, and align legal counsel before any public statement.",
+    });
+  } else {
+    recs.push({
+      title: "Brief internal stakeholders first",
+      detail: "Distribute an internal memo to executives, station managers and frontline staff before external messaging to avoid contradictory narratives.",
+    });
+  }
+
+  // 3. Passenger care
+  if ((inc.estimated_passengers_impacted ?? 0) > 0 || inc.incident_type === "delay" || inc.incident_type === "safety") {
+    recs.push({
+      title: "Activate passenger care workflow",
+      detail: `Open a dedicated multilingual support line, deploy rebooking and hotel vouchers, and proactively contact ${inc.estimated_passengers_impacted ? inc.estimated_passengers_impacted.toLocaleString() : "all"} impacted passengers and their families.`,
+    });
+  } else {
+    recs.push({
+      title: "Prepare customer-facing FAQ",
+      detail: "Publish a short FAQ on the help center and arm contact-center agents with approved talking points to handle inbound queries consistently.",
+    });
+  }
+
+  // 4. Communication channel
+  if (inc.influencer_media_involved || inc.is_public) {
+    recs.push({
+      title: "Lead the public narrative",
+      detail: "Issue a verified holding statement on owned social channels within 60 minutes, brief tier-1 media proactively and engage credible influencers with factual context.",
+    });
+  } else {
+    recs.push({
+      title: "Stage but do not publish external comms",
+      detail: "Pre-approve a press release and social copy with Legal and keep them on standby; only release if the story breaks externally.",
+    });
+  }
+
+  // 5. Post-incident
+  recs.push({
+    title: "Capture evidence and schedule debrief",
+    detail: "Preserve CCTV, ACARS, gate logs and crew reports, assign a root-cause owner and book a post-incident review within 7 days to update playbooks.",
+  });
+
+  return recs.slice(0, 5);
 }
