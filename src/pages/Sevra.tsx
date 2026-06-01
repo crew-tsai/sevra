@@ -336,10 +336,10 @@ export default function Sevra() {
       return;
     }
     const rows = MOCK_FEED.map((m) => ({
+      status: "pending",
       ...m,
       created_by: userId,
       posted_at: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 30).toISOString(),
-      status: "pending",
     }));
     const { error } = await supabase.from("social_mentions").insert(rows);
     if (error) return toast.error(error.message);
