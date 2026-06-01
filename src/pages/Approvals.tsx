@@ -9,7 +9,7 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { SendEmailDialog } from "@/components/SendEmailDialog";
 import { PublishSocialDialog } from "@/components/PublishSocialDialog";
 import { isEmailAsset, isSocialAsset, socialNetworkLabel } from "@/lib/distribution";
-import { CheckCircle2, XCircle, FileText, Copy, Loader2, ExternalLink, Megaphone, MessageSquare, Users, HelpCircle, RefreshCw, LayoutDashboard, X, Filter, Mail, Send, ChevronDown, Film, Building2, Briefcase, Newspaper, Headphones, Pencil } from "lucide-react";
+import { CheckCircle2, XCircle, FileText, Copy, Loader2, ExternalLink, Megaphone, MessageSquare, Users, HelpCircle, RefreshCw, LayoutDashboard, X, Filter, Mail, Send, ChevronDown, Film, Building2, Briefcase, Newspaper, Headphones, Pencil, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { TimeRangeFilter, DEFAULT_TIME_RANGE, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
@@ -196,6 +196,11 @@ export default function Approvals() {
   const copy = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("Copied to clipboard");
+  };
+
+  const shareOnWhatsApp = (item: Asset) => {
+    const text = `${item.title}\n\n${item.content}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
   };
 
   const regenerateAsset = async (asset: Asset) => {
@@ -417,14 +422,24 @@ export default function Approvals() {
                 </>
               )}
               {isApproved && isEmailAsset(item.asset_type) && (
-                <Button size="sm" onClick={() => setEmailDialogAsset(item)}>
-                  <Mail className="h-3.5 w-3.5" /> Send email
-                </Button>
+                <>
+                  <Button size="sm" onClick={() => setEmailDialogAsset(item)}>
+                    <Mail className="h-3.5 w-3.5" /> Send email
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => shareOnWhatsApp(item)}>
+                    <MessageCircle className="h-3.5 w-3.5" /> Share on WhatsApp
+                  </Button>
+                </>
               )}
               {isApproved && isSocialAsset(item.asset_type) && (
-                <Button size="sm" onClick={() => setSocialDialogAsset(item)}>
-                  <Send className="h-3.5 w-3.5" /> Publish to {socialNetworkLabel(item.asset_type)}
-                </Button>
+                <>
+                  <Button size="sm" onClick={() => setSocialDialogAsset(item)}>
+                    <Send className="h-3.5 w-3.5" /> Publish to {socialNetworkLabel(item.asset_type)}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => shareOnWhatsApp(item)}>
+                    <MessageCircle className="h-3.5 w-3.5" /> Share on WhatsApp
+                  </Button>
+                </>
               )}
               {(isPending || isRejected) && (
                 <Button size="sm" variant="outline" onClick={() => regenerateAsset(item)} disabled={isRegenerating}>
