@@ -59,7 +59,7 @@ export default function AgentStripes() {
     {
       role: "assistant",
       content:
-        "Hi, I'm **Agent Stripes**. Ask me about emergencies, crisis strategy, emails in your Sevra database, past cases, or any platform issue.",
+        "Hi, I'm **Agent Stripes**. I only help with **Aurora Skylines (Aurora Airlines)** incidents, and I only use information from this conversation and what you paste from your Sevra workspace — I won't guess or invent details.",
     },
   ]);
   const scrollRef = useRef<HTMLDivElement>(null);
