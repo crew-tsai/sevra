@@ -9,10 +9,15 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { SendEmailDialog } from "@/components/SendEmailDialog";
 import { PublishSocialDialog } from "@/components/PublishSocialDialog";
 import { isEmailAsset, isSocialAsset, socialNetworkLabel } from "@/lib/distribution";
-import { CheckCircle2, XCircle, FileText, Copy, Loader2, ExternalLink, Megaphone, MessageSquare, Users, HelpCircle, RefreshCw, LayoutDashboard, X, Filter, Mail, Send, ChevronDown, Film, Building2, Briefcase, Newspaper, Headphones } from "lucide-react";
+import { CheckCircle2, XCircle, FileText, Copy, Loader2, ExternalLink, Megaphone, MessageSquare, Users, HelpCircle, RefreshCw, LayoutDashboard, X, Filter, Mail, Send, ChevronDown, Film, Building2, Briefcase, Newspaper, Headphones, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { TimeRangeFilter, DEFAULT_TIME_RANGE, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type Asset = {
   id: string;
@@ -89,6 +94,11 @@ export default function Approvals() {
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [emailDialogAsset, setEmailDialogAsset] = useState<Asset | null>(null);
   const [socialDialogAsset, setSocialDialogAsset] = useState<Asset | null>(null);
+  const [editAsset, setEditAsset] = useState<Asset | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editContent, setEditContent] = useState("");
+  const [editResetToPending, setEditResetToPending] = useState(true);
+  const [savingEdit, setSavingEdit] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const toggleExpanded = (id: string) =>
@@ -200,6 +210,45 @@ export default function Approvals() {
     setTab("pending");
   };
 
+  const openEdit = (asset: Asset) => {
+    setEditAsset(asset);
+    setEditTitle(asset.title);
+    setEditContent(asset.content);
+    setEditResetToPending(asset.approval_status === "approved");
+  };
+
+  const saveEdit = async () => {
+    if (!editAsset) return;
+    const title = editTitle.trim();
+    const content = editContent.trim();
+    if (!title || !content) {
+      return toast.error("Title and content are required");
+    }
+    setSavingEdit(true);
+    const updates: {
+      title: string;
+      content: string;
+      approval_status?: string;
+      approved_at?: string | null;
+      approved_by?: string | null;
+    } = { title, content };
+    if (editResetToPending) {
+      updates.approval_status = "pending";
+      updates.approved_at = null;
+      updates.approved_by = null;
+    }
+    const { error } = await supabase
+      .from("incident_assets")
+      .update(updates)
+      .eq("id", editAsset.id);
+    setSavingEdit(false);
+    if (error) return toast.error(error.message);
+    toast.success("Asset updated");
+    if (editResetToPending) setTab("pending");
+    setEditAsset(null);
+  };
+
+
   const baseScoped = focusIncidentId ? assets.filter((a) => a.incident_id === focusIncidentId) : assets;
   const scoped = baseScoped.filter((a) => isInRange(a.created_at, timeRange));
   const filtered = scoped.filter((a) => a.approval_status === tab);
@@ -307,6 +356,9 @@ export default function Approvals() {
             <div className="flex items-center gap-2 mt-3 flex-wrap">
               <Button size="sm" variant="outline" onClick={() => copy(item.content)}>
                 <Copy className="h-3.5 w-3.5" /> Copy
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => openEdit(item)}>
+                <Pencil className="h-3.5 w-3.5" /> Edit
               </Button>
               {isPending && (
                 <>
@@ -545,6 +597,58 @@ export default function Approvals() {
         onOpenChange={(v) => !v && setSocialDialogAsset(null)}
         asset={socialDialogAsset}
       />
+
+      <Dialog open={!!editAsset} onOpenChange={(v) => !v && setEditAsset(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Update asset</DialogTitle>
+            <DialogDescription>
+              Edit the title and content. Saving creates a new version of this asset.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-asset-title">Title</Label>
+              <Input
+                id="edit-asset-title"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-asset-content">Content</Label>
+              <Textarea
+                id="edit-asset-content"
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="min-h-[280px] font-sans text-sm"
+              />
+            </div>
+            {editAsset?.approval_status === "approved" && (
+              <div className="flex items-start gap-2 rounded-md border border-border bg-muted/30 p-3">
+                <Checkbox
+                  id="edit-reset-pending"
+                  checked={editResetToPending}
+                  onCheckedChange={(v) => setEditResetToPending(v === true)}
+                />
+                <Label htmlFor="edit-reset-pending" className="text-xs font-normal leading-relaxed cursor-pointer">
+                  Send back to pending for re-approval before redeploying. Recommended when content changes
+                  meaningfully (e.g. updated facts in a press release).
+                </Label>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditAsset(null)} disabled={savingEdit}>
+              Cancel
+            </Button>
+            <Button onClick={saveEdit} disabled={savingEdit}>
+              {savingEdit ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              Save changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
