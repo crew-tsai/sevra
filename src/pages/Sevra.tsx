@@ -161,7 +161,7 @@ export default function Sevra() {
   const [loading, setLoading] = useState(true);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "incident_created" | "dismissed" | "linked_to_incident">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "noise" | "crisis_level">("all");
   const [approvedIds, setApprovedIds] = useState<Set<string>>(new Set());
   const [monitorRunning, setMonitorRunning] = useState(false);
   const [monitorActive, setMonitorActive] = useState<boolean | null>(null);
