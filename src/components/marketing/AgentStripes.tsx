@@ -149,8 +149,9 @@ export default function AgentStripes() {
       <button
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "fixed bottom-6 left-1/2 -translate-x-1/2 z-50",
-          "flex items-center gap-3 rounded-full pl-4 pr-6 py-3",
+          "fixed z-50",
+          "bottom-4 right-4 sm:bottom-6 sm:left-1/2 sm:right-auto sm:-translate-x-1/2",
+          "flex items-center gap-2 sm:gap-3 rounded-full p-2 sm:pl-4 sm:pr-6 sm:py-3",
           "bg-primary text-primary-foreground shadow-2xl shadow-primary/30",
           "hover:scale-105 transition-transform",
           open && "opacity-0 pointer-events-none",
@@ -161,7 +162,7 @@ export default function AgentStripes() {
           <span className="absolute inset-0 rounded-full animate-ping bg-primary-foreground/20" />
           <ZebraIcon className="h-7 w-7 text-primary-foreground" />
         </span>
-        <span className="text-left leading-tight">
+        <span className="hidden sm:block text-left leading-tight">
           <span className="block text-sm font-semibold">Ask Agent Stripes</span>
           <span className="block text-xs opacity-80">Your calm in the chaos — ready 24/7</span>
         </span>
@@ -172,7 +173,8 @@ export default function AgentStripes() {
         <div
           className={cn(
             "fixed z-50 bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden",
-            "bottom-6 left-1/2 -translate-x-1/2 w-[min(420px,calc(100vw-2rem))] h-[min(600px,calc(100vh-3rem))]",
+            "bottom-4 right-4 left-4 h-[min(600px,calc(100vh-2rem))]",
+            "sm:bottom-6 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-[min(420px,calc(100vw-2rem))] sm:h-[min(600px,calc(100vh-3rem))]",
           )}
         >
           <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-gradient-to-r from-primary/10 to-transparent">
