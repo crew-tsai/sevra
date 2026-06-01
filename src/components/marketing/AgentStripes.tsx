@@ -45,10 +45,10 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-stripe
 const PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 const SUGGESTIONS = [
-  "What do I do in the first 15 minutes of a crisis?",
-  "Draft a holding statement for a product recall",
-  "How are emails queued and sent in Sevra?",
-  "Show me an L3 escalation playbook",
+  "What are the next steps for the AS412 turbulence incident?",
+  "Draft a holding statement for an Aurora Skylines cancellation wave",
+  "How do I escalate an Aurora incident to L3 in Sevra?",
+  "Walk me through approving an Aurora press statement",
 ];
 
 export default function AgentStripes() {
@@ -59,7 +59,7 @@ export default function AgentStripes() {
     {
       role: "assistant",
       content:
-        "Hi, I'm **Agent Stripes**. Ask me about emergencies, crisis strategy, emails in your Sevra database, past cases, or any platform issue.",
+        "Hi, I'm **Agent Stripes**. I only help with **Aurora Skylines (Aurora Airlines)** incidents, and I only use information from this conversation and what you paste from your Sevra workspace — I won't guess or invent details.",
     },
   ]);
   const scrollRef = useRef<HTMLDivElement>(null);
