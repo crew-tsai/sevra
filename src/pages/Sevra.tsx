@@ -343,15 +343,8 @@ export default function Sevra() {
     crisis_level: crisisMentions.length,
   };
 
-  const incidentMentionCounts = mentions.reduce<Record<string, number>>((acc, m) => {
-    if (m.incident_id) acc[m.incident_id] = (acc[m.incident_id] ?? 0) + 1;
-    return acc;
-  }, {});
 
-  const stats = {
-    noise: timeScoped.filter((m) => m.status === "dismissed").length,
-    crisis_level: timeScoped.filter((m) => m.status !== "dismissed").length,
-  };
+
 
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-6xl mx-auto">
