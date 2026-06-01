@@ -171,6 +171,82 @@ const MOCK_FEED = [
     content: "Huge thanks to the Aurora Skylines crew on AS705 LIS-JFK last night — handled a medical emergency onboard with total professionalism. Diverted to Boston, all good. 👏",
     likes: 8900, shares: 1200, reach: 156000, is_verified: false, is_influencer: false,
   },
+
+  // ===== L3 (High) pre-analyzed mentions =====
+  {
+    channel: "twitter",
+    author_name: "Reuters Aviation",
+    author_handle: "reutersavi",
+    content: "BREAKING: Aurora Skylines AS744 reports bird strike on departure from BCN, returning to airport. No injuries reported. Runway 25R closed.",
+    likes: 14200, shares: 5600, reach: 890000, is_verified: true, is_influencer: true,
+    status: "analyzed", ai_risk: "high", ai_risk_score: 72,
+    ai_incident_type: "safety", ai_summary: "Bird strike on AS744, aircraft returning to BCN. Major operational impact, media picking up.",
+  },
+  {
+    channel: "tiktok",
+    author_name: "CrewLeaksES",
+    author_handle: "crewleaks",
+    content: "Pilots union confirms 48h strike at Aurora Skylines starting Friday. Expect 60% of MAD operations cancelled. Pass it on ✈️🚨",
+    likes: 31000, shares: 9800, reach: 1100000, is_verified: false, is_influencer: true,
+    status: "analyzed", ai_risk: "high", ai_risk_score: 68,
+    ai_incident_type: "labor", ai_summary: "Pilot strike announcement, widespread cancellations expected.",
+  },
+  {
+    channel: "twitter",
+    author_name: "DataBreach Today",
+    author_handle: "databreachtoday",
+    content: "Aurora Skylines loyalty program exposed: 180k member records (names, emails, tier status) circulating on a hacking forum. Investigating.",
+    likes: 9700, shares: 4100, reach: 540000, is_verified: true, is_influencer: false,
+    status: "analyzed", ai_risk: "high", ai_risk_score: 75,
+    ai_incident_type: "cyber", ai_summary: "Customer data leak, 180k records. Reputational and regulatory risk.",
+  },
+  {
+    channel: "instagram",
+    author_name: "Nuria Vega",
+    author_handle: "nuriavega",
+    content: "AS221 BCN: tug colisionó con el avión en pista, retraso de 6 horas y todos a hotel. Ningún herido pero el ala dañada. Fotos en stories.",
+    likes: 4200, shares: 980, reach: 120000, is_verified: false, is_influencer: false,
+    status: "analyzed", ai_risk: "high", ai_risk_score: 64,
+    ai_incident_type: "ground_ops", ai_summary: "Ground collision tug vs AS221 at BCN, wing damage, long delay.",
+  },
+
+  // ===== L4 (Critical) pre-analyzed mentions =====
+  {
+    channel: "twitter",
+    author_name: "BBC Breaking",
+    author_handle: "bbcbreaking",
+    content: "BREAKING: Aurora Skylines AS208 reports runway excursion on landing at LIS. Emergency services on scene. Passengers being evacuated.",
+    likes: 89000, shares: 32000, reach: 4500000, is_verified: true, is_influencer: true,
+    status: "analyzed", ai_risk: "critical", ai_risk_score: 92,
+    ai_incident_type: "accident", ai_summary: "Runway excursion AS208 at LIS. Global media coverage, regulator involvement expected.",
+  },
+  {
+    channel: "tiktok",
+    author_name: "PaxOnboard",
+    author_handle: "paxonboard",
+    content: "I was on AS412 MAD-BOG — severe turbulence, multiple passengers injured, blood in the aisle. Aurora Skylines crew was heroic. Praying for everyone 🙏",
+    likes: 240000, shares: 78000, reach: 6800000, is_verified: false, is_influencer: true,
+    status: "analyzed", ai_risk: "critical", ai_risk_score: 95,
+    ai_incident_type: "safety", ai_summary: "Severe turbulence injuries on AS412, viral first-person account. Critical media exposure.",
+  },
+  {
+    channel: "twitter",
+    author_name: "AVHerald",
+    author_handle: "avherald",
+    content: "Aurora Skylines AS617 (B738) engine failure shortly after takeoff from MAD, declared MAYDAY, returned safely. Investigation opened by AESA.",
+    likes: 18500, shares: 7200, reach: 920000, is_verified: true, is_influencer: true,
+    status: "analyzed", ai_risk: "critical", ai_risk_score: 88,
+    ai_incident_type: "accident", ai_summary: "Engine failure + MAYDAY on AS617, regulator AESA investigating.",
+  },
+  {
+    channel: "instagram",
+    author_name: "Lisbon News",
+    author_handle: "lisbonnews",
+    content: "Tragedy at LIS: ramp agent fatally injured during Aurora Skylines turnaround. Operations suspended at gate 24. Thoughts with the family.",
+    likes: 42000, shares: 16000, reach: 1800000, is_verified: true, is_influencer: false,
+    status: "analyzed", ai_risk: "critical", ai_risk_score: 96,
+    ai_incident_type: "fatality", ai_summary: "Fatal ground accident at LIS, ramp agent. Highest severity, regulatory and PR crisis.",
+  },
 ];
 
 export default function Sevra() {
