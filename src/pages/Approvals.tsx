@@ -225,7 +225,13 @@ export default function Approvals() {
       return toast.error("Title and content are required");
     }
     setSavingEdit(true);
-    const updates: Record<string, unknown> = { title, content };
+    const updates: {
+      title: string;
+      content: string;
+      approval_status?: string;
+      approved_at?: string | null;
+      approved_by?: string | null;
+    } = { title, content };
     if (editResetToPending) {
       updates.approval_status = "pending";
       updates.approved_at = null;
