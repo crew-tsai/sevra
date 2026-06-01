@@ -399,13 +399,11 @@ export default function Sevra() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         {([
-          { key: "pending", label: "Pending", value: stats.pending, color: "text-foreground" },
-          { key: "incident_created", label: "Incidents created", value: stats.incidents, color: "text-primary" },
-          { key: "linked_to_incident", label: "Linked (deduped)", value: stats.linked, color: "text-foreground" },
-          { key: "dismissed", label: "Dismissed (noise)", value: stats.dismissed, color: "text-muted-foreground" },
-        ] as const).map((s) => {
+          { key: "crisis_level" as const, label: "Crisis level", value: stats.crisis_level, color: "text-primary" },
+          { key: "noise" as const, label: "Noise", value: stats.noise, color: "text-muted-foreground" },
+        ]).map((s) => {
           const active = statusFilter === s.key;
           return (
             <Card
