@@ -13,7 +13,7 @@ export type TimeRange = {
   to: Date | null;
 };
 
-export const DEFAULT_TIME_RANGE: TimeRange = presetRange("this_week");
+export const DEFAULT_TIME_RANGE: TimeRange = { preset: "this_week", from: startOfWeek(new Date(), { weekStartsOn: 1 }), to: new Date() };
 
 export function presetRange(preset: Exclude<TimeRangePreset, "custom">): TimeRange {
   const to = new Date();
@@ -48,7 +48,7 @@ export function TimeRangeFilter({
 }) {
   const [open, setOpen] = useState(false);
 
-  const presets: { key: TimeRangePreset; label: string }[] = [
+  const presets: { key: Exclude<TimeRangePreset, "custom">; label: string }[] = [
     { key: "today", label: "Today" },
     { key: "this_week", label: "This Week" },
   ];
