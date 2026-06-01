@@ -9,7 +9,25 @@ import { Twitter, Instagram, Music2, Facebook, RefreshCw, Sparkles, ExternalLink
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { RiskBadge } from "@/components/RiskBadge";
+import { CrisisLevelBadge } from "@/components/CrisisLevelBadge";
 import { TimeRangeFilter, ALL_TIME, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
+
+// Derive an L0–L4 crisis level for a social mention from AI risk / score.
+const mentionCrisisLevel = (m: { ai_risk: string | null; ai_risk_score: number | null }): number => {
+  const r = (m.ai_risk ?? "").toLowerCase();
+  if (r === "critical") return 4;
+  if (r === "high") return 3;
+  if (r === "medium") return 2;
+  if (r === "low") return 1;
+  const s = m.ai_risk_score;
+  if (typeof s === "number") {
+    if (s >= 80) return 4;
+    if (s >= 60) return 3;
+    if (s >= 40) return 2;
+    if (s >= 20) return 1;
+  }
+  return 0;
+};
 
 type Mention = {
   id: string;
@@ -162,6 +180,7 @@ export default function Sevra() {
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "noise" | "crisis_level">("all");
+  const [levelFilter, setLevelFilter] = useState<number | "all">("all");
   const [approvedIds, setApprovedIds] = useState<Set<string>>(new Set());
   const [monitorRunning, setMonitorRunning] = useState(false);
   const [monitorActive, setMonitorActive] = useState<boolean | null>(null);
@@ -304,7 +323,8 @@ export default function Sevra() {
       (filter === "all" || m.channel === filter) &&
       (statusFilter === "all" ||
         (statusFilter === "noise" && m.status === "dismissed") ||
-        (statusFilter === "crisis_level" && m.status !== "dismissed")),
+        (statusFilter === "crisis_level" && m.status !== "dismissed")) &&
+      (statusFilter !== "crisis_level" || levelFilter === "all" || mentionCrisisLevel(m) === levelFilter),
   );
 
   const incidentMentionCounts = mentions.reduce<Record<string, number>>((acc, m) => {
@@ -312,10 +332,19 @@ export default function Sevra() {
     return acc;
   }, {});
 
+  const crisisMentions = timeScoped.filter((m) => m.status !== "dismissed");
+  const levelCounts: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
+  crisisMentions.forEach((m) => {
+    levelCounts[mentionCrisisLevel(m)]++;
+  });
+
   const stats = {
     noise: timeScoped.filter((m) => m.status === "dismissed").length,
-    crisis_level: timeScoped.filter((m) => m.status !== "dismissed").length,
+    crisis_level: crisisMentions.length,
   };
+
+
+
 
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-6xl mx-auto">
@@ -408,7 +437,10 @@ export default function Sevra() {
           return (
             <Card
               key={s.key}
-              onClick={() => setStatusFilter(active ? "all" : s.key)}
+              onClick={() => {
+                setStatusFilter(active ? "all" : s.key);
+                setLevelFilter("all");
+              }}
               className={`p-4 cursor-pointer transition-colors hover:bg-accent/50 ${active ? "ring-2 ring-primary bg-accent/40" : ""}`}
             >
               <div className="text-xs text-muted-foreground uppercase tracking-wider">{s.label}</div>
@@ -418,6 +450,35 @@ export default function Sevra() {
           );
         })}
       </div>
+
+      {statusFilter === "crisis_level" && (
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-xs uppercase tracking-wider text-muted-foreground mr-1">Level</span>
+          <button
+            type="button"
+            onClick={() => setLevelFilter("all")}
+            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border transition-colors ${
+              levelFilter === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:bg-accent/40"
+            }`}
+          >
+            All ({stats.crisis_level})
+          </button>
+          {[0, 1, 2, 3, 4].map((lvl) => {
+            const active = levelFilter === lvl;
+            return (
+              <button
+                key={lvl}
+                type="button"
+                onClick={() => setLevelFilter(active ? "all" : lvl)}
+                className={`inline-flex items-center gap-1.5 rounded-full transition-opacity ${active ? "ring-2 ring-primary" : "opacity-80 hover:opacity-100"}`}
+              >
+                <CrisisLevelBadge level={lvl} />
+                <span className="text-xs text-muted-foreground pr-1">({levelCounts[lvl]})</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <Tabs value={filter} onValueChange={setFilter} className="w-full">
         <TabsList className="w-full justify-start overflow-x-auto">
@@ -478,6 +539,9 @@ export default function Sevra() {
                           <Sparkles className="h-3.5 w-3.5 text-primary" />
                           <span className="text-xs font-semibold text-foreground">SEVRA analysis</span>
                           {m.ai_risk && <RiskBadge level={m.ai_risk as any} />}
+                          {m.status !== "dismissed" && (m.ai_risk || m.ai_risk_score != null) && (
+                            <CrisisLevelBadge level={mentionCrisisLevel(m)} compact />
+                          )}
                           {m.ai_incident_type && <Badge variant="outline" className="text-[10px]">{m.ai_incident_type}</Badge>}
                           {m.ai_sub_type && <Badge variant="outline" className="text-[10px]">{m.ai_sub_type}</Badge>}
                           {m.ai_risk_score != null && <span className="text-xs text-muted-foreground">score {m.ai_risk_score}</span>}
