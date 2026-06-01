@@ -676,13 +676,17 @@ export default function Approvals() {
               </div>
             )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditAsset(null)} disabled={savingEdit}>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setEditAsset(null)} disabled={savingEdit || savingNewVersion}>
               Cancel
             </Button>
-            <Button onClick={saveEdit} disabled={savingEdit}>
+            <Button variant="outline" onClick={saveEdit} disabled={savingEdit || savingNewVersion}>
               {savingEdit ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
               Save changes
+            </Button>
+            <Button onClick={saveAsNewVersion} disabled={savingEdit || savingNewVersion}>
+              {savingNewVersion ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              Save as new version
             </Button>
           </DialogFooter>
         </DialogContent>
