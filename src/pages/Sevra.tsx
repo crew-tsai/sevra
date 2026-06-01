@@ -313,10 +313,8 @@ export default function Sevra() {
   }, {});
 
   const stats = {
-    pending: timeScoped.filter((m) => m.status === "pending").length,
-    incidents: timeScoped.filter((m) => m.status === "incident_created").length,
-    linked: timeScoped.filter((m) => m.status === "linked_to_incident").length,
-    dismissed: timeScoped.filter((m) => m.status === "dismissed").length,
+    noise: timeScoped.filter((m) => m.status === "dismissed").length,
+    crisis_level: timeScoped.filter((m) => m.status !== "dismissed").length,
   };
 
   return (
