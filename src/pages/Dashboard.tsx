@@ -267,7 +267,9 @@ export default function Dashboard() {
 
   // 4. All issues (sorted, filtered, paginated)
   const [riskFilter, setRiskFilter] = useState<"all" | RiskLevel>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "monitoring" | "contained" | "resolved">("all");
   const sortedIssues = useMemo(
+
     () =>
       incidents
         .slice()
