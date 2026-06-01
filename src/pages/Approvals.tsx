@@ -353,8 +353,15 @@ export default function Approvals() {
                 <Badge className="text-[10px] border-0 bg-risk-critical-bg text-risk-critical">rejected</Badge>
               )}
             </div>
-            {!isExpanded && (
-              <p className="text-xs text-muted-foreground truncate mt-0.5">{preview}</p>
+            {!isExpanded ? (
+              <p className="text-xs text-muted-foreground truncate mt-0.5">
+                <span className="text-muted-foreground/70">{new Date(item.created_at).toLocaleString()}</span>
+                {" · "}{preview}
+              </p>
+            ) : (
+              <p className="text-[11px] text-muted-foreground/70 mt-0.5">
+                Created {new Date(item.created_at).toLocaleString()}
+              </p>
             )}
           </div>
           {isPending && (
