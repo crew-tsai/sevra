@@ -78,6 +78,7 @@ export default function Product() {
       </section>
 
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+        <h2 className="sr-only">Platform modules</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {MODULES.map((m) => (
             <Card key={m.title} className="bg-card border-border p-6 flex flex-col">

@@ -50,8 +50,9 @@ export default function Login() {
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center space-y-3">
           <div className="flex items-center justify-center">
-            <img src={sevraLogo} alt="Sevra" className="h-12 sm:h-14 w-auto object-contain" />
+            <img src={sevraLogo} alt="Sevra logo" className="h-12 sm:h-14 w-auto object-contain" />
           </div>
+          <h1 className="sr-only">Sign in to Sevra</h1>
           <p className="text-sm text-muted-foreground">Enterprise crisis management platform</p>
         </div>
 

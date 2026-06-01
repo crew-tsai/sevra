@@ -49,6 +49,7 @@ export default function About() {
       </section>
 
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+        <h2 className="sr-only">Leadership team</h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {TEAM.map((m, idx) => (
             <Card key={m.name} className="bg-card border-border p-6 text-center">
@@ -67,7 +68,9 @@ export default function About() {
       </section>
 
       <section className="border-t border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 grid md:grid-cols-3 gap-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <h2 className="sr-only">Our values</h2>
+          <div className="grid md:grid-cols-3 gap-8">
           {[
             { title: "Clarity", body: "We turn noise into structured, actionable intelligence." },
             { title: "Speed", body: "Every minute matters — our tools collapse hours into moments." },
@@ -78,6 +81,7 @@ export default function About() {
               <p className="text-sm text-muted-foreground mt-2">{v.body}</p>
             </div>
           ))}
+          </div>
         </div>
       </section>
 
