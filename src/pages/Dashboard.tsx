@@ -494,7 +494,6 @@ export default function Dashboard() {
                     const meta = CHANNEL_META[c.channel] ?? { icon: Globe, color: "text-muted-foreground" };
                     const Icon = meta.icon;
                     const pct = (c.count / Math.max(1, mentionsTotal)) * 100;
-                    const negPct = c.count ? Math.round((c.negative / c.count) * 100) : 0;
                     return (
                       <div key={c.channel} className="rounded-md border border-border/60 px-2.5 py-2">
                         <div className="flex items-center gap-2">
@@ -505,15 +504,12 @@ export default function Dashboard() {
                         <div className="mt-1.5 flex h-1.5 w-full overflow-hidden rounded-full bg-muted">
                           <div className={`h-full ${meta.color.replace("text-", "bg-")}`} style={{ width: `${pct}%` }} />
                         </div>
-                        <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
+                        <div className="mt-1 flex items-center gap-3 text-[10px] text-muted-foreground">
                           <span className="inline-flex items-center gap-1">
                             <Eye className="h-3 w-3" /> {formatNum(c.reach)} reach
                           </span>
                           <span className="inline-flex items-center gap-1">
                             <Users className="h-3 w-3" /> {c.influencers} inf
-                          </span>
-                          <span className={`inline-flex items-center gap-1 ${negPct >= 50 ? "text-risk-critical" : negPct >= 25 ? "text-risk-high" : ""}`}>
-                            <AlertTriangle className="h-3 w-3" /> {negPct}% neg
                           </span>
                         </div>
                       </div>
