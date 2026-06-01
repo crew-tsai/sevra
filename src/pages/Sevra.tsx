@@ -343,12 +343,39 @@ export default function Sevra() {
     (incidentRows ?? []).forEach((i) => {
       if (i.flight_number) byFlight.set(i.flight_number.toUpperCase(), i.id);
     });
+    const byTitle = (incidentRows ?? []).map((i) => ({ id: i.id, title: (i.title ?? "").toLowerCase() }));
+    const titleKeywords: Array<{ keys: string[]; match: string }> = [
+      { keys: ["pilot strike", "pilots union", "huelga", "industrial action", "grève"], match: "pilot strike" },
+      { keys: ["loyalty", "data exposure", "data breach", "180k", "hacking forum", "filtración"], match: "loyalty program data exposure" },
+      { keys: ["ramp agent", "fatally", "fatal ground", "agente de rampa"], match: "fatal ground accident" },
+      { keys: ["dcs outage", "check-in system", "app caída", "app down", "boarding system outage"], match: "check-in" },
+      { keys: ["cancellation wave", "crew shortage", "falta de tripulación"], match: "cancellation wave" },
+      { keys: ["bird strike", "impacto de ave"], match: "bird strike" },
+      { keys: ["runway excursion", "salida de pista"], match: "runway excursion" },
+      { keys: ["engine failure", "mayday", "fallo de motor"], match: "engine failure" },
+      { keys: ["cabin smoke", "fumée en cabine", "humo en cabina"], match: "cabin smoke" },
+      { keys: ["tug", "ground collision", "colisionó"], match: "ground-collision" },
+      { keys: ["near miss", "mid-air"], match: "mid-air near miss" },
+      { keys: ["medical emergency", "medical diversion", "urgence médicale", "emergencia médica"], match: "medical diversion" },
+      { keys: ["hard landing", "gear collapse"], match: "hard landing" },
+      { keys: ["discriminaci", "discrimination", "wheelchair", "silla de ruedas"], match: "discrimination" },
+      { keys: ["luggage", "baggage", "maletas", "equipaje", "bagages"], match: "baggage" },
+      { keys: ["turbulen"], match: "turbulence" },
+    ];
     const findIncidentId = (content: string): string | null => {
-      const m = content.toUpperCase().match(/AS\s?\d{2,4}/g);
-      if (m) {
-        for (const flight of m) {
+      const upper = content.toUpperCase();
+      const flights = upper.match(/AS\s?\d{2,4}/g);
+      if (flights) {
+        for (const flight of flights) {
           const norm = flight.replace(/\s+/g, "");
           if (byFlight.has(norm)) return byFlight.get(norm)!;
+        }
+      }
+      const lower = content.toLowerCase();
+      for (const rule of titleKeywords) {
+        if (rule.keys.some((k) => lower.includes(k))) {
+          const hit = byTitle.find((t) => t.title.includes(rule.match));
+          if (hit) return hit.id;
         }
       }
       return null;
