@@ -12,7 +12,7 @@ import { isEmailAsset, isSocialAsset, socialNetworkLabel } from "@/lib/distribut
 import { CheckCircle2, XCircle, FileText, Copy, Loader2, ExternalLink, Megaphone, MessageSquare, Users, HelpCircle, RefreshCw, LayoutDashboard, X, Filter, Mail, Send, ChevronDown, Film, Building2, Briefcase, Newspaper, Headphones } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { TimeRangeFilter, ALL_TIME, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
+import { TimeRangeFilter, DEFAULT_TIME_RANGE, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
 
 type Asset = {
   id: string;
@@ -89,7 +89,7 @@ export default function Approvals() {
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [emailDialogAsset, setEmailDialogAsset] = useState<Asset | null>(null);
   const [socialDialogAsset, setSocialDialogAsset] = useState<Asset | null>(null);
-  const [timeRange, setTimeRange] = useState<TimeRange>(ALL_TIME);
+  const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const toggleExpanded = (id: string) =>
     setExpandedIds((prev) => {

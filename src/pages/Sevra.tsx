@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { RiskBadge } from "@/components/RiskBadge";
 import { CrisisLevelBadge } from "@/components/CrisisLevelBadge";
-import { TimeRangeFilter, ALL_TIME, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
+import { TimeRangeFilter, DEFAULT_TIME_RANGE, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
 
 // Derive an L0–L4 crisis level for a social mention from AI risk / score.
 const mentionCrisisLevel = (m: { ai_risk: string | null; ai_risk_score: number | null }): number => {
@@ -263,7 +263,7 @@ export default function Sevra() {
   const [monitorSchedule, setMonitorSchedule] = useState<string | null>(null);
   const [monitorLastRun, setMonitorLastRun] = useState<string | null>(null);
   const [monitorTogglePending, setMonitorTogglePending] = useState(false);
-  const [timeRange, setTimeRange] = useState<TimeRange>(ALL_TIME);
+  const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
 
   const refreshMonitorStatus = async () => {
     const { data, error } = await supabase.functions.invoke("social-monitor-control", { body: {} });

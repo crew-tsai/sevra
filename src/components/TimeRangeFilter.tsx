@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { format } from "date-fns";
+import { format, startOfDay, startOfWeek } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
-export type TimeRangePreset = "30d" | "90d" | "custom" | "all";
+export type TimeRangePreset = "today" | "this_week" | "custom";
 
 export type TimeRange = {
   preset: TimeRangePreset;
@@ -14,18 +13,22 @@ export type TimeRange = {
   to: Date | null;
 };
 
-export const ALL_TIME: TimeRange = { preset: "all", from: null, to: null };
+export const DEFAULT_TIME_RANGE: TimeRange = { preset: "this_week", from: startOfWeek(new Date(), { weekStartsOn: 1 }), to: new Date() };
 
-export const presetRange = (preset: Exclude<TimeRangePreset, "custom" | "all">): TimeRange => {
+export function presetRange(preset: Exclude<TimeRangePreset, "custom">): TimeRange {
   const to = new Date();
-  const from = new Date();
-  if (preset === "30d") from.setDate(from.getDate() - 30);
-  if (preset === "90d") from.setDate(from.getDate() - 90);
+  let from = new Date();
+  if (preset === "today") {
+    from = startOfDay(to);
+  }
+  if (preset === "this_week") {
+    from = startOfWeek(to, { weekStartsOn: 1 });
+  }
   return { preset, from, to };
-};
+}
 
 export const isInRange = (iso: string | null | undefined, range: TimeRange) => {
-  if (range.preset === "all" || !range.from) return true;
+  if (!range.from) return true;
   if (!iso) return false;
   const t = new Date(iso).getTime();
   if (isNaN(t)) return false;
@@ -45,10 +48,9 @@ export function TimeRangeFilter({
 }) {
   const [open, setOpen] = useState(false);
 
-  const presets: { key: TimeRangePreset; label: string }[] = [
-    { key: "all", label: "All time" },
-    { key: "30d", label: "Last 30 days" },
-    { key: "90d", label: "Last 90 days" },
+  const presets: { key: Exclude<TimeRangePreset, "custom">; label: string }[] = [
+    { key: "today", label: "Today" },
+    { key: "this_week", label: "This Week" },
   ];
 
   const customLabel =
@@ -64,7 +66,7 @@ export function TimeRangeFilter({
         return (
           <button
             key={p.key}
-            onClick={() => onChange(p.key === "all" ? ALL_TIME : presetRange(p.key as "30d" | "90d"))}
+            onClick={() => onChange(presetRange(p.key))}
             className={cn(
               "rounded-full border px-3 py-1 text-xs transition-colors",
               active

@@ -5,7 +5,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLe
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Line, LineChart, Pie, PieChart, Cell, ResponsiveContainer } from "recharts";
 import { AlertTriangle, FileText, Radio, Activity } from "lucide-react";
 import { toast } from "sonner";
-import { TimeRangeFilter, ALL_TIME, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
+import { TimeRangeFilter, DEFAULT_TIME_RANGE, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
 
 type Incident = { id: string; created_at: string; risk: string; status: string; source: string; incident_type: string };
 type Asset = { id: string; created_at: string; asset_type: string; approval_status: string };
@@ -41,7 +41,7 @@ export default function Reports() {
   const [allAssets, setAllAssets] = useState<Asset[]>([]);
   const [allMentions, setAllMentions] = useState<Mention[]>([]);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState<TimeRange>(ALL_TIME);
+  const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
 
   const incidents = useMemo(() => allIncidents.filter((i) => isInRange(i.created_at, timeRange)), [allIncidents, timeRange]);
   const assets = useMemo(() => allAssets.filter((a) => isInRange(a.created_at, timeRange)), [allAssets, timeRange]);
