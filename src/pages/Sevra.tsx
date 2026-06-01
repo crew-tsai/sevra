@@ -445,15 +445,16 @@ export default function Sevra() {
             const Icon = meta.icon;
             const isAnalyzing = analyzingId === m.id || m.status === "analyzing";
             return (
-              <Card key={m.id} className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className={`h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0 ${meta.color}`}>
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
+              <Card key={m.id} className="p-3 sm:p-4 overflow-hidden">
+                <div className="flex items-start gap-3 flex-col sm:flex-row">
+                  <div className="flex items-start gap-3 w-full sm:contents">
+                    <div className={`h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0 ${meta.color}`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                  <div className="flex-1 min-w-0 w-full">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-foreground">{m.author_name}</span>
-                      <span className="text-sm text-muted-foreground">@{m.author_handle}</span>
+                      <span className="font-semibold text-foreground break-all">{m.author_name}</span>
+                      <span className="text-sm text-muted-foreground break-all">@{m.author_handle}</span>
                       {m.is_verified && <Badge variant="secondary" className="text-[10px]">verified</Badge>}
                       {m.is_influencer && <Badge variant="secondary" className="text-[10px]">influencer</Badge>}
                       <span className="text-xs text-muted-foreground">· {meta.label}</span>
@@ -466,8 +467,8 @@ export default function Sevra() {
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-foreground mt-2 whitespace-pre-wrap">{m.content}</p>
-                    <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                    <p className="text-sm text-foreground mt-2 whitespace-pre-wrap break-words">{m.content}</p>
+                    <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
                       <span>♥ {m.likes?.toLocaleString()}</span>
                       <span>↻ {m.shares?.toLocaleString()}</span>
                       <span>👁 {m.reach?.toLocaleString()} reach</span>
@@ -484,18 +485,19 @@ export default function Sevra() {
                           {m.ai_risk_score != null && <span className="text-xs text-muted-foreground">score {m.ai_risk_score}</span>}
                           {m.updated_at && (
                             <span
-                              className="text-xs text-muted-foreground ml-auto"
+                              className="text-xs text-muted-foreground sm:ml-auto"
                               title={formatDateTime(m.updated_at) ?? undefined}
                             >
                               analyzed {formatRelative(m.updated_at)}
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground">{m.ai_summary}</p>
+                        <p className="text-xs text-muted-foreground break-words">{m.ai_summary}</p>
                       </div>
                     )}
                   </div>
-                  <div className="flex flex-col items-end gap-2 shrink-0">
+                  </div>
+                  <div className="flex flex-row sm:flex-col items-start sm:items-end gap-2 shrink-0 flex-wrap w-full sm:w-auto">
                     {m.status === "pending" && (
                       <Button size="sm" onClick={() => analyzeOne(m)} disabled={isAnalyzing}>
                         {isAnalyzing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
