@@ -318,26 +318,26 @@ export default function Sevra() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto">
+    <div className="p-4 sm:p-6 space-y-6 max-w-6xl mx-auto">
       <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center gap-2">
             <Radio className="h-5 w-5 text-primary" />
-            <h1 className="text-2xl font-bold text-foreground">SEVRA · Social Intel</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">SEVRA · Social Intel</h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Live ingest from airline social channels. AI classifies, scores, and auto-creates incidents.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={runMonitorNow} disabled={monitorRunning}>
+        <div className="flex gap-2 flex-wrap w-full sm:w-auto">
+          <Button variant="outline" size="sm" onClick={runMonitorNow} disabled={monitorRunning} className="flex-1 sm:flex-none">
             {monitorRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radio className="h-4 w-4" />}
-            Run monitor now
+            <span className="hidden xs:inline">Run monitor now</span><span className="xs:hidden">Monitor</span>
           </Button>
-          <Button variant="outline" onClick={seedMocks}>
-            <RefreshCw className="h-4 w-4" /> Pull demo mentions
+          <Button variant="outline" size="sm" onClick={seedMocks} className="flex-1 sm:flex-none">
+            <RefreshCw className="h-4 w-4" /> <span className="hidden xs:inline">Pull demo mentions</span><span className="xs:hidden">Pull</span>
           </Button>
-          <Button onClick={analyzeAllPending} disabled={!stats.pending}>
+          <Button size="sm" onClick={analyzeAllPending} disabled={!stats.pending} className="flex-1 sm:flex-none">
             <Sparkles className="h-4 w-4" /> Analyze all ({stats.pending})
           </Button>
         </div>
