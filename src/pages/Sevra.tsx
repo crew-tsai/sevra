@@ -539,6 +539,9 @@ export default function Sevra() {
                           <Sparkles className="h-3.5 w-3.5 text-primary" />
                           <span className="text-xs font-semibold text-foreground">SEVRA analysis</span>
                           {m.ai_risk && <RiskBadge level={m.ai_risk as any} />}
+                          {m.status !== "dismissed" && (m.ai_risk || m.ai_risk_score != null) && (
+                            <CrisisLevelBadge level={mentionCrisisLevel(m)} compact />
+                          )}
                           {m.ai_incident_type && <Badge variant="outline" className="text-[10px]">{m.ai_incident_type}</Badge>}
                           {m.ai_sub_type && <Badge variant="outline" className="text-[10px]">{m.ai_sub_type}</Badge>}
                           {m.ai_risk_score != null && <span className="text-xs text-muted-foreground">score {m.ai_risk_score}</span>}
