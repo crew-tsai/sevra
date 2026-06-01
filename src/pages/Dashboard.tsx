@@ -680,11 +680,48 @@ export default function Dashboard() {
         </TabsContent>
 
         <TabsContent value="issues-log" className="space-y-6 mt-0">
-      {/* Issues log */}
+      {/* Incidents status */}
+      <section className="space-y-2">
+        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Incidents status
+        </h2>
+        <Card className="p-4 space-y-3">
+          {/* segmented bar */}
+          <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
+            {statusBar.map((s) =>
+              s.count > 0 ? (
+                <div
+                  key={s.key}
+                  className={s.color}
+                  style={{ width: `${(s.count / statusTotal) * 100}%` }}
+                  title={`${s.label}: ${s.count}`}
+                />
+              ) : null,
+            )}
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {statusBar.map((s) => (
+              <Link
+                key={s.key}
+                to={`/incidents?status=${s.key}`}
+                className={`rounded-md ${s.bg} px-3 py-2 hover:opacity-90 transition-opacity`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <s.icon className={`h-3.5 w-3.5 ${s.textColor}`} />
+                  <span className={`text-[11px] font-medium ${s.textColor}`}>{s.label}</span>
+                </div>
+                <p className={`text-xl font-semibold ${s.textColor} mt-0.5`}>{s.count}</p>
+              </Link>
+            ))}
+          </div>
+        </Card>
+      </section>
+
+      {/* Incidents log */}
       <section className="space-y-2">
         <div className="flex items-center justify-between">
           <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            All issues {!loading && allIssues.length > 0 && (
+            All incidents {!loading && allIssues.length > 0 && (
               <span className="ml-1 text-muted-foreground/70 normal-case tracking-normal">({allIssues.length})</span>
             )}
           </h2>
