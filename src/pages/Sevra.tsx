@@ -437,7 +437,10 @@ export default function Sevra() {
           return (
             <Card
               key={s.key}
-              onClick={() => setStatusFilter(active ? "all" : s.key)}
+              onClick={() => {
+                setStatusFilter(active ? "all" : s.key);
+                setLevelFilter("all");
+              }}
               className={`p-4 cursor-pointer transition-colors hover:bg-accent/50 ${active ? "ring-2 ring-primary bg-accent/40" : ""}`}
             >
               <div className="text-xs text-muted-foreground uppercase tracking-wider">{s.label}</div>
@@ -447,6 +450,35 @@ export default function Sevra() {
           );
         })}
       </div>
+
+      {statusFilter === "crisis_level" && (
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-xs uppercase tracking-wider text-muted-foreground mr-1">Level</span>
+          <button
+            type="button"
+            onClick={() => setLevelFilter("all")}
+            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border transition-colors ${
+              levelFilter === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:bg-accent/40"
+            }`}
+          >
+            All ({stats.crisis_level})
+          </button>
+          {[0, 1, 2, 3, 4].map((lvl) => {
+            const active = levelFilter === lvl;
+            return (
+              <button
+                key={lvl}
+                type="button"
+                onClick={() => setLevelFilter(active ? "all" : lvl)}
+                className={`inline-flex items-center gap-1.5 rounded-full transition-opacity ${active ? "ring-2 ring-primary" : "opacity-80 hover:opacity-100"}`}
+              >
+                <CrisisLevelBadge level={lvl} />
+                <span className="text-xs text-muted-foreground pr-1">({levelCounts[lvl]})</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <Tabs value={filter} onValueChange={setFilter} className="w-full">
         <TabsList className="w-full justify-start overflow-x-auto">
