@@ -267,7 +267,9 @@ export default function Dashboard() {
 
   // 4. All issues (sorted, filtered, paginated)
   const [riskFilter, setRiskFilter] = useState<"all" | RiskLevel>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "monitoring" | "contained" | "resolved">("all");
   const sortedIssues = useMemo(
+
     () =>
       incidents
         .slice()
@@ -284,12 +286,16 @@ export default function Dashboard() {
     return c;
   }, [sortedIssues]);
   const allIssues = useMemo(
-    () => riskFilter === "all" ? sortedIssues : sortedIssues.filter((i) => i.risk === riskFilter),
-    [sortedIssues, riskFilter],
+    () => sortedIssues.filter((i) =>
+      (riskFilter === "all" || i.risk === riskFilter) &&
+      (statusFilter === "all" || i.status === statusFilter)
+    ),
+    [sortedIssues, riskFilter, statusFilter],
   );
   const PAGE_SIZE = 10;
   const [issuesPage, setIssuesPage] = useState(0);
-  useEffect(() => { setIssuesPage(0); }, [riskFilter]);
+  useEffect(() => { setIssuesPage(0); }, [riskFilter, statusFilter]);
+
   const issuesPageCount = Math.max(1, Math.ceil(allIssues.length / PAGE_SIZE));
   useEffect(() => { setIssuesPage(0); }, [timeRange]);
   useEffect(() => {
@@ -700,20 +706,26 @@ export default function Dashboard() {
             )}
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {statusBar.map((s) => (
-              <Link
-                key={s.key}
-                to={`/incidents?status=${s.key}`}
-                className={`rounded-md ${s.bg} px-3 py-2 hover:opacity-90 transition-opacity`}
-              >
-                <div className="flex items-center gap-1.5">
-                  <s.icon className={`h-3.5 w-3.5 ${s.textColor}`} />
-                  <span className={`text-[11px] font-medium ${s.textColor}`}>{s.label}</span>
-                </div>
-                <p className={`text-xl font-semibold ${s.textColor} mt-0.5`}>{s.count}</p>
-              </Link>
-            ))}
+            {statusBar.map((s) => {
+              const isActive = statusFilter === s.key;
+              return (
+                <button
+                  key={s.key}
+                  type="button"
+                  onClick={() => setStatusFilter((prev) => (prev === s.key ? "all" : (s.key as any)))}
+                  className={`text-left rounded-md ${s.bg} px-3 py-2 hover:opacity-90 transition-opacity ${isActive ? "ring-2 ring-offset-1 ring-offset-background ring-foreground/30" : ""}`}
+                  aria-pressed={isActive}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <s.icon className={`h-3.5 w-3.5 ${s.textColor}`} />
+                    <span className={`text-[11px] font-medium ${s.textColor}`}>{s.label}</span>
+                  </div>
+                  <p className={`text-xl font-semibold ${s.textColor} mt-0.5`}>{s.count}</p>
+                </button>
+              );
+            })}
           </div>
+
         </Card>
       </section>
 
@@ -725,9 +737,16 @@ export default function Dashboard() {
               <span className="ml-1 text-muted-foreground/70 normal-case tracking-normal">({allIssues.length})</span>
             )}
           </h2>
-          <Link to="/incidents" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
-            Open full list <ArrowRight className="h-3 w-3" />
-          </Link>
+          {statusFilter !== "all" && (
+            <button
+              type="button"
+              onClick={() => setStatusFilter("all")}
+              className="text-xs text-primary hover:underline"
+            >
+              Clear status filter
+            </button>
+          )}
+
         </div>
         <div className="flex items-center gap-1 flex-wrap">
           {([
