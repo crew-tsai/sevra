@@ -737,9 +737,16 @@ export default function Dashboard() {
               <span className="ml-1 text-muted-foreground/70 normal-case tracking-normal">({allIssues.length})</span>
             )}
           </h2>
-          <Link to="/incidents" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
-            Open full list <ArrowRight className="h-3 w-3" />
-          </Link>
+          {statusFilter !== "all" && (
+            <button
+              type="button"
+              onClick={() => setStatusFilter("all")}
+              className="text-xs text-primary hover:underline"
+            >
+              Clear status filter
+            </button>
+          )}
+
         </div>
         <div className="flex items-center gap-1 flex-wrap">
           {([
