@@ -99,6 +99,7 @@ export default function Approvals() {
   const [editContent, setEditContent] = useState("");
   const [editResetToPending, setEditResetToPending] = useState(true);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [savingNewVersion, setSavingNewVersion] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const toggleExpanded = (id: string) =>
@@ -248,6 +249,43 @@ export default function Approvals() {
     setEditAsset(null);
   };
 
+  const stripVersionSuffix = (t: string) => t.replace(/\s+·\s+v\d+$/i, "").trim();
+
+  const saveAsNewVersion = async () => {
+    if (!editAsset) return;
+    const title = editTitle.trim();
+    const content = editContent.trim();
+    if (!title || !content) {
+      return toast.error("Title and content are required");
+    }
+    setSavingNewVersion(true);
+    const baseTitle = stripVersionSuffix(title);
+    const { count } = await supabase
+      .from("incident_assets")
+      .select("id", { count: "exact", head: true })
+      .eq("incident_id", editAsset.incident_id)
+      .eq("asset_type", editAsset.asset_type);
+    const nextVersion = (count ?? 1) + 1;
+    const versionedTitle = `${baseTitle} · v${nextVersion}`;
+    const { data: userData } = await supabase.auth.getUser();
+    const { error } = await supabase.from("incident_assets").insert({
+      incident_id: editAsset.incident_id,
+      asset_type: editAsset.asset_type,
+      channel: editAsset.channel,
+      title: versionedTitle,
+      content,
+      approval_status: "pending",
+      created_by: userData.user?.id ?? null,
+    });
+    setSavingNewVersion(false);
+    if (error) return toast.error(error.message);
+    toast.success(`Saved as ${versionedTitle}`);
+    setTab("pending");
+    setEditAsset(null);
+  };
+
+
+
 
   const baseScoped = focusIncidentId ? assets.filter((a) => a.incident_id === focusIncidentId) : assets;
   const scoped = baseScoped.filter((a) => isInRange(a.created_at, timeRange));
@@ -315,8 +353,15 @@ export default function Approvals() {
                 <Badge className="text-[10px] border-0 bg-risk-critical-bg text-risk-critical">rejected</Badge>
               )}
             </div>
-            {!isExpanded && (
-              <p className="text-xs text-muted-foreground truncate mt-0.5">{preview}</p>
+            {!isExpanded ? (
+              <p className="text-xs text-muted-foreground truncate mt-0.5">
+                <span className="text-muted-foreground/70">{new Date(item.created_at).toLocaleString()}</span>
+                {" · "}{preview}
+              </p>
+            ) : (
+              <p className="text-[11px] text-muted-foreground/70 mt-0.5">
+                Created {new Date(item.created_at).toLocaleString()}
+              </p>
             )}
           </div>
           {isPending && (
@@ -638,13 +683,17 @@ export default function Approvals() {
               </div>
             )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditAsset(null)} disabled={savingEdit}>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setEditAsset(null)} disabled={savingEdit || savingNewVersion}>
               Cancel
             </Button>
-            <Button onClick={saveEdit} disabled={savingEdit}>
+            <Button variant="outline" onClick={saveEdit} disabled={savingEdit || savingNewVersion}>
               {savingEdit ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
               Save changes
+            </Button>
+            <Button onClick={saveAsNewVersion} disabled={savingEdit || savingNewVersion}>
+              {savingNewVersion ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              Save as new version
             </Button>
           </DialogFooter>
         </DialogContent>
