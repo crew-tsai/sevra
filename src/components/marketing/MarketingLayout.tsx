@@ -87,7 +87,7 @@ export default function MarketingLayout() {
         )}
       </header>
 
-      <main className="flex-1">
+      <main className="flex-1 pb-24 sm:pb-28">
         <Outlet />
       </main>
 
