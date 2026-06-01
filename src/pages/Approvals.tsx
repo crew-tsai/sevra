@@ -210,6 +210,39 @@ export default function Approvals() {
     setTab("pending");
   };
 
+  const openEdit = (asset: Asset) => {
+    setEditAsset(asset);
+    setEditTitle(asset.title);
+    setEditContent(asset.content);
+    setEditResetToPending(asset.approval_status === "approved");
+  };
+
+  const saveEdit = async () => {
+    if (!editAsset) return;
+    const title = editTitle.trim();
+    const content = editContent.trim();
+    if (!title || !content) {
+      return toast.error("Title and content are required");
+    }
+    setSavingEdit(true);
+    const updates: Record<string, unknown> = { title, content };
+    if (editResetToPending) {
+      updates.approval_status = "pending";
+      updates.approved_at = null;
+      updates.approved_by = null;
+    }
+    const { error } = await supabase
+      .from("incident_assets")
+      .update(updates)
+      .eq("id", editAsset.id);
+    setSavingEdit(false);
+    if (error) return toast.error(error.message);
+    toast.success("Asset updated");
+    if (editResetToPending) setTab("pending");
+    setEditAsset(null);
+  };
+
+
   const baseScoped = focusIncidentId ? assets.filter((a) => a.incident_id === focusIncidentId) : assets;
   const scoped = baseScoped.filter((a) => isInRange(a.created_at, timeRange));
   const filtered = scoped.filter((a) => a.approval_status === tab);
