@@ -127,14 +127,14 @@ export default function Welcome() {
               <Link key={i.id} to={`/incidents/${i.id}`} className="group">
                 <Card className="px-3 py-2.5 flex items-center gap-3 hover:bg-accent/40 transition-colors">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                       <CrisisLevelBadge level={i.crisis_level} compact />
                       <RiskBadge level={(i.risk as RiskLevel) ?? "medium"} />
                       <Badge variant="outline" className="text-[10px] capitalize">
                         {i.status}
                       </Badge>
-                      <p className="text-sm font-medium truncate">{i.title}</p>
                     </div>
+                    <p className="text-sm font-medium mt-1 break-words">{i.title}</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
                       Updated {formatDistanceToNow(new Date(i.updated_at), { addSuffix: true })}
                     </p>
