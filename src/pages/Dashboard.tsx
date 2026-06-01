@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { RiskBadge } from "@/components/RiskBadge";
 import { CrisisLevelBadge } from "@/components/CrisisLevelBadge";
 import { StatusBadge } from "@/components/StatusBadge";
-import { TimeRangeFilter, ALL_TIME, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
+import { TimeRangeFilter, DEFAULT_TIME_RANGE, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
