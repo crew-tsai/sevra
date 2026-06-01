@@ -365,7 +365,7 @@ export default function Dashboard() {
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="issues-log">Issues log</TabsTrigger>
+          <TabsTrigger value="issues-log">Incidents log</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6 mt-0">
