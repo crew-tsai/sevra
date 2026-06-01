@@ -286,12 +286,16 @@ export default function Dashboard() {
     return c;
   }, [sortedIssues]);
   const allIssues = useMemo(
-    () => riskFilter === "all" ? sortedIssues : sortedIssues.filter((i) => i.risk === riskFilter),
-    [sortedIssues, riskFilter],
+    () => sortedIssues.filter((i) =>
+      (riskFilter === "all" || i.risk === riskFilter) &&
+      (statusFilter === "all" || i.status === statusFilter)
+    ),
+    [sortedIssues, riskFilter, statusFilter],
   );
   const PAGE_SIZE = 10;
   const [issuesPage, setIssuesPage] = useState(0);
-  useEffect(() => { setIssuesPage(0); }, [riskFilter]);
+  useEffect(() => { setIssuesPage(0); }, [riskFilter, statusFilter]);
+
   const issuesPageCount = Math.max(1, Math.ceil(allIssues.length / PAGE_SIZE));
   useEffect(() => { setIssuesPage(0); }, [timeRange]);
   useEffect(() => {
