@@ -421,8 +421,8 @@ export default function Sevra() {
         })}
       </div>
 
-      <Tabs value={filter} onValueChange={setFilter}>
-        <TabsList>
+      <Tabs value={filter} onValueChange={setFilter} className="w-full">
+        <TabsList className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="all">All channels</TabsTrigger>
           <TabsTrigger value="twitter">X</TabsTrigger>
           <TabsTrigger value="instagram">Instagram</TabsTrigger>
