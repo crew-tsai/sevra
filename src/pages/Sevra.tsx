@@ -263,7 +263,7 @@ export default function Sevra() {
   const [monitorSchedule, setMonitorSchedule] = useState<string | null>(null);
   const [monitorLastRun, setMonitorLastRun] = useState<string | null>(null);
   const [monitorTogglePending, setMonitorTogglePending] = useState(false);
-  const [timeRange, setTimeRange] = useState<TimeRange>(ALL_TIME);
+  const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
 
   const refreshMonitorStatus = async () => {
     const { data, error } = await supabase.functions.invoke("social-monitor-control", { body: {} });

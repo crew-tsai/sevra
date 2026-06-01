@@ -89,7 +89,7 @@ export default function Approvals() {
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [emailDialogAsset, setEmailDialogAsset] = useState<Asset | null>(null);
   const [socialDialogAsset, setSocialDialogAsset] = useState<Asset | null>(null);
-  const [timeRange, setTimeRange] = useState<TimeRange>(ALL_TIME);
+  const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const toggleExpanded = (id: string) =>
     setExpandedIds((prev) => {

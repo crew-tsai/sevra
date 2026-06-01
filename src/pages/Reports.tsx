@@ -41,7 +41,7 @@ export default function Reports() {
   const [allAssets, setAllAssets] = useState<Asset[]>([]);
   const [allMentions, setAllMentions] = useState<Mention[]>([]);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState<TimeRange>(ALL_TIME);
+  const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
 
   const incidents = useMemo(() => allIncidents.filter((i) => isInRange(i.created_at, timeRange)), [allIncidents, timeRange]);
   const assets = useMemo(() => allAssets.filter((a) => isInRange(a.created_at, timeRange)), [allAssets, timeRange]);

@@ -98,7 +98,7 @@ export default function Dashboard() {
   const [allIncidents, setAllIncidents] = useState<Incident[]>([]);
   const [allMentions, setAllMentions] = useState<Mention[]>([]);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState<TimeRange>(ALL_TIME);
+  const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
 
   useEffect(() => {
     const load = async () => {

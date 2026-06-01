@@ -48,7 +48,7 @@ export default function Assets() {
   const [allAssets, setAllAssets] = useState<Asset[]>([]);
   const [incidents, setIncidents] = useState<Record<string, Incident>>({});
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState<TimeRange>(ALL_TIME);
+  const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
   const [typeFilter, setTypeFilter] = useState<string>("all");
 
