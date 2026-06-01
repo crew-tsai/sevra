@@ -76,6 +76,7 @@ const Unsubscribe = () => {
   return (
     <main className="min-h-screen bg-background flex items-center justify-center p-6">
       <Card className="w-full max-w-md">
+        <h1 className="sr-only">Unsubscribe from Sevra emails</h1>
         <CardHeader className="text-center space-y-2">
           <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center">
             {state.status === "success" || state.status === "already" ? (

@@ -15,7 +15,7 @@ export function AppLayout() {
             <div className="ml-2 sm:ml-3 flex items-center min-w-0">
               <img
                 src={sevraLogo}
-                alt="Sevra"
+                alt="Sevra logo"
                 className="h-8 sm:h-10 md:h-12 lg:h-14 w-auto max-w-[160px] sm:max-w-[220px] md:max-w-none object-contain"
               />
             </div>

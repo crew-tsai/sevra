@@ -25,7 +25,7 @@ export default function MarketingLayout() {
           <Link to="/" className="flex items-center gap-2 min-w-0">
             <img
               src={sevraLogo}
-              alt="Sevra"
+              alt="Sevra logo — home"
               className="h-10 sm:h-14 md:h-24 lg:h-32 w-auto"
             />
           </Link>
@@ -94,7 +94,7 @@ export default function MarketingLayout() {
       <footer className="border-t border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <img src={sevraLogo} alt="Sevra" className="h-12 sm:h-16 md:h-24 lg:h-32 w-auto" />
+            <img src={sevraLogo} alt="Sevra logo" className="h-12 sm:h-16 md:h-24 lg:h-32 w-auto" />
             <span className="text-xs sm:text-sm text-muted-foreground">© {new Date().getFullYear()} Sevra. All rights reserved.</span>
           </div>
           <div className="flex items-center gap-6 text-sm text-muted-foreground">

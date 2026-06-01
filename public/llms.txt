@@ -1,0 +1,11 @@
+# Sevra
+
+> AI-powered crisis management platform that helps enterprise communications teams detect, decide, and respond to reputation crises in real time.
+
+Sevra brings together social monitoring, crisis-level scoring (L0–L4), AI-drafted statements, approvals, and distribution in one workspace — built for crisis teams in aviation, hospitality, finance, healthcare, energy, retail, and the public sector.
+
+## Pages
+
+- [Home](/): Product overview, value propositions, and demo request.
+- [Product](/product): Modules including Signal Monitor, Crisis Levels, Sevra AI Assistant, Approvals, Distribution, Live Dashboard, Audit Log, and Reports.
+- [About](/about): The team behind Sevra and the company's mission.
