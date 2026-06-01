@@ -597,6 +597,58 @@ export default function Approvals() {
         onOpenChange={(v) => !v && setSocialDialogAsset(null)}
         asset={socialDialogAsset}
       />
+
+      <Dialog open={!!editAsset} onOpenChange={(v) => !v && setEditAsset(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Update asset</DialogTitle>
+            <DialogDescription>
+              Edit the title and content. Saving creates a new version of this asset.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-asset-title">Title</Label>
+              <Input
+                id="edit-asset-title"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-asset-content">Content</Label>
+              <Textarea
+                id="edit-asset-content"
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="min-h-[280px] font-sans text-sm"
+              />
+            </div>
+            {editAsset?.approval_status === "approved" && (
+              <div className="flex items-start gap-2 rounded-md border border-border bg-muted/30 p-3">
+                <Checkbox
+                  id="edit-reset-pending"
+                  checked={editResetToPending}
+                  onCheckedChange={(v) => setEditResetToPending(v === true)}
+                />
+                <Label htmlFor="edit-reset-pending" className="text-xs font-normal leading-relaxed cursor-pointer">
+                  Send back to pending for re-approval before redeploying. Recommended when content changes
+                  meaningfully (e.g. updated facts in a press release).
+                </Label>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditAsset(null)} disabled={savingEdit}>
+              Cancel
+            </Button>
+            <Button onClick={saveEdit} disabled={savingEdit}>
+              {savingEdit ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              Save changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
