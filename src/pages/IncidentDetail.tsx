@@ -24,6 +24,7 @@ import {
   ShieldAlert,
   Package,
   LayoutDashboard,
+  Lightbulb,
 } from "lucide-react";
 import { toast } from "sonner";
 
