@@ -426,84 +426,38 @@ export default function Dashboard() {
           </Link>
         </div>
         <Card className="p-4 space-y-4">
-          {/* Top row: pressure + KPIs + velocity */}
-          <div className="grid gap-3 lg:grid-cols-[1.1fr_2fr]">
-            {/* Crisis pressure */}
-            <div className={`rounded-lg ${pressureTone.bgSoft} p-3 flex items-center gap-3`}>
-              <div className="relative h-14 w-14 shrink-0">
-                <svg viewBox="0 0 36 36" className="h-14 w-14 -rotate-90">
-                  <circle cx="18" cy="18" r="15.5" className="fill-none stroke-background/60" strokeWidth="3" />
-                  <circle
-                    cx="18" cy="18" r="15.5"
-                    className={`fill-none ${pressureTone.color}`}
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeDasharray={`${(pressure / 100) * 97.4} 97.4`}
-                  />
-                </svg>
-                <div className={`absolute inset-0 flex items-center justify-center text-sm font-semibold ${pressureTone.color}`}>
-                  {pressure}
-                </div>
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <Flame className={`h-3.5 w-3.5 ${pressureTone.color}`} />
-                  <span className={`text-[10px] uppercase tracking-wider font-semibold ${pressureTone.color}`}>
-                    Crisis pressure · {pressureTone.label}
+          {/* Top row: KPIs + velocity */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div className="rounded-md bg-primary/10 px-3 py-2">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] uppercase tracking-wider text-primary">Mentions</p>
+                {velocity.last > 0 || velocity.prev > 0 ? (
+                  <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium ${velocity.delta > 0 ? "text-risk-critical" : velocity.delta < 0 ? "text-risk-low" : "text-muted-foreground"}`}>
+                    {velocity.delta > 0 ? <TrendingUp className="h-3 w-3" /> : velocity.delta < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
+                    {velocity.delta > 0 ? "+" : ""}{velocity.pct}%
                   </span>
-                </div>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {negativeShare}% negative · {influencerCount} influencer{influencerCount === 1 ? "" : "s"} amplifying
-                </p>
-                <p className="text-[10px] text-muted-foreground/80 mt-1">
-                  Weighted by risk, reach, and amplification.
-                </p>
+                ) : null}
               </div>
+              <p className="text-xl font-semibold text-primary">{mentionsTotal}</p>
+              <p className="text-[10px] text-muted-foreground">{velocity.last} in last hr</p>
             </div>
-            {/* KPI tiles */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <div className="rounded-md bg-primary/10 px-3 py-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] uppercase tracking-wider text-primary">Mentions</p>
-                  {velocity.last > 0 || velocity.prev > 0 ? (
-                    <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium ${velocity.delta > 0 ? "text-risk-critical" : velocity.delta < 0 ? "text-risk-low" : "text-muted-foreground"}`}>
-                      {velocity.delta > 0 ? <TrendingUp className="h-3 w-3" /> : velocity.delta < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
-                      {velocity.delta > 0 ? "+" : ""}{velocity.pct}%
-                    </span>
-                  ) : null}
-                </div>
-                <p className="text-xl font-semibold text-primary">{mentionsTotal}</p>
-                <p className="text-[10px] text-muted-foreground">{velocity.last} in last hr</p>
+            <div className="rounded-md bg-muted px-3 py-2">
+              <div className="flex items-center gap-1">
+                <Eye className="h-3 w-3 text-muted-foreground" />
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Reach</p>
               </div>
-              <div className="rounded-md bg-muted px-3 py-2">
-                <div className="flex items-center gap-1">
-                  <Eye className="h-3 w-3 text-muted-foreground" />
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Reach</p>
-                </div>
-                <p className="text-xl font-semibold text-foreground">{formatNum(totalReach)}</p>
-                <p className="text-[10px] text-muted-foreground">{formatNum(totalEngagement)} engagement</p>
+              <p className="text-xl font-semibold text-foreground">{formatNum(totalReach)}</p>
+              <p className="text-[10px] text-muted-foreground">{formatNum(totalEngagement)} engagement</p>
+            </div>
+            <div className="rounded-md bg-risk-high-bg px-3 py-2">
+              <div className="flex items-center gap-1">
+                <Users className="h-3 w-3 text-risk-high" />
+                <p className="text-[10px] uppercase tracking-wider text-risk-high">Influencers</p>
               </div>
-              <div className="rounded-md bg-risk-high-bg px-3 py-2">
-                <div className="flex items-center gap-1">
-                  <Users className="h-3 w-3 text-risk-high" />
-                  <p className="text-[10px] uppercase tracking-wider text-risk-high">Influencers</p>
-                </div>
-                <p className="text-xl font-semibold text-risk-high">{influencerCount}</p>
-                <p className="text-[10px] text-muted-foreground inline-flex items-center gap-0.5">
-                  <BadgeCheck className="h-3 w-3" /> {verifiedCount} verified
-                </p>
-              </div>
-              <div className="rounded-md bg-risk-critical-bg px-3 py-2">
-                <div className="flex items-center gap-1">
-                  <AlertTriangle className="h-3 w-3 text-risk-critical" />
-                  <p className="text-[10px] uppercase tracking-wider text-risk-critical">Negative</p>
-                </div>
-                <p className="text-xl font-semibold text-risk-critical">{negativeShare}%</p>
-                <p className="text-[10px] text-muted-foreground">
-                  {mentionRiskCounts.critical + mentionRiskCounts.high} of {mentionsTotal}
-                </p>
-              </div>
+              <p className="text-xl font-semibold text-risk-high">{influencerCount}</p>
+              <p className="text-[10px] text-muted-foreground inline-flex items-center gap-0.5">
+                <BadgeCheck className="h-3 w-3" /> {verifiedCount} verified
+              </p>
             </div>
           </div>
 
@@ -540,7 +494,6 @@ export default function Dashboard() {
                     const meta = CHANNEL_META[c.channel] ?? { icon: Globe, color: "text-muted-foreground" };
                     const Icon = meta.icon;
                     const pct = (c.count / Math.max(1, mentionsTotal)) * 100;
-                    const negPct = c.count ? Math.round((c.negative / c.count) * 100) : 0;
                     return (
                       <div key={c.channel} className="rounded-md border border-border/60 px-2.5 py-2">
                         <div className="flex items-center gap-2">
@@ -551,15 +504,12 @@ export default function Dashboard() {
                         <div className="mt-1.5 flex h-1.5 w-full overflow-hidden rounded-full bg-muted">
                           <div className={`h-full ${meta.color.replace("text-", "bg-")}`} style={{ width: `${pct}%` }} />
                         </div>
-                        <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
+                        <div className="mt-1 flex items-center gap-3 text-[10px] text-muted-foreground">
                           <span className="inline-flex items-center gap-1">
                             <Eye className="h-3 w-3" /> {formatNum(c.reach)} reach
                           </span>
                           <span className="inline-flex items-center gap-1">
                             <Users className="h-3 w-3" /> {c.influencers} inf
-                          </span>
-                          <span className={`inline-flex items-center gap-1 ${negPct >= 50 ? "text-risk-critical" : negPct >= 25 ? "text-risk-high" : ""}`}>
-                            <AlertTriangle className="h-3 w-3" /> {negPct}% neg
                           </span>
                         </div>
                       </div>
