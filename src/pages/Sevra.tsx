@@ -337,8 +337,8 @@ export default function Sevra() {
           <Button variant="outline" size="sm" onClick={seedMocks} className="flex-1 sm:flex-none">
             <RefreshCw className="h-4 w-4" /> <span className="hidden xs:inline">Pull demo mentions</span><span className="xs:hidden">Pull</span>
           </Button>
-          <Button size="sm" onClick={analyzeAllPending} disabled={!stats.pending} className="flex-1 sm:flex-none">
-            <Sparkles className="h-4 w-4" /> Analyze all ({stats.pending})
+          <Button size="sm" onClick={analyzeAllPending} disabled={!stats.crisis_level} className="flex-1 sm:flex-none">
+            <Sparkles className="h-4 w-4" /> Analyze all ({stats.crisis_level})
           </Button>
         </div>
       </div>
