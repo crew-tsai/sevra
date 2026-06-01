@@ -682,7 +682,7 @@ export default function Sevra() {
                   </div>
                   </div>
                   <div className="flex flex-row sm:flex-col items-start sm:items-end gap-2 shrink-0 flex-wrap w-full sm:w-auto">
-                    {m.status === "pending" && (
+                    {m.status === "pending" && !m.incident_id && (
                       <Button size="sm" onClick={() => analyzeOne(m)} disabled={isAnalyzing}>
                         {isAnalyzing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                         Analyze
@@ -691,7 +691,7 @@ export default function Sevra() {
                     {m.status === "analyzing" && (
                       <Badge variant="secondary"><Loader2 className="h-3 w-3 animate-spin" /> analyzing</Badge>
                     )}
-                    {(m.status === "incident_created" || m.status === "linked_to_incident") && m.incident_id && (
+                    {m.incident_id && (
                       <>
                         <Button size="sm" variant="outline" onClick={() => navigate(`/incidents/${m.incident_id}`)}>
                           <AlertTriangle className="h-3.5 w-3.5" /> View incident
