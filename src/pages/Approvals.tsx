@@ -9,10 +9,15 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { SendEmailDialog } from "@/components/SendEmailDialog";
 import { PublishSocialDialog } from "@/components/PublishSocialDialog";
 import { isEmailAsset, isSocialAsset, socialNetworkLabel } from "@/lib/distribution";
-import { CheckCircle2, XCircle, FileText, Copy, Loader2, ExternalLink, Megaphone, MessageSquare, Users, HelpCircle, RefreshCw, LayoutDashboard, X, Filter, Mail, Send, ChevronDown, Film, Building2, Briefcase, Newspaper, Headphones } from "lucide-react";
+import { CheckCircle2, XCircle, FileText, Copy, Loader2, ExternalLink, Megaphone, MessageSquare, Users, HelpCircle, RefreshCw, LayoutDashboard, X, Filter, Mail, Send, ChevronDown, Film, Building2, Briefcase, Newspaper, Headphones, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { TimeRangeFilter, DEFAULT_TIME_RANGE, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type Asset = {
   id: string;
