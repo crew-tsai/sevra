@@ -411,7 +411,7 @@ export default function Dashboard() {
       {/* 2. Issues status bar */}
       <section className="space-y-2">
         <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Issues status
+          Incidents status
         </h2>
         <Card className="p-4 space-y-3">
           {/* segmented bar */}
