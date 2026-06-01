@@ -99,6 +99,7 @@ export default function Approvals() {
   const [editContent, setEditContent] = useState("");
   const [editResetToPending, setEditResetToPending] = useState(true);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [savingNewVersion, setSavingNewVersion] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const toggleExpanded = (id: string) =>
