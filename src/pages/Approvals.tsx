@@ -502,7 +502,7 @@ export default function Approvals() {
             <AssetComments
               assetId={item.id}
               isAdmin={isAdmin}
-              canApprove={isAdmin && isUserApproved}
+              canApprove={isAdmin && (isPending || isUserApproved)}
               onApprove={() => updateStatus(item.id, "approved")}
               onReject={() => updateStatus(item.id, "rejected")}
             />
