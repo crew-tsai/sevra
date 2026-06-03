@@ -94,6 +94,7 @@ export default function Approvals() {
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [emailDialogAsset, setEmailDialogAsset] = useState<Asset | null>(null);
   const [socialDialogAsset, setSocialDialogAsset] = useState<Asset | null>(null);
+  const [postApproveAsset, setPostApproveAsset] = useState<Asset | null>(null);
   const [editAsset, setEditAsset] = useState<Asset | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
@@ -180,16 +181,10 @@ export default function Approvals() {
     if (error) return toast.error(error.message);
     toast.success(`Asset ${status}`);
 
-    // Auto-open the relevant distribution dialog after approval
+    // After approval, prompt the user to choose a distribution channel
     if (status === "approved") {
       const asset = assets.find((a) => a.id === id);
-      if (asset) {
-        if (isEmailAsset(asset.asset_type)) {
-          setEmailDialogAsset(asset);
-        } else if (isSocialAsset(asset.asset_type)) {
-          setSocialDialogAsset(asset);
-        }
-      }
+      if (asset) setPostApproveAsset(asset);
     }
   };
 
@@ -657,6 +652,56 @@ export default function Approvals() {
         onOpenChange={(v) => !v && setSocialDialogAsset(null)}
         asset={socialDialogAsset}
       />
+
+      <Dialog open={!!postApproveAsset} onOpenChange={(v) => !v && setPostApproveAsset(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-risk-low" /> Asset approved
+            </DialogTitle>
+            <DialogDescription>
+              How would you like to distribute <span className="font-medium text-foreground">{postApproveAsset?.title}</span>?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            {postApproveAsset && isEmailAsset(postApproveAsset.asset_type) && (
+              <Button
+                onClick={() => {
+                  setEmailDialogAsset(postApproveAsset);
+                  setPostApproveAsset(null);
+                }}
+              >
+                <Mail className="h-4 w-4" /> Send by email
+              </Button>
+            )}
+            {postApproveAsset && isSocialAsset(postApproveAsset.asset_type) && (
+              <Button
+                onClick={() => {
+                  setSocialDialogAsset(postApproveAsset);
+                  setPostApproveAsset(null);
+                }}
+              >
+                <Send className="h-4 w-4" /> Publish to {socialNetworkLabel(postApproveAsset.asset_type)}
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (postApproveAsset) shareOnWhatsApp(postApproveAsset);
+                setPostApproveAsset(null);
+              }}
+            >
+              <MessageCircle className="h-4 w-4" /> Share on WhatsApp
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPostApproveAsset(null)}>
+              Skip for now
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       <Dialog open={!!editAsset} onOpenChange={(v) => !v && setEditAsset(null)}>
         <DialogContent className="max-w-2xl">
