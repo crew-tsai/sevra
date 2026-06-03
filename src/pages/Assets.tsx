@@ -1,13 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
-import { FileText, Users, MessageSquare, Megaphone, HelpCircle, ExternalLink, ChevronDown, AlertCircle } from "lucide-react";
+import { FileText, Users, MessageSquare, Megaphone, HelpCircle, ExternalLink, ChevronDown, AlertCircle, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { TimeRangeFilter, DEFAULT_TIME_RANGE, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RiskBadge } from "@/components/RiskBadge";
+import { Button } from "@/components/ui/button";
+import { isSocialAsset } from "@/lib/distribution";
+
+const EXTERNAL_ASSET_TYPES = new Set(["press_release", "post_x", "post_instagram", "tiktok_script"]);
+
+const shareOnWhatsApp = (title: string, content: string) => {
+  const text = `${title}\n\n${content}`;
+  window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+};
 
 type Asset = {
   id: string;
