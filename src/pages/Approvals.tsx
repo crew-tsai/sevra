@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { SendEmailDialog } from "@/components/SendEmailDialog";
+import { AssetComments } from "@/components/AssetComments";
 import { PublishSocialDialog } from "@/components/PublishSocialDialog";
 import { isEmailAsset, isSocialAsset, socialNetworkLabel } from "@/lib/distribution";
 import { CheckCircle2, XCircle, FileText, Copy, Loader2, ExternalLink, Megaphone, MessageSquare, Users, HelpCircle, RefreshCw, LayoutDashboard, X, Filter, Mail, Send, ChevronDown, Film, Building2, Briefcase, Newspaper, Headphones, Pencil, MessageCircle } from "lucide-react";
