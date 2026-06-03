@@ -235,6 +235,17 @@ export default function Assets() {
                             </div>
                             <h4 className="text-sm font-semibold text-foreground mb-1">{a.title}</h4>
                             <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3 whitespace-pre-wrap">{a.content}</p>
+                            {EXTERNAL_ASSET_TYPES.has(a.asset_type) && a.approval_status === "approved" && (
+                              <div className="mt-3">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => shareOnWhatsApp(a.title, a.content)}
+                                >
+                                  <MessageCircle className="h-3.5 w-3.5" /> Share on WhatsApp
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
