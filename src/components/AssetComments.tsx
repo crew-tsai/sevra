@@ -26,9 +26,15 @@ const commentSchema = z.object({
 export function AssetComments({
   assetId,
   isAdmin,
+  canApprove,
+  onApprove,
+  onReject,
 }: {
   assetId: string;
   isAdmin: boolean;
+  canApprove?: boolean;
+  onApprove?: () => void;
+  onReject?: () => void;
 }) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
