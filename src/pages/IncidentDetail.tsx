@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { RiskBadge } from "@/components/RiskBadge";
 import { CrisisLevelBadge } from "@/components/CrisisLevelBadge";
 import { StatusBadge } from "@/components/StatusBadge";
+import { StatusStepper } from "@/components/StatusStepper";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import {
   ArrowLeft,
