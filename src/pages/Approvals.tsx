@@ -430,7 +430,7 @@ export default function Approvals() {
               <Button size="sm" variant="outline" onClick={() => openEdit(item)}>
                 <Pencil className="h-3.5 w-3.5" /> Edit
               </Button>
-              {isPending && (
+              {isPending && isAdmin && (
                 <>
                   <Button size="sm" onClick={() => updateStatus(item.id, "approved")} disabled={isBusy}>
                     {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
@@ -440,6 +440,11 @@ export default function Approvals() {
                     <XCircle className="h-3.5 w-3.5" /> Reject
                   </Button>
                 </>
+              )}
+              {isPending && !isAdmin && (
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  <Lock className="h-3 w-3" /> Approval reserved to admins
+                </span>
               )}
               {isApproved && isEmailAsset(item.asset_type) && (
                 <>
