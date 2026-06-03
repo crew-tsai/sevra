@@ -186,22 +186,28 @@ export default function Approvals() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusIncidentId, tab, loading]);
 
-  const updateStatus = async (id: string, status: "approved" | "rejected") => {
+  const updateStatus = async (
+    id: string,
+    status: "user_approved" | "approved" | "rejected",
+  ) => {
     setBusyId(id);
     const { data: userData } = await supabase.auth.getUser();
+    const isFinal = status === "approved";
     const { error } = await supabase
       .from("incident_assets")
       .update({
         approval_status: status,
-        approved_at: status === "approved" ? new Date().toISOString() : null,
-        approved_by: status === "approved" ? userData.user?.id ?? null : null,
+        approved_at: isFinal ? new Date().toISOString() : null,
+        approved_by: isFinal ? userData.user?.id ?? null : null,
       })
       .eq("id", id);
     setBusyId(null);
     if (error) return toast.error(error.message);
-    toast.success(`Asset ${status}`);
+    const label =
+      status === "user_approved" ? "marked ready for admin" : status === "approved" ? "approved" : "rejected";
+    toast.success(`Asset ${label}`);
 
-    // After approval, prompt the user to choose a distribution channel
+    // Only after the final admin approval prompt for distribution
     if (status === "approved") {
       const asset = assets.find((a) => a.id === id);
       if (asset) setPostApproveAsset(asset);
