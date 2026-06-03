@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, MessageSquareText, Send, Trash2, Lock } from "lucide-react";
+import { Loader2, MessageSquareText, Send, Trash2, Lock, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
