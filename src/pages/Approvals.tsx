@@ -181,16 +181,10 @@ export default function Approvals() {
     if (error) return toast.error(error.message);
     toast.success(`Asset ${status}`);
 
-    // Auto-open the relevant distribution dialog after approval
+    // After approval, prompt the user to choose a distribution channel
     if (status === "approved") {
       const asset = assets.find((a) => a.id === id);
-      if (asset) {
-        if (isEmailAsset(asset.asset_type)) {
-          setEmailDialogAsset(asset);
-        } else if (isSocialAsset(asset.asset_type)) {
-          setSocialDialogAsset(asset);
-        }
-      }
+      if (asset) setPostApproveAsset(asset);
     }
   };
 
