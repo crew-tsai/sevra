@@ -396,7 +396,19 @@ export default function Approvals() {
               </p>
             )}
           </div>
-          {isPending && isAdmin && (
+          {isPending && (
+            <div className="hidden sm:flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+              <Button
+                size="sm"
+                onClick={() => updateStatus(item.id, "user_approved")}
+                disabled={isBusy}
+              >
+                {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                Approve & send to admin
+              </Button>
+            </div>
+          )}
+          {isUserApproved && isAdmin && (
             <div className="hidden sm:flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
               <Button
                 size="sm"
@@ -407,19 +419,15 @@ export default function Approvals() {
               >
                 <XCircle className="h-3.5 w-3.5" /> Reject
               </Button>
-              <Button
-                size="sm"
-                onClick={() => updateStatus(item.id, "approved")}
-                disabled={isBusy}
-              >
+              <Button size="sm" onClick={() => updateStatus(item.id, "approved")} disabled={isBusy}>
                 {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                Approve
+                Final approve
               </Button>
             </div>
           )}
-          {isPending && !isAdmin && (
+          {isUserApproved && !isAdmin && (
             <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-muted-foreground shrink-0">
-              <Lock className="h-3 w-3" /> Admin approval required
+              <Lock className="h-3 w-3" /> Awaiting admin
             </span>
           )}
           <ChevronDown
