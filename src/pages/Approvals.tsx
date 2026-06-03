@@ -463,6 +463,7 @@ export default function Approvals() {
                 </Button>
               )}
             </div>
+            <AssetComments assetId={item.id} isAdmin={isAdmin} />
           </div>
         )}
       </Card>
