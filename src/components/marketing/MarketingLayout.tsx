@@ -6,7 +6,6 @@ import sevraLogo from "@/assets/sevra-logo-dark.png";
 const NAV = [
   { to: "/", label: "Home", end: true },
   { to: "/product", label: "Our Product" },
-  { to: "/workflows", label: "Workflows" },
   { to: "/about", label: "About Us" },
 ];
 
