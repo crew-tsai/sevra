@@ -582,6 +582,7 @@ export default function Approvals() {
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
         <TabsList>
           <TabsTrigger value="pending">Pending ({counts.pending})</TabsTrigger>
+          <TabsTrigger value="user_approved">Awaiting admin ({counts.user_approved})</TabsTrigger>
           <TabsTrigger value="approved">Approved ({counts.approved})</TabsTrigger>
           <TabsTrigger value="rejected">Rejected ({counts.rejected})</TabsTrigger>
         </TabsList>
