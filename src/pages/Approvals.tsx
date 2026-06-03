@@ -94,6 +94,7 @@ export default function Approvals() {
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [emailDialogAsset, setEmailDialogAsset] = useState<Asset | null>(null);
   const [socialDialogAsset, setSocialDialogAsset] = useState<Asset | null>(null);
+  const [postApproveAsset, setPostApproveAsset] = useState<Asset | null>(null);
   const [editAsset, setEditAsset] = useState<Asset | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
