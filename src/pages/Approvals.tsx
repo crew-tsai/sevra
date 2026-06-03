@@ -375,6 +375,9 @@ export default function Approvals() {
               {item.channel && (
                 <Badge variant="secondary" className="text-[10px]">{item.channel}</Badge>
               )}
+              {isUserApproved && (
+                <Badge className="text-[10px] border-0 bg-risk-medium-bg text-risk-medium">awaiting admin</Badge>
+              )}
               {isApproved && (
                 <Badge className="text-[10px] border-0 bg-risk-low-bg text-risk-low">approved</Badge>
               )}
