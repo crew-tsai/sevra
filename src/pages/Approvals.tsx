@@ -90,7 +90,7 @@ export default function Approvals() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
-  const [tab, setTab] = useState<"pending" | "approved" | "rejected">("pending");
+  const [tab, setTab] = useState<"pending" | "user_approved" | "approved" | "rejected">("pending");
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [emailDialogAsset, setEmailDialogAsset] = useState<Asset | null>(null);
@@ -169,7 +169,7 @@ export default function Approvals() {
     if (!focusIncidentId || loading || !assets.length) return;
     const incidentAssets = assets.filter((a) => a.incident_id === focusIncidentId);
     if (!incidentAssets.length) return;
-    const order: Array<"pending" | "approved" | "rejected"> = ["pending", "approved", "rejected"];
+    const order: Array<"pending" | "user_approved" | "approved" | "rejected"> = ["pending", "user_approved", "approved", "rejected"];
     const best = order.find((s) => incidentAssets.some((a) => a.approval_status === s));
     if (best) setTab(best);
   }, [focusIncidentId, loading, assets]);
@@ -186,22 +186,28 @@ export default function Approvals() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusIncidentId, tab, loading]);
 
-  const updateStatus = async (id: string, status: "approved" | "rejected") => {
+  const updateStatus = async (
+    id: string,
+    status: "user_approved" | "approved" | "rejected",
+  ) => {
     setBusyId(id);
     const { data: userData } = await supabase.auth.getUser();
+    const isFinal = status === "approved";
     const { error } = await supabase
       .from("incident_assets")
       .update({
         approval_status: status,
-        approved_at: status === "approved" ? new Date().toISOString() : null,
-        approved_by: status === "approved" ? userData.user?.id ?? null : null,
+        approved_at: isFinal ? new Date().toISOString() : null,
+        approved_by: isFinal ? userData.user?.id ?? null : null,
       })
       .eq("id", id);
     setBusyId(null);
     if (error) return toast.error(error.message);
-    toast.success(`Asset ${status}`);
+    const label =
+      status === "user_approved" ? "marked ready for admin" : status === "approved" ? "approved" : "rejected";
+    toast.success(`Asset ${label}`);
 
-    // After approval, prompt the user to choose a distribution channel
+    // Only after the final admin approval prompt for distribution
     if (status === "approved") {
       const asset = assets.find((a) => a.id === id);
       if (asset) setPostApproveAsset(asset);
@@ -319,6 +325,7 @@ export default function Approvals() {
 
   const counts = {
     pending: scoped.filter((a) => a.approval_status === "pending").length,
+    user_approved: scoped.filter((a) => a.approval_status === "user_approved").length,
     approved: scoped.filter((a) => a.approval_status === "approved").length,
     rejected: scoped.filter((a) => a.approval_status === "rejected").length,
   };
@@ -336,8 +343,10 @@ export default function Approvals() {
   const renderAssetRow = (item: Asset) => {
     const Icon = TYPE_ICON[item.asset_type] ?? FileText;
     const isPending = item.approval_status === "pending";
+    const isUserApproved = item.approval_status === "user_approved";
     const isApproved = item.approval_status === "approved";
     const isRejected = item.approval_status === "rejected";
+    const isAwaitingAdmin = isUserApproved;
     const isRegenerating = regeneratingId === item.id;
     const isExpanded = expandedIds.has(item.id);
     const isBusy = busyId === item.id;
@@ -366,6 +375,9 @@ export default function Approvals() {
               {item.channel && (
                 <Badge variant="secondary" className="text-[10px]">{item.channel}</Badge>
               )}
+              {isUserApproved && (
+                <Badge className="text-[10px] border-0 bg-risk-medium-bg text-risk-medium">awaiting admin</Badge>
+              )}
               {isApproved && (
                 <Badge className="text-[10px] border-0 bg-risk-low-bg text-risk-low">approved</Badge>
               )}
@@ -384,7 +396,19 @@ export default function Approvals() {
               </p>
             )}
           </div>
-          {isPending && isAdmin && (
+          {isPending && (
+            <div className="hidden sm:flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+              <Button
+                size="sm"
+                onClick={() => updateStatus(item.id, "user_approved")}
+                disabled={isBusy}
+              >
+                {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                Approve & send to admin
+              </Button>
+            </div>
+          )}
+          {isUserApproved && isAdmin && (
             <div className="hidden sm:flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
               <Button
                 size="sm"
@@ -395,19 +419,15 @@ export default function Approvals() {
               >
                 <XCircle className="h-3.5 w-3.5" /> Reject
               </Button>
-              <Button
-                size="sm"
-                onClick={() => updateStatus(item.id, "approved")}
-                disabled={isBusy}
-              >
+              <Button size="sm" onClick={() => updateStatus(item.id, "approved")} disabled={isBusy}>
                 {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                Approve
+                Final approve
               </Button>
             </div>
           )}
-          {isPending && !isAdmin && (
+          {isUserApproved && !isAdmin && (
             <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-muted-foreground shrink-0">
-              <Lock className="h-3 w-3" /> Admin approval required
+              <Lock className="h-3 w-3" /> Awaiting admin
             </span>
           )}
           <ChevronDown
@@ -430,20 +450,26 @@ export default function Approvals() {
               <Button size="sm" variant="outline" onClick={() => openEdit(item)}>
                 <Pencil className="h-3.5 w-3.5" /> Edit
               </Button>
-              {isPending && isAdmin && (
+              {isPending && (
+                <Button size="sm" onClick={() => updateStatus(item.id, "user_approved")} disabled={isBusy}>
+                  {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                  Approve & send to admin
+                </Button>
+              )}
+              {isUserApproved && isAdmin && (
                 <>
                   <Button size="sm" onClick={() => updateStatus(item.id, "approved")} disabled={isBusy}>
                     {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                    Approve
+                    Final approve
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => updateStatus(item.id, "rejected")} disabled={isBusy}>
                     <XCircle className="h-3.5 w-3.5" /> Reject
                   </Button>
                 </>
               )}
-              {isPending && !isAdmin && (
+              {isUserApproved && !isAdmin && (
                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                  <Lock className="h-3 w-3" /> Approval reserved to admins
+                  <Lock className="h-3 w-3" /> Awaiting admin approval
                 </span>
               )}
               {isApproved && isEmailAsset(item.asset_type) && (
@@ -466,7 +492,7 @@ export default function Approvals() {
                   </Button>
                 </>
               )}
-              {(isPending || isRejected) && (
+              {(isPending || isUserApproved || isRejected) && (
                 <Button size="sm" variant="outline" onClick={() => regenerateAsset(item)} disabled={isRegenerating}>
                   {isRegenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
                   Regenerate
@@ -556,6 +582,7 @@ export default function Approvals() {
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
         <TabsList>
           <TabsTrigger value="pending">Pending ({counts.pending})</TabsTrigger>
+          <TabsTrigger value="user_approved">Awaiting admin ({counts.user_approved})</TabsTrigger>
           <TabsTrigger value="approved">Approved ({counts.approved})</TabsTrigger>
           <TabsTrigger value="rejected">Rejected ({counts.rejected})</TabsTrigger>
         </TabsList>
