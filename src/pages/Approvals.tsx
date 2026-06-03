@@ -169,7 +169,7 @@ export default function Approvals() {
     if (!focusIncidentId || loading || !assets.length) return;
     const incidentAssets = assets.filter((a) => a.incident_id === focusIncidentId);
     if (!incidentAssets.length) return;
-    const order: Array<"pending" | "approved" | "rejected"> = ["pending", "approved", "rejected"];
+    const order: Array<"pending" | "user_approved" | "approved" | "rejected"> = ["pending", "user_approved", "approved", "rejected"];
     const best = order.find((s) => incidentAssets.some((a) => a.approval_status === s));
     if (best) setTab(best);
   }, [focusIncidentId, loading, assets]);
