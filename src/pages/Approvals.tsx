@@ -499,7 +499,13 @@ export default function Approvals() {
                 </Button>
               )}
             </div>
-            <AssetComments assetId={item.id} isAdmin={isAdmin} />
+            <AssetComments
+              assetId={item.id}
+              isAdmin={isAdmin}
+              canApprove={isAdmin && isUserApproved}
+              onApprove={() => updateStatus(item.id, "approved")}
+              onReject={() => updateStatus(item.id, "rejected")}
+            />
           </div>
         )}
       </Card>
