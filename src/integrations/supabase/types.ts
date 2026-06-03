@@ -143,6 +143,44 @@ export type Database = {
         }
         Relationships: []
       }
+      incident_asset_comments: {
+        Row: {
+          asset_id: string
+          author_email: string | null
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          asset_id: string
+          author_email?: string | null
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          asset_id?: string
+          author_email?: string | null
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_asset_comments_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "incident_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incident_assets: {
         Row: {
           approval_status: string
