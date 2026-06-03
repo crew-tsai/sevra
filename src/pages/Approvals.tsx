@@ -325,6 +325,7 @@ export default function Approvals() {
 
   const counts = {
     pending: scoped.filter((a) => a.approval_status === "pending").length,
+    user_approved: scoped.filter((a) => a.approval_status === "user_approved").length,
     approved: scoped.filter((a) => a.approval_status === "approved").length,
     rejected: scoped.filter((a) => a.approval_status === "rejected").length,
   };
