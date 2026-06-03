@@ -24,6 +24,7 @@ import MarketingLayout from "@/components/marketing/MarketingLayout";
 import Home from "@/pages/marketing/Home";
 import Product from "@/pages/marketing/Product";
 import About from "@/pages/marketing/About";
+import Workflows from "@/pages/marketing/Workflows";
 
 const queryClient = new QueryClient();
 
