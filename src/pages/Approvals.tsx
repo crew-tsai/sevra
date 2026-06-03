@@ -343,8 +343,10 @@ export default function Approvals() {
   const renderAssetRow = (item: Asset) => {
     const Icon = TYPE_ICON[item.asset_type] ?? FileText;
     const isPending = item.approval_status === "pending";
+    const isUserApproved = item.approval_status === "user_approved";
     const isApproved = item.approval_status === "approved";
     const isRejected = item.approval_status === "rejected";
+    const isAwaitingAdmin = isUserApproved;
     const isRegenerating = regeneratingId === item.id;
     const isExpanded = expandedIds.has(item.id);
     const isBusy = busyId === item.id;
