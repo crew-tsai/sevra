@@ -9,7 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RiskBadge } from "@/components/RiskBadge";
 import { Button } from "@/components/ui/button";
-import { isSocialAsset } from "@/lib/distribution";
+
 
 const EXTERNAL_ASSET_TYPES = new Set(["press_release", "post_x", "post_instagram", "tiktok_script"]);
 
