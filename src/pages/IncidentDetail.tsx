@@ -278,7 +278,16 @@ export default function IncidentDetail() {
         </div>
       </div>
 
+      <Card className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-foreground">Incident lifecycle</h2>
+          <span className="text-[11px] text-muted-foreground">Current stage: <span className="text-foreground font-medium capitalize">{incident.status}</span></span>
+        </div>
+        <StatusStepper status={incident.status} />
+      </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
         {/* Main */}
         <div className="lg:col-span-2 space-y-6">
           {incident.description && (
