@@ -384,7 +384,7 @@ export default function Approvals() {
               </p>
             )}
           </div>
-          {isPending && (
+          {isPending && isAdmin && (
             <div className="hidden sm:flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
               <Button
                 size="sm"
@@ -404,6 +404,11 @@ export default function Approvals() {
                 Approve
               </Button>
             </div>
+          )}
+          {isPending && !isAdmin && (
+            <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-muted-foreground shrink-0">
+              <Lock className="h-3 w-3" /> Admin approval required
+            </span>
           )}
           <ChevronDown
             className={cn(
