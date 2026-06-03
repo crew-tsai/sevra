@@ -10,7 +10,7 @@ import { SendEmailDialog } from "@/components/SendEmailDialog";
 import { AssetComments } from "@/components/AssetComments";
 import { PublishSocialDialog } from "@/components/PublishSocialDialog";
 import { isEmailAsset, isSocialAsset, socialNetworkLabel } from "@/lib/distribution";
-import { CheckCircle2, XCircle, FileText, Copy, Loader2, ExternalLink, Megaphone, MessageSquare, Users, HelpCircle, RefreshCw, LayoutDashboard, X, Filter, Mail, Send, ChevronDown, Film, Building2, Briefcase, Newspaper, Headphones, Pencil, MessageCircle } from "lucide-react";
+import { CheckCircle2, XCircle, FileText, Copy, Loader2, ExternalLink, Megaphone, MessageSquare, Users, HelpCircle, RefreshCw, LayoutDashboard, X, Filter, Mail, Send, ChevronDown, Film, Building2, Briefcase, Newspaper, Headphones, Pencil, MessageCircle, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { TimeRangeFilter, DEFAULT_TIME_RANGE, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
@@ -384,7 +384,7 @@ export default function Approvals() {
               </p>
             )}
           </div>
-          {isPending && (
+          {isPending && isAdmin && (
             <div className="hidden sm:flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
               <Button
                 size="sm"
@@ -404,6 +404,11 @@ export default function Approvals() {
                 Approve
               </Button>
             </div>
+          )}
+          {isPending && !isAdmin && (
+            <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-muted-foreground shrink-0">
+              <Lock className="h-3 w-3" /> Admin approval required
+            </span>
           )}
           <ChevronDown
             className={cn(
@@ -425,7 +430,7 @@ export default function Approvals() {
               <Button size="sm" variant="outline" onClick={() => openEdit(item)}>
                 <Pencil className="h-3.5 w-3.5" /> Edit
               </Button>
-              {isPending && (
+              {isPending && isAdmin && (
                 <>
                   <Button size="sm" onClick={() => updateStatus(item.id, "approved")} disabled={isBusy}>
                     {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
@@ -435,6 +440,11 @@ export default function Approvals() {
                     <XCircle className="h-3.5 w-3.5" /> Reject
                   </Button>
                 </>
+              )}
+              {isPending && !isAdmin && (
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  <Lock className="h-3 w-3" /> Approval reserved to admins
+                </span>
               )}
               {isApproved && isEmailAsset(item.asset_type) && (
                 <>
