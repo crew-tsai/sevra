@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { SendEmailDialog } from "@/components/SendEmailDialog";
+import { AssetComments } from "@/components/AssetComments";
 import { PublishSocialDialog } from "@/components/PublishSocialDialog";
 import { isEmailAsset, isSocialAsset, socialNetworkLabel } from "@/lib/distribution";
 import { CheckCircle2, XCircle, FileText, Copy, Loader2, ExternalLink, Megaphone, MessageSquare, Users, HelpCircle, RefreshCw, LayoutDashboard, X, Filter, Mail, Send, ChevronDown, Film, Building2, Briefcase, Newspaper, Headphones, Pencil, MessageCircle } from "lucide-react";
@@ -103,6 +104,25 @@ export default function Approvals() {
   const [savingNewVersion, setSavingNewVersion] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return;
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userData.user.id);
+      if (!cancelled) {
+        setIsAdmin((roles ?? []).some((r: { role: string }) => r.role === "admin"));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const toggleExpanded = (id: string) =>
     setExpandedIds((prev) => {
       const next = new Set(prev);
@@ -443,6 +463,7 @@ export default function Approvals() {
                 </Button>
               )}
             </div>
+            <AssetComments assetId={item.id} isAdmin={isAdmin} />
           </div>
         )}
       </Card>
