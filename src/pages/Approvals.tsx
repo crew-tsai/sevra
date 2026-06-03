@@ -104,6 +104,25 @@ export default function Approvals() {
   const [savingNewVersion, setSavingNewVersion] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return;
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userData.user.id);
+      if (!cancelled) {
+        setIsAdmin((roles ?? []).some((r: { role: string }) => r.role === "admin"));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const toggleExpanded = (id: string) =>
     setExpandedIds((prev) => {
       const next = new Set(prev);
