@@ -450,20 +450,26 @@ export default function Approvals() {
               <Button size="sm" variant="outline" onClick={() => openEdit(item)}>
                 <Pencil className="h-3.5 w-3.5" /> Edit
               </Button>
-              {isPending && isAdmin && (
+              {isPending && (
+                <Button size="sm" onClick={() => updateStatus(item.id, "user_approved")} disabled={isBusy}>
+                  {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                  Approve & send to admin
+                </Button>
+              )}
+              {isUserApproved && isAdmin && (
                 <>
                   <Button size="sm" onClick={() => updateStatus(item.id, "approved")} disabled={isBusy}>
                     {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                    Approve
+                    Final approve
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => updateStatus(item.id, "rejected")} disabled={isBusy}>
                     <XCircle className="h-3.5 w-3.5" /> Reject
                   </Button>
                 </>
               )}
-              {isPending && !isAdmin && (
+              {isUserApproved && !isAdmin && (
                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                  <Lock className="h-3 w-3" /> Approval reserved to admins
+                  <Lock className="h-3 w-3" /> Awaiting admin approval
                 </span>
               )}
               {isApproved && isEmailAsset(item.asset_type) && (
