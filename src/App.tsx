@@ -14,6 +14,7 @@ import IncidentDetail from "@/pages/IncidentDetail";
 
 import Assets from "@/pages/Assets";
 import Approvals from "@/pages/Approvals";
+import WorkflowsApp from "@/pages/Workflows";
 import Sevra from "@/pages/Sevra";
 import Reports from "@/pages/Reports";
 import Admin from "@/pages/Admin";
@@ -53,6 +54,7 @@ const App = () => (
             
             <Route path="/assets" element={<Assets />} />
             <Route path="/approvals" element={<Approvals />} />
+            <Route path="/workflows" element={<WorkflowsApp />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/audit-log" element={<AuditLog />} />
