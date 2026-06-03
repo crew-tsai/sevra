@@ -149,11 +149,26 @@ export function AssetComments({
             className="min-h-[70px] text-sm"
             maxLength={2000}
           />
-          <div className="flex justify-end">
-            <Button size="sm" onClick={submit} disabled={submitting || !body.trim()}>
+          <div className="flex justify-end items-center gap-2 flex-wrap">
+            <Button size="sm" variant="outline" onClick={submit} disabled={submitting || !body.trim()}>
               {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
               Post comment
             </Button>
+            {canApprove && onReject && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-risk-critical hover:text-risk-critical hover:bg-risk-critical-bg"
+                onClick={onReject}
+              >
+                <XCircle className="h-3.5 w-3.5" /> Reject
+              </Button>
+            )}
+            {canApprove && onApprove && (
+              <Button size="sm" onClick={onApprove}>
+                <CheckCircle2 className="h-3.5 w-3.5" /> Approve
+              </Button>
+            )}
           </div>
         </div>
       ) : (
