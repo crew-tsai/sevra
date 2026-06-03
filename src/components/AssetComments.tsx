@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, MessageSquareText, Send, Trash2, Lock } from "lucide-react";
+import { Loader2, MessageSquareText, Send, Trash2, Lock, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -26,9 +26,15 @@ const commentSchema = z.object({
 export function AssetComments({
   assetId,
   isAdmin,
+  canApprove,
+  onApprove,
+  onReject,
 }: {
   assetId: string;
   isAdmin: boolean;
+  canApprove?: boolean;
+  onApprove?: () => void;
+  onReject?: () => void;
 }) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -143,11 +149,26 @@ export function AssetComments({
             className="min-h-[70px] text-sm"
             maxLength={2000}
           />
-          <div className="flex justify-end">
-            <Button size="sm" onClick={submit} disabled={submitting || !body.trim()}>
+          <div className="flex justify-end items-center gap-2 flex-wrap">
+            <Button size="sm" variant="outline" onClick={submit} disabled={submitting || !body.trim()}>
               {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
               Post comment
             </Button>
+            {canApprove && onReject && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-risk-critical hover:text-risk-critical hover:bg-risk-critical-bg"
+                onClick={onReject}
+              >
+                <XCircle className="h-3.5 w-3.5" /> Reject
+              </Button>
+            )}
+            {canApprove && onApprove && (
+              <Button size="sm" onClick={onApprove}>
+                <CheckCircle2 className="h-3.5 w-3.5" /> Approve
+              </Button>
+            )}
           </div>
         </div>
       ) : (
