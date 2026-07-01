@@ -42,7 +42,7 @@ VALUES
  'TikTok clip (>1.2M views in 6h) claims a passenger was denied boarding for language reasons on Aurora Skylines flight AS220 Lisbon–São Paulo. Sentiment trending negative across ES/PT markets. Service Recovery and Corporate Affairs reviewing CCTV and gate logs; holding statement drafted.',
  'Aurora Skylines', 'AS220', 'LIS-GRU', 'LIS', 'Portugal',
  false, false, 1, true, true,
- 'social_media', 'high', 68, 'active', 'Inés Carvalho', 'pending_review',
+ 'social_media', 'high', 68, 'active', 'Inés Carvalho', 'pending',
  now() - interval '8 hours', now() - interval '45 minutes'),
 
 -- L2 — System outage at hub
@@ -60,7 +60,7 @@ VALUES
  'Aviation-watch accounts on X spreading an unconfirmed claim of an Aurora Skylines emergency landing at LIS. No matching event in OCC logs; ANAC has not been notified. Social Customer Care drafting calm clarification; legal on standby.',
  'Aurora Skylines', NULL, NULL, 'LIS', 'Portugal',
  false, false, 0, true, false,
- 'social_media', 'medium', 42, 'monitoring', 'Sofía Beltrán', 'pending_review',
+ 'social_media', 'medium', 42, 'monitoring', 'Sofía Beltrán', 'pending',
  now() - interval '4 hours', now() - interval '40 minutes'),
 
 -- L1 — Operational delay with passenger frustration

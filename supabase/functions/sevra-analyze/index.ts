@@ -82,20 +82,26 @@ Deno.serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const authHeader = req.headers.get("Authorization") ?? "";
-    const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userData } = await userClient.auth.getUser();
-    const userId = userData?.user?.id ?? null;
-
     const admin = createClient(supabaseUrl, serviceKey);
+
+    // Resolve the calling user's ID from their JWT (best-effort, nullable)
+    let userId: string | null = null;
+    try {
+      const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? serviceKey;
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: userData } = await userClient.auth.getUser();
+      userId = userData?.user?.id ?? null;
+    } catch { /* non-fatal */ }
 
     const { data: mention, error: mErr } = await admin
       .from("social_mentions")
       .select("*")
       .eq("id", mention_id)
       .maybeSingle();
-    if (mErr || !mention) throw new Error("Mention not found");
+    if (mErr) throw new Error(`DB error looking up mention: ${mErr.message}`);
+    if (!mention) throw new Error(`Mention ${mention_id} not found`);
 
     await admin.from("social_mentions").update({ status: "analyzing" }).eq("id", mention_id);
 
