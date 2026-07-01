@@ -14,7 +14,7 @@ Sevra is an AI-driven crisis communications platform built for airlines, demoed 
 | RBAC | `user_roles` table + RLS policies (`admin`, `manager`, `coordinador`, `ejecutivo`) |
 | REST API | Supabase PostgREST |
 | Edge Functions | Deno (11 functions) |
-| AI | Anthropic Claude via Lovable AI gateway |
+| AI | Anthropic Claude (`claude-sonnet-4-5`) — direct API key |
 | Email queue | pgmq + pg_cron + transactional email edge functions |
 | Scheduler | pg_cron — `sevra-social-monitor-15min` |
 
