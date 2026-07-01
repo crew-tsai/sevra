@@ -121,13 +121,17 @@ export default function AgentStripes() {
           let line = buffer.slice(0, nl);
           buffer = buffer.slice(nl + 1);
           if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
-          const j = line.slice(6).trim();
+          if (line.trim() === "") continue;
+          // Support both raw NDJSON (Anthropic) and SSE `data: ` prefix (OpenAI)
+          const j = line.startsWith("data: ") ? line.slice(6).trim() : line.trim();
           if (j === "[DONE]") { done = true; break; }
           try {
             const parsed = JSON.parse(j);
-            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            // Anthropic streaming format
+            const content = parsed.type === "content_block_delta"
+              ? (parsed.delta?.text as string | undefined)
+              // OpenAI-compat fallback
+              : (parsed.choices?.[0]?.delta?.content as string | undefined);
             if (content) upsert(content);
           } catch {
             buffer = line + "\n" + buffer;
