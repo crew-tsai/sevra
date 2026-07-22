@@ -44,7 +44,9 @@ export const PROVIDERS: Record<Network, ProviderConfig> = {
   facebook: {
     authorizeUrl: "https://www.facebook.com/v19.0/dialog/oauth",
     tokenUrl: "https://graph.facebook.com/v19.0/oauth/access_token",
-    scope: "pages_show_list,pages_read_engagement,pages_manage_posts",
+    // pages_read_user_content lets us pull posts that tag the Page (the
+    // /tagged edge), in addition to comments on the Page's own posts.
+    scope: "pages_show_list,pages_read_engagement,pages_manage_posts,pages_read_user_content",
     clientIdParam: "client_id",
     tokenAuthStyle: "body",
     pkce: false,
@@ -94,4 +96,46 @@ export function generateCodeVerifier(): string {
 export async function codeChallengeFromVerifier(verifier: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
   return base64UrlEncode(new Uint8Array(digest));
+}
+
+// X access tokens expire in ~2h; refresh_token (from the offline.access
+// scope) exchanges for a new pair. Shared by social-publish (before posting)
+// and social-monitor-cron (before searching).
+// deno-lint-ignore no-explicit-any
+export async function refreshXToken(
+  admin: any,
+  connectionId: string,
+  clientId: string,
+  clientSecret: string,
+  refreshToken: string,
+): Promise<string> {
+  const res = await fetch("https://api.twitter.com/2/oauth2/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+    },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+      client_id: clientId,
+    }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || !json.access_token) {
+    throw new Error("Failed to refresh X access token — try disconnecting and reconnecting the account.");
+  }
+
+  const newAccessToken: string = json.access_token;
+  const newRefreshToken: string = json.refresh_token ?? refreshToken;
+  const expiresIn: number | null = json.expires_in ?? null;
+  const tokenExpiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : null;
+
+  await admin
+    .from("social_connection_tokens")
+    .update({ access_token: newAccessToken, refresh_token: newRefreshToken, updated_at: new Date().toISOString() })
+    .eq("connection_id", connectionId);
+  await admin.from("social_connections").update({ token_expires_at: tokenExpiresAt }).eq("network", "x");
+
+  return newAccessToken;
 }

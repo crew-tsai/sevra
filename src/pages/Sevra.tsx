@@ -296,7 +296,11 @@ export default function Sevra() {
       const { data, error } = await supabase.functions.invoke("social-monitor-cron", { body: {} });
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Monitor failed");
-      toast.success(`Monitor ran — ${data.generated ?? 0} new mentions, ${data.analyzed ?? 0} analyzed`);
+      const errors = data.network_errors as Record<string, string> | undefined;
+      const errorSuffix = errors
+        ? " · " + Object.entries(errors).map(([network, msg]) => `${network}: ${msg}`).join(" · ")
+        : "";
+      toast.success(`Monitor ran — ${data.generated ?? 0} new mentions, ${data.analyzed ?? 0} analyzed${errorSuffix}`);
       refreshMonitorStatus();
     } catch (e: any) {
       toast.error(e.message || "Failed to run monitor");

@@ -3,6 +3,7 @@
 // is a day-to-day Approvals-page action, same as the existing copy+open-tab
 // flow it replaces) — only the account *connection* itself is admin-gated.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { refreshXToken } from "../_shared/social-providers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,44 +14,6 @@ type PublishableNetwork = "x" | "facebook";
 
 function isPublishableNetwork(value: unknown): value is PublishableNetwork {
   return value === "x" || value === "facebook";
-}
-
-async function refreshXToken(
-  admin: any,
-  connectionId: string,
-  clientId: string,
-  clientSecret: string,
-  refreshToken: string,
-): Promise<string> {
-  const res = await fetch("https://api.twitter.com/2/oauth2/token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
-    },
-    body: new URLSearchParams({
-      grant_type: "refresh_token",
-      refresh_token: refreshToken,
-      client_id: clientId,
-    }),
-  });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok || !json.access_token) {
-    throw new Error("Failed to refresh X access token — try disconnecting and reconnecting the account.");
-  }
-
-  const newAccessToken: string = json.access_token;
-  const newRefreshToken: string = json.refresh_token ?? refreshToken;
-  const expiresIn: number | null = json.expires_in ?? null;
-  const tokenExpiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : null;
-
-  await admin
-    .from("social_connection_tokens")
-    .update({ access_token: newAccessToken, refresh_token: newRefreshToken, updated_at: new Date().toISOString() })
-    .eq("connection_id", connectionId);
-  await admin.from("social_connections").update({ token_expires_at: tokenExpiresAt }).eq("network", "x");
-
-  return newAccessToken;
 }
 
 Deno.serve(async (req) => {

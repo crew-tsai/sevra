@@ -688,6 +688,7 @@ export type Database = {
           content: string
           created_at: string
           created_by: string | null
+          external_id: string | null
           id: string
           incident_id: string | null
           is_influencer: boolean | null
@@ -715,6 +716,7 @@ export type Database = {
           content: string
           created_at?: string
           created_by?: string | null
+          external_id?: string | null
           id?: string
           incident_id?: string | null
           is_influencer?: boolean | null
@@ -742,6 +744,7 @@ export type Database = {
           content?: string
           created_at?: string
           created_by?: string | null
+          external_id?: string | null
           id?: string
           incident_id?: string | null
           is_influencer?: boolean | null
