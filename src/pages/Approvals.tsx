@@ -52,6 +52,7 @@ const TYPE_ICON: Record<string, typeof FileText> = {
   holding_statement: Megaphone,
   post_x: MessageSquare,
   post_instagram: MessageSquare,
+  post_facebook: MessageSquare,
   tiktok_script: MessageSquare,
   internal_memo: Users,
   customer_faq: HelpCircle,
@@ -62,7 +63,7 @@ type TabKey = "press" | "internal" | "social" | "scripts" | "qna" | "customers";
 const TAB_DEFS: Array<{ key: TabKey; label: string; icon: typeof FileText; types: string[] }> = [
   { key: "press", label: "Press", icon: Megaphone, types: ["press_release", "holding_statement"] },
   { key: "internal", label: "Internal Releases", icon: Users, types: ["internal_memo"] },
-  { key: "social", label: "Social", icon: MessageSquare, types: ["post_x", "post_instagram"] },
+  { key: "social", label: "Social", icon: MessageSquare, types: ["post_x", "post_instagram", "post_facebook"] },
   { key: "scripts", label: "Scripts", icon: Film, types: ["tiktok_script"] },
   { key: "qna", label: "Q&As", icon: HelpCircle, types: ["faq_media", "faq_employees", "faq_authorities", "faq_partners"] },
   { key: "customers", label: "Customers", icon: Headphones, types: ["customer_faq"] },

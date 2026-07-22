@@ -11,6 +11,7 @@ const ASSET_SPEC = [
   { key: "holding_statement", title: "Holding statement", channel: "press", description: "Short 60-80 word holding statement to use while the situation evolves. Acknowledges the issue, expresses care, no speculation." },
   { key: "post_x", title: "Post for X / Twitter", channel: "social", description: "≤280 characters. Empathetic, factual, links to a help page placeholder." },
   { key: "post_instagram", title: "Post for Instagram", channel: "social", description: "Caption ~150 words, warm tone, includes 3-5 relevant hashtags at the end." },
+  { key: "post_facebook", title: "Post for Facebook", channel: "social", description: "150-250 words, warm and factual tone, no strict character limit (unlike X)." },
   { key: "tiktok_script", title: "TikTok script", channel: "social", description: "30-45 seconds, conversational spoken script. Include scene directions in [brackets]." },
   { key: "internal_memo", title: "Internal memo", channel: "internal", description: "Internal communication for all employees. Explains the situation, what we're doing, what we expect from each team." },
   { key: "customer_faq", title: "Customer FAQ", channel: "support", description: "5-7 anticipated customer questions with clear, empathetic answers, formatted as Q: / A:." },

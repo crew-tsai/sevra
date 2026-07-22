@@ -21,6 +21,7 @@ export const ASSET_TYPE_LABELS: Record<string, string> = {
   customer_faq: "Customer FAQ",
   post_x: "X (Twitter) post",
   post_instagram: "Instagram post",
+  post_facebook: "Facebook post",
   tiktok_script: "TikTok script",
 };
 
@@ -31,7 +32,7 @@ export const EMAIL_ASSET_TYPES = [
   "customer_faq",
 ];
 
-export const SOCIAL_ASSET_TYPES = ["post_x", "post_instagram", "tiktok_script"];
+export const SOCIAL_ASSET_TYPES = ["post_x", "post_instagram", "post_facebook", "tiktok_script"];
 
 export function isEmailAsset(assetType: string) {
   return EMAIL_ASSET_TYPES.includes(assetType);
@@ -236,6 +237,8 @@ export function socialNetworkUrl(assetType: string, content: string): string {
       return `https://twitter.com/intent/tweet?text=${text}`;
     case "post_instagram":
       return "https://www.instagram.com/";
+    case "post_facebook":
+      return "https://www.facebook.com/";
     case "tiktok_script":
       return "https://www.tiktok.com/upload";
     default:
@@ -249,9 +252,25 @@ export function socialNetworkLabel(assetType: string): string {
       return "X (Twitter)";
     case "post_instagram":
       return "Instagram";
+    case "post_facebook":
+      return "Facebook";
     case "tiktok_script":
       return "TikTok";
     default:
       return "Social network";
+  }
+}
+
+// Maps an asset type to the social_connections.network key used by the
+// social-oauth-*/social-publish edge functions. Returns null for asset types
+// with no direct-publish support (only copy+open-tab applies to those).
+export function socialNetworkKey(assetType: string): "x" | "facebook" | null {
+  switch (assetType) {
+    case "post_x":
+      return "x";
+    case "post_facebook":
+      return "facebook";
+    default:
+      return null;
   }
 }

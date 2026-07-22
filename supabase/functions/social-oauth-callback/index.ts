@@ -17,6 +17,52 @@ function redirect(siteUrl: string, params: Record<string, string>) {
   return new Response(null, { status: 302, headers: { ...corsHeaders, Location: url.toString() } });
 }
 
+// Facebook posts must go through a Page (POST /{page-id}/feed) using that
+// Page's own access token — the personal user token fetchProfile() would
+// otherwise use cannot post to a Page's feed. This exchanges the short-lived
+// user token for a long-lived one first, so the derived Page token doesn't
+// die in ~2 hours, then resolves the first Page the user manages.
+async function resolveFacebookPage(
+  clientId: string,
+  clientSecret: string,
+  shortLivedUserToken: string,
+): Promise<
+  | { error: string }
+  | { page: { id: string; name: string; access_token: string }; tokenExpiresAt: string | null }
+> {
+  try {
+    const exchangeParams = new URLSearchParams({
+      grant_type: "fb_exchange_token",
+      client_id: clientId,
+      client_secret: clientSecret,
+      fb_exchange_token: shortLivedUserToken,
+    });
+    const exchangeRes = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?${exchangeParams}`);
+    const exchangeJson = await exchangeRes.json().catch(() => ({}));
+    const longLivedToken: string | null = exchangeRes.ok ? exchangeJson.access_token ?? null : null;
+    const userToken = longLivedToken ?? shortLivedUserToken;
+
+    const pagesRes = await fetch(
+      `https://graph.facebook.com/v19.0/me/accounts?access_token=${encodeURIComponent(userToken)}`,
+    );
+    const pagesJson = await pagesRes.json().catch(() => ({}));
+    const page = pagesJson?.data?.[0];
+    if (!pagesRes.ok || !page) {
+      return { error: "No Facebook Page found — your Facebook account needs to manage at least one Page to connect." };
+    }
+
+    const tokenExpiresAt =
+      longLivedToken && exchangeJson.expires_in
+        ? new Date(Date.now() + exchangeJson.expires_in * 1000).toISOString()
+        : null;
+
+    return { page: { id: page.id, name: page.name, access_token: page.access_token }, tokenExpiresAt };
+  } catch (e) {
+    console.error("resolveFacebookPage error:", e);
+    return { error: "Failed to resolve a Facebook Page for this account." };
+  }
+}
+
 async function fetchProfile(network: string, profileUrl: string | undefined, accessToken: string) {
   if (!profileUrl) return { account_id: null as string | null, account_label: null as string | null, avatar_url: null as string | null };
   try {
@@ -112,31 +158,57 @@ Deno.serve(async (req) => {
       return redirect(siteUrl, { network, error: "Token exchange failed" });
     }
 
-    const accessToken: string = tokenJson.access_token;
-    const refreshToken: string | null = tokenJson.refresh_token ?? null;
-    const expiresIn: number | null = tokenJson.expires_in ?? null;
-    const tokenExpiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : null;
+    let accessToken: string = tokenJson.access_token;
+    let refreshToken: string | null = tokenJson.refresh_token ?? null;
+    let expiresIn: number | null = tokenJson.expires_in ?? null;
+    let tokenExpiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : null;
 
-    const profile = await fetchProfile(network, provider.profileUrl, accessToken);
+    let profile: { account_id: string | null; account_label: string | null; avatar_url: string | null };
+    let connectError: string | null = null;
+
+    if (network === "facebook") {
+      // Facebook posts go to a Page, not the personal profile — swap the
+      // user token out for that Page's own access token before storing.
+      const pageResult = await resolveFacebookPage(clientId, clientSecret, accessToken);
+      if ("error" in pageResult) {
+        connectError = pageResult.error;
+        profile = { account_id: null, account_label: null, avatar_url: null };
+      } else {
+        accessToken = pageResult.page.access_token;
+        refreshToken = null;
+        tokenExpiresAt = pageResult.tokenExpiresAt;
+        profile = {
+          account_id: pageResult.page.id,
+          account_label: pageResult.page.name,
+          avatar_url: `https://graph.facebook.com/${pageResult.page.id}/picture?type=large`,
+        };
+      }
+    } else {
+      profile = await fetchProfile(network, provider.profileUrl, accessToken);
+    }
 
     const { data: connection, error: connErr } = await admin
       .from("social_connections")
       .update({
-        status: "connected",
+        status: connectError ? "error" : "connected",
         account_id: profile.account_id,
         account_label: profile.account_label,
         avatar_url: profile.avatar_url,
         scopes: provider.scope.split(/[ ,]+/),
         token_expires_at: tokenExpiresAt,
-        last_error: null,
-        connected_by: stateRow.created_by,
-        connected_at: new Date().toISOString(),
+        last_error: connectError,
+        connected_by: connectError ? null : stateRow.created_by,
+        connected_at: connectError ? null : new Date().toISOString(),
       })
       .eq("network", network)
       .select("id")
       .maybeSingle();
     if (connErr) throw connErr;
     if (!connection) throw new Error(`No social_connections row seeded for network '${network}'`);
+
+    if (connectError) {
+      return redirect(siteUrl, { network, error: connectError });
+    }
 
     const { error: tokErr } = await admin
       .from("social_connection_tokens")

@@ -11,7 +11,7 @@ import { RiskBadge } from "@/components/RiskBadge";
 import { Button } from "@/components/ui/button";
 
 
-const EXTERNAL_ASSET_TYPES = new Set(["press_release", "post_x", "post_instagram", "tiktok_script"]);
+const EXTERNAL_ASSET_TYPES = new Set(["press_release", "post_x", "post_instagram", "post_facebook", "tiktok_script"]);
 
 const shareOnWhatsApp = (title: string, content: string) => {
   const text = `${title}\n\n${content}`;
@@ -42,6 +42,7 @@ const TYPE_ICON: Record<string, typeof FileText> = {
   holding_statement: Megaphone,
   post_x: MessageSquare,
   post_instagram: MessageSquare,
+  post_facebook: MessageSquare,
   tiktok_script: MessageSquare,
   internal_memo: Users,
   customer_faq: HelpCircle,
