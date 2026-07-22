@@ -4,6 +4,7 @@
 // Triggered by pg_cron every 15 minutes (or on-demand).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { refreshXToken } from "../_shared/social-providers.ts";
+import { vocabFor } from "../_shared/transportation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,7 +13,10 @@ const corsHeaders = {
 
 const SIM_CHANNELS = ["instagram", "tiktok"] as const;
 
-const GEN_PROMPT = `Generate 2 realistic, DISTINCT social media posts (in Spanish, English, or French — mix languages) about possible incidents happening RIGHT NOW with AURORA SKYLINES, a Madrid-hubbed hybrid network airline (primary hub MAD Barajas T4, secondary hub LIS Lisbon). All posts MUST mention Aurora Skylines (handle @auroraskylines) and use Aurora flight numbers with the AS prefix (e.g. AS118, AS220, AS340, AS412, AS512, AS705). Vary routes from Aurora's network: MAD-BCN, MAD-LIS, MAD-CDG, MAD-LHR, MAD-FCO, MAD-BOG, MAD-LIM, MAD-EZE, MAD-GRU, MAD-MEX, MAD-JFK, MAD-MIA, LIS-GRU, LIS-JFK, CDG-MAD. Mix risk levels: include 1 likely real incident (delay, safety, customer treatment, outage, etc.) and 1 lower-risk or noise post (joke, vague complaint, or unrelated). Never mention competitor airlines.
+function buildSimPrompt(companyName: string | null, industry: string | null): string {
+  const vocab = vocabFor(industry);
+  const company = companyName ?? "the company";
+  return `Generate 2 realistic, DISTINCT social media posts (in Spanish, English, or French — mix languages) about possible incidents happening RIGHT NOW with ${company.toUpperCase()}, a ${vocab.simFlavor} operator. All posts MUST mention ${company} by name and use realistic ${vocab.serviceLabel.toLowerCase()}s in the style of "${vocab.serviceExample}". Vary routes/locations in the style of "${vocab.routeExample}" and location codes like "${vocab.locationExample}". Mix risk levels: include 1 likely real incident (delay, safety, customer treatment, outage, etc.) and 1 lower-risk or noise post (joke, vague complaint, or unrelated). Never mention competitor companies.
 
 Return STRICT JSON only:
 {
@@ -30,6 +34,7 @@ Return STRICT JSON only:
     }
   ]
 }`;
+}
 
 type MentionRow = {
   channel: string;
@@ -50,7 +55,7 @@ type MentionRow = {
 };
 
 // deno-lint-ignore no-explicit-any
-async function generateSimulatedMentions(): Promise<any[]> {
+async function generateSimulatedMentions(companyName: string | null, industry: string | null): Promise<any[]> {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) throw new Error("LOVABLE_API_KEY missing");
 
@@ -64,7 +69,7 @@ async function generateSimulatedMentions(): Promise<any[]> {
       model: "google/gemini-2.5-flash",
       messages: [
         { role: "system", content: "You produce realistic synthetic social media data. Output strict JSON only." },
-        { role: "user", content: GEN_PROMPT },
+        { role: "user", content: buildSimPrompt(companyName, industry) },
       ],
       response_format: { type: "json_object" },
     }),
@@ -258,13 +263,14 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
 
-    const { data: settings } = await admin.from("company_settings").select("company_name").maybeSingle();
+    const { data: settings } = await admin.from("company_settings").select("company_name, industry").maybeSingle();
     const companyName = settings?.company_name ?? null;
+    const industry = settings?.industry ?? null;
 
     const networkErrors: Record<string, string> = {};
 
     const [simPosts, xResult, fbResult] = await Promise.all([
-      generateSimulatedMentions().catch((e) => {
+      generateSimulatedMentions(companyName, industry).catch((e) => {
         networkErrors.simulation = e?.message ?? String(e);
         return [];
       }),

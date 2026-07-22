@@ -6,21 +6,25 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SYSTEM_PROMPT = `You are Agent Stripes, Sevra's AI crisis-response assistant for Aurora Skylines (the Madrid-based hybrid network carrier, also referred to as "Aurora Airlines").
+function buildSystemPrompt(companyName: string | null, industry: string | null): string {
+  const company = companyName ?? "this company";
+  const industryNote = industry ? ` (${industry})` : "";
+  return `You are Agent Stripes, Sevra's AI crisis-response assistant for ${company}${industryNote}.
 
 STRICT SCOPE — non-negotiable:
-- You ONLY discuss Aurora Skylines / Aurora Airlines. If asked about any other company, airline, or unrelated topic, decline in one sentence and redirect to current Aurora incidents in Sevra.
+- You ONLY discuss ${company}. If asked about any other company or unrelated topic, decline in one sentence and redirect to current ${company} incidents in Sevra.
 - You ONLY use facts from (a) the PLATFORM DATA block provided below in this system prompt (live data from the Sevra workspace) and (b) what the user says in this conversation.
-- Never invent flight numbers, dates, names, casualty counts, statements, quotes, URLs, "past cases", or historical precedents. If a fact is not in the PLATFORM DATA or in the user's messages, say you don't have it in the current Sevra data and suggest where in Sevra (Dashboard, Approvals, Assets, Audit Log, Social Mentions) the user can find or add it.
-- When you cite a fact, prefer referring to the specific incident title, flight number, or asset title from the PLATFORM DATA so the user can locate it in Sevra.
+- Never invent service/flight numbers, dates, names, casualty counts, statements, quotes, URLs, "past cases", or historical precedents. If a fact is not in the PLATFORM DATA or in the user's messages, say you don't have it in the current Sevra data and suggest where in Sevra (Dashboard, Approvals, Assets, Audit Log, Social Mentions) the user can find or add it.
+- When you cite a fact, prefer referring to the specific incident title, service/flight number, or asset title from the PLATFORM DATA so the user can locate it in Sevra.
 
 What you can help with (within the scope above):
-- Summaries and status of current Aurora incidents, assets, and social mentions in the platform
-- Next-step guidance on an active Aurora incident
-- Drafting / reviewing Aurora crisis communications grounded in current platform data
+- Summaries and status of current ${company} incidents, assets, and social mentions in the platform
+- Next-step guidance on an active ${company} incident
+- Drafting / reviewing ${company} crisis communications grounded in current platform data
 - Explaining how to use the Sevra platform (monitoring, approvals, distribution, audit log, crisis levels L0–L4)
 
-Tone: calm, concise, decisive. Short paragraphs and bullet points. When the user describes or asks about an active Aurora incident, lead with the next 1–3 concrete actions.`;
+Tone: calm, concise, decisive. Short paragraphs and bullet points. When the user describes or asks about an active incident, lead with the next 1–3 concrete actions.`;
+}
 
 function fmtDate(d: string | null | undefined) {
   if (!d) return "—";
@@ -32,10 +36,12 @@ function trunc(s: string | null | undefined, n: number) {
   return s.length > n ? s.slice(0, n) + "…" : s;
 }
 
-async function buildPlatformContext(): Promise<string> {
+async function buildPlatformContext(): Promise<{ context: string; companyName: string | null; industry: string | null }> {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!SUPABASE_URL || !SERVICE_KEY) return "PLATFORM DATA: unavailable (backend not configured).";
+  if (!SUPABASE_URL || !SERVICE_KEY) {
+    return { context: "PLATFORM DATA: unavailable (backend not configured).", companyName: null, industry: null };
+  }
 
   const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
@@ -53,47 +59,40 @@ async function buildPlatformContext(): Promise<string> {
   const mentions = mentionsRes.data ?? [];
   const audit = auditRes.data ?? [];
 
-  // Filter to Aurora-related rows where airline is set; if airline_name missing, keep (workspace is Aurora-only).
-  const isAurora = (s?: string | null) =>
-    !s || /aurora/i.test(s);
-
-  const auroraIncidents = incidents.filter((i) => isAurora(i.airline_name));
-  const incidentIds = new Set(auroraIncidents.map((i) => i.id));
-  const auroraAssets = assets.filter((a) => incidentIds.has(a.incident_id));
-  const auroraMentions = mentions.filter((m) => !m.incident_id || incidentIds.has(m.incident_id));
-  const auroraAudit = audit.filter((a) => incidentIds.has(a.incident_id));
-
+  // Single-tenant app (company_settings is a singleton) — no need to filter
+  // incidents/assets/mentions by company name, everything in the workspace
+  // belongs to this one company already.
   const lines: string[] = [];
   lines.push("=== PLATFORM DATA (live snapshot from the Sevra workspace) ===");
-  lines.push(`Workspace: ${company?.company_name ?? "Aurora Skylines"} (${company?.industry ?? "Aviation"})`);
+  lines.push(`Workspace: ${company?.company_name ?? "Your Company"} (${company?.industry ?? "Transportation"})`);
   lines.push(`Snapshot time: ${new Date().toISOString()}`);
   lines.push("");
 
-  lines.push(`## Incidents (${auroraIncidents.length})`);
-  if (auroraIncidents.length === 0) lines.push("(none)");
-  for (const i of auroraIncidents) {
+  lines.push(`## Incidents (${incidents.length})`);
+  if (incidents.length === 0) lines.push("(none)");
+  for (const i of incidents) {
     lines.push(
       `- [${i.id.slice(0, 8)}] ${i.title} | type=${i.incident_type}${i.sub_type ? "/" + i.sub_type : ""} | risk=${i.risk} L${i.crisis_level} score=${i.risk_score} | status=${i.status} | approval=${i.approval_status}` +
-      `${i.flight_number ? ` | flight=${i.flight_number}` : ""}${i.route ? ` | route=${i.route}` : ""}${i.airport_code ? ` | airport=${i.airport_code}` : ""}${i.country ? ` | country=${i.country}` : ""}` +
-      ` | pax_impacted=${i.estimated_passengers_impacted ?? 0} | injury=${i.injury_fatality} | regulator=${i.regulator_involved} | public=${i.is_public}` +
+      `${i.flight_number ? ` | service=${i.flight_number}` : ""}${i.route ? ` | route=${i.route}` : ""}${i.airport_code ? ` | location=${i.airport_code}` : ""}${i.country ? ` | country=${i.country}` : ""}` +
+      ` | people_impacted=${i.estimated_passengers_impacted ?? 0} | injury=${i.injury_fatality} | regulator=${i.regulator_involved} | public=${i.is_public}` +
       ` | created=${fmtDate(i.created_at)} | updated=${fmtDate(i.updated_at)}` +
       (i.description ? `\n  desc: ${trunc(i.description, 280)}` : "")
     );
   }
   lines.push("");
 
-  lines.push(`## Assets / Statements (${auroraAssets.length})`);
-  if (auroraAssets.length === 0) lines.push("(none)");
-  for (const a of auroraAssets) {
+  lines.push(`## Assets / Statements (${assets.length})`);
+  if (assets.length === 0) lines.push("(none)");
+  for (const a of assets) {
     lines.push(
       `- [${a.id.slice(0, 8)}] incident=${a.incident_id.slice(0, 8)} | type=${a.asset_type}${a.channel ? "/" + a.channel : ""} | approval=${a.approval_status} | updated=${fmtDate(a.updated_at)}\n  title: ${a.title}\n  content: ${trunc(a.content, 400)}`
     );
   }
   lines.push("");
 
-  lines.push(`## Social mentions (${auroraMentions.length})`);
-  if (auroraMentions.length === 0) lines.push("(none)");
-  for (const m of auroraMentions) {
+  lines.push(`## Social mentions (${mentions.length})`);
+  if (mentions.length === 0) lines.push("(none)");
+  for (const m of mentions) {
     lines.push(
       `- [${m.id.slice(0, 8)}] ${m.channel} @${m.author_handle ?? "?"}${m.is_influencer ? " (influencer)" : ""}${m.is_verified ? " ✓" : ""} | risk=${m.ai_risk ?? "?"}/${m.ai_risk_score ?? "?"} | reach=${m.reach ?? 0} | posted=${fmtDate(m.posted_at)} | status=${m.status}` +
       (m.ai_summary ? `\n  summary: ${trunc(m.ai_summary, 200)}` : "") +
@@ -102,15 +101,15 @@ async function buildPlatformContext(): Promise<string> {
   }
   lines.push("");
 
-  lines.push(`## Recent audit log (${auroraAudit.length})`);
-  if (auroraAudit.length === 0) lines.push("(none)");
-  for (const a of auroraAudit) {
+  lines.push(`## Recent audit log (${audit.length})`);
+  if (audit.length === 0) lines.push("(none)");
+  for (const a of audit) {
     lines.push(`- ${fmtDate(a.changed_at)} | "${a.incident_title}" ${a.field_name}: ${a.old_value ?? "—"} → ${a.new_value ?? "—"} (${a.change_source ?? "manual"})`);
   }
 
   lines.push("");
   lines.push("=== END PLATFORM DATA ===");
-  return lines.join("\n");
+  return { context: lines.join("\n"), companyName: company?.company_name ?? null, industry: company?.industry ?? null };
 }
 
 serve(async (req) => {
@@ -122,8 +121,13 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     let platformContext = "PLATFORM DATA: unavailable.";
+    let companyName: string | null = null;
+    let industry: string | null = null;
     try {
-      platformContext = await buildPlatformContext();
+      const built = await buildPlatformContext();
+      platformContext = built.context;
+      companyName = built.companyName;
+      industry = built.industry;
     } catch (e) {
       console.error("buildPlatformContext failed:", e);
     }
@@ -137,7 +141,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: buildSystemPrompt(companyName, industry) },
           { role: "system", content: platformContext },
           ...messages,
         ],

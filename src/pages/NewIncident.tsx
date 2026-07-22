@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,10 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { vocabFor } from "@/lib/transportation";
 
 const INCIDENT_TYPES: Record<string, string[]> = {
-  safety: ["injury_report", "turbulence_event", "medical_emergency", "onboard_incident", "technical_failure", "emergency_landing"],
-  delay: ["cancellation_wave", "flight_delay", "missed_connections", "crew_shortage", "airport_disruption"],
+  safety: ["injury_report", "safety_event", "medical_emergency", "onboard_incident", "technical_failure", "emergency_stop"],
+  delay: ["cancellation_wave", "service_delay", "missed_connections", "staff_shortage", "hub_disruption"],
   customer_treatment: ["discrimination_claim", "staff_behavior_issue", "passenger_removal", "accessibility_issue", "service_complaint"],
   outage: ["system_outage", "checkin_failure", "boarding_system_issue", "baggage_system_failure", "app_or_website_down"],
   misinformation: ["false_rumor", "misleading_video", "fake_news", "manipulated_content", "social_media_backlash"],
@@ -29,6 +30,15 @@ const SOURCES = [
 export default function NewIncident() {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
+  const [industry, setIndustry] = useState<string | null>(null);
+  const vocab = vocabFor(industry);
+
+  useEffect(() => {
+    void (async () => {
+      const { data } = await supabase.from("company_settings").select("industry").maybeSingle();
+      setIndustry(data?.industry ?? null);
+    })();
+  }, []);
 
   // Basic Info
   const [title, setTitle] = useState("");
@@ -156,27 +166,27 @@ export default function NewIncident() {
           </div>
         </section>
 
-        {/* Section 2: Travel Context */}
+        {/* Section 2: Service details */}
         <section className="space-y-4">
-          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Travel Context</h2>
+          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Service details</h2>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="airline">Airline Name</Label>
-              <Input id="airline" placeholder="e.g. Aurora Skylines" value={airlineName} onChange={(e) => setAirlineName(e.target.value)} maxLength={100} />
+              <Label htmlFor="airline">{vocab.operatorLabel}</Label>
+              <Input id="airline" placeholder={`e.g. ${vocab.operatorLabel}`} value={airlineName} onChange={(e) => setAirlineName(e.target.value)} maxLength={100} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="flight">Flight Number</Label>
-              <Input id="flight" placeholder="e.g. AS412" value={flightNumber} onChange={(e) => setFlightNumber(e.target.value)} maxLength={20} />
+              <Label htmlFor="flight">{vocab.serviceLabel}</Label>
+              <Input id="flight" placeholder={vocab.serviceExample} value={flightNumber} onChange={(e) => setFlightNumber(e.target.value)} maxLength={20} />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="route">Route</Label>
-              <Input id="route" placeholder="e.g. MAD-BCN" value={route} onChange={(e) => setRoute(e.target.value)} maxLength={20} />
+              <Input id="route" placeholder={vocab.routeExample} value={route} onChange={(e) => setRoute(e.target.value)} maxLength={20} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="airport">Airport Code</Label>
-              <Input id="airport" placeholder="e.g. MAD" value={airportCode} onChange={(e) => setAirportCode(e.target.value)} maxLength={4} />
+              <Label htmlFor="airport">{vocab.locationLabel}</Label>
+              <Input id="airport" placeholder={vocab.locationExample} value={airportCode} onChange={(e) => setAirportCode(e.target.value)} maxLength={4} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="country">Country</Label>
@@ -207,7 +217,7 @@ export default function NewIncident() {
             </div>
           </div>
           <div className="space-y-2 max-w-xs">
-            <Label htmlFor="passengers">Estimated Passengers Impacted</Label>
+            <Label htmlFor="passengers">Estimated {vocab.peopleLabel}</Label>
             <Input id="passengers" type="number" min={0} placeholder="0" value={estimatedPassengers} onChange={(e) => setEstimatedPassengers(e.target.value)} />
           </div>
         </section>

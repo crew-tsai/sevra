@@ -12,6 +12,7 @@ import { ShieldAlert, Megaphone, Activity, Sparkles, Users, Clock, Check, ArrowR
 import { DeviceMockup } from "@/components/marketing/DeviceMockup";
 import dashboardShot from "@/assets/product-dashboard.png";
 import dashboardMobileShot from "@/assets/product-dashboard-mobile.png";
+import { TRANSPORT_TYPES } from "@/lib/transportation";
 
 const leadSchema = z.object({
   name: z.string().trim().min(1, "Name required").max(100),
@@ -20,8 +21,6 @@ const leadSchema = z.object({
   industry: z.string().trim().max(100).optional(),
   message: z.string().trim().max(1000).optional(),
 });
-
-const INDUSTRIES = ["Aviation", "Hospitality", "Financial Services", "Healthcare", "Energy", "Retail", "Technology", "Public Sector", "Other"];
 
 export default function Home() {
   const [form, setForm] = useState({ name: "", email: "", company: "", industry: "", message: "" });
@@ -75,7 +74,7 @@ export default function Home() {
             </h1>
             <p className="mt-6 text-lg text-muted-foreground max-w-xl">
               Sevra is the enterprise platform for crisis communications teams. Detect, decide and respond
-              with confidence — across aviation, hospitality, finance and beyond.
+              with confidence — across airlines, rail, bus, maritime and the wider transportation industry.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a
@@ -135,7 +134,7 @@ export default function Home() {
                     <Input id="company" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="industry">Industry</Label>
+                    <Label htmlFor="industry">Transportation type</Label>
                     <select
                       id="industry"
                       value={form.industry}
@@ -143,7 +142,7 @@ export default function Home() {
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <option value="">Select…</option>
-                      {INDUSTRIES.map((i) => (
+                      {TRANSPORT_TYPES.map((i) => (
                         <option key={i} value={i}>{i}</option>
                       ))}
                     </select>
@@ -170,7 +169,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <p className="text-xs uppercase tracking-widest text-muted-foreground text-center">Built for crisis teams across</p>
           <div className="mt-6 flex flex-wrap justify-center gap-x-10 gap-y-3 text-muted-foreground">
-            {["Aviation", "Hospitality", "Finance", "Healthcare", "Energy", "Retail", "Public sector"].map((i) => (
+            {["Airlines", "Rail", "Bus/Coach", "Maritime/Ferry", "Ride-hailing", "Public Transit", "Freight/Logistics"].map((i) => (
               <span key={i} className="text-sm font-medium">{i}</span>
             ))}
           </div>

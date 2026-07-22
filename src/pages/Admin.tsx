@@ -19,11 +19,7 @@ import { z } from "zod";
 import EmailListsManager from "@/components/admin/EmailListsManager";
 import ResponsibilityMatrixEditor from "@/components/admin/ResponsibilityMatrixEditor";
 import SocialConnectionsManager from "@/components/admin/SocialConnectionsManager";
-
-const INDUSTRIES = [
-  "Aviation", "Hospitality", "Retail", "Banking & Finance", "Healthcare",
-  "Energy", "Technology", "Telecommunications", "Education", "Government", "Other",
-];
+import { TRANSPORT_TYPES } from "@/lib/transportation";
 
 const ROLES = [
   { value: "admin", label: "Admin" },
@@ -250,7 +246,7 @@ export default function Admin() {
           <Card>
             <CardHeader>
               <CardTitle>Company information</CardTitle>
-              <CardDescription>Industry and communications manual.</CardDescription>
+              <CardDescription>Transportation type and communications manual.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
@@ -259,11 +255,11 @@ export default function Admin() {
                   <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} maxLength={120} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Industry</Label>
+                  <Label>Transportation type</Label>
                   <Select value={industry} onValueChange={setIndustry}>
-                    <SelectTrigger><SelectValue placeholder="Select industry" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select transportation type" /></SelectTrigger>
                     <SelectContent>
-                      {INDUSTRIES.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}
+                      {TRANSPORT_TYPES.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -338,7 +334,7 @@ export default function Admin() {
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Preview</p>
                 <div className="rounded-md p-4 flex items-center gap-3" style={{ background: brandSecondary, color: "#fff" }}>
                   {logoUrl && <img src={logoUrl} alt="" className="h-8 w-8 object-contain" />}
-                  <span className="font-semibold">{companyName || "Aurora Skylines"}</span>
+                  <span className="font-semibold">{companyName || "Your Company"}</span>
                   <span className="ml-auto px-3 py-1 rounded text-xs font-medium" style={{ background: brandPrimary }}>CTA</span>
                 </div>
               </div>

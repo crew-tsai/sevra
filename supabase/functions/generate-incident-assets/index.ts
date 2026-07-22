@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { vocabFor } from "../_shared/transportation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,8 +18,8 @@ const ASSET_SPEC = [
   { key: "customer_faq", title: "Customer FAQ", channel: "support", description: "5-7 anticipated customer questions with clear, empathetic answers, formatted as Q: / A:." },
   { key: "faq_media", title: "Q&A — Media", channel: "press", description: "6-8 tough questions journalists are likely to ask, with on-message bridging answers. Format Q: / A:. Include difficult/hostile questions with safe responses." },
   { key: "faq_employees", title: "Q&A — Employees", channel: "internal", description: "6-8 questions employees will ask internally (safety, job impact, what to say externally, support resources). Format Q: / A:, empathetic and clear." },
-  { key: "faq_authorities", title: "Q&A — Authorities", channel: "regulatory", description: "5-7 questions regulators/authorities (CAA, EASA, NTSB-style) will ask. Format Q: / A:. Factual, compliance-aware, no speculation, reference cooperation and procedures." },
-  { key: "faq_partners", title: "Q&A — Partners", channel: "b2b", description: "5-7 questions from commercial partners (codeshare airlines, airports, suppliers, corporate clients). Format Q: / A:. Reassure on operational continuity and contractual commitments." },
+  { key: "faq_authorities", title: "Q&A — Authorities", channel: "regulatory", description: "5-7 questions relevant transportation regulators/authorities will ask. Format Q: / A:. Factual, compliance-aware, no speculation, reference cooperation and procedures." },
+  { key: "faq_partners", title: "Q&A — Partners", channel: "b2b", description: "5-7 questions from commercial partners (partner operators, hubs/stations, suppliers, corporate clients). Format Q: / A:. Reassure on operational continuity and contractual commitments." },
 ];
 
 Deno.serve(async (req) => {
@@ -67,15 +68,20 @@ Deno.serve(async (req) => {
       .eq("incident_id", incident_id)
       .limit(10);
 
+    const { data: settings } = await admin.from("company_settings").select("company_name, industry").maybeSingle();
+    const companyName = settings?.company_name ?? null;
+    const industry = settings?.industry ?? null;
+    const vocab = vocabFor(industry);
+
     const context = `
 INCIDENT
 Title: ${incident.title}
 Type: ${incident.incident_type}${incident.sub_type ? ` / ${incident.sub_type}` : ""}
 Risk: ${incident.risk} (${incident.risk_score}/100)
-Airline: ${incident.airline_name ?? "n/a"}
-Flight: ${incident.flight_number ?? "n/a"}
+${vocab.operatorLabel}: ${incident.airline_name ?? "n/a"}
+${vocab.serviceLabel}: ${incident.flight_number ?? "n/a"}
 Route: ${incident.route ?? "n/a"} (${incident.country ?? "n/a"})
-Pax impacted: ${incident.estimated_passengers_impacted ?? "unknown"}
+${vocab.peopleLabel}: ${incident.estimated_passengers_impacted ?? "unknown"}
 Injury/fatality: ${incident.injury_fatality ? "yes" : "no"}
 Regulator involved: ${incident.regulator_involved ? "yes" : "no"}
 Description: ${incident.description ?? "n/a"}
@@ -97,7 +103,7 @@ ${(mentions ?? []).map((m: any) => `- [${m.channel}] @${m.author_handle}: ${m.co
           {
             role: "system",
             content:
-              "You are SEVRA, an aviation crisis-communication writer. Produce a complete, ready-to-publish communication package. Be factual, empathetic, and avoid speculation. Match each asset's tone & length brief exactly. Output only via the tool call.",
+              `You are SEVRA, a crisis-communication writer for ${companyName ?? "a transportation company"}${industry ? ` (${industry})` : ""}. Produce a complete, ready-to-publish communication package. Be factual, empathetic, and avoid speculation. Match each asset's tone & length brief exactly. Output only via the tool call.`,
           },
           {
             role: "user",

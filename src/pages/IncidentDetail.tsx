@@ -28,6 +28,7 @@ import {
   Lightbulb,
 } from "lucide-react";
 import { toast } from "sonner";
+import { vocabFor } from "@/lib/transportation";
 
 type Incident = {
   id: string;
@@ -104,6 +105,15 @@ export default function IncidentDetail() {
   const [loading, setLoading] = useState(true);
   const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
+  const [industry, setIndustry] = useState<string | null>(null);
+  const vocab = vocabFor(industry);
+
+  useEffect(() => {
+    void (async () => {
+      const { data } = await supabase.from("company_settings").select("industry").maybeSingle();
+      setIndustry(data?.industry ?? null);
+    })();
+  }, []);
 
   const load = async () => {
     if (!id) return;
@@ -308,7 +318,7 @@ export default function IncidentDetail() {
               Proactive next steps tailored to this incident's profile, risk level and operational context.
             </p>
             <ul className="space-y-2">
-              {buildRecommendations(incident).map((rec, idx) => (
+              {buildRecommendations(incident, vocab).map((rec, idx) => (
                 <li key={idx} className="flex items-start gap-2 text-sm text-foreground">
                   <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
                   <div>
@@ -371,14 +381,14 @@ export default function IncidentDetail() {
         <div className="space-y-6">
           <Card className="p-4 space-y-3">
             <h2 className="text-sm font-semibold text-foreground">Operational details</h2>
-            <DetailRow icon={Plane} label="Airline" value={incident.airline_name} />
-            <DetailRow icon={Plane} label="Flight" value={incident.flight_number} />
+            <DetailRow icon={Plane} label={vocab.operatorLabel} value={incident.airline_name} />
+            <DetailRow icon={Plane} label={vocab.serviceLabel} value={incident.flight_number} />
             <DetailRow icon={MapPin} label="Route" value={incident.route} />
-            <DetailRow icon={MapPin} label="Airport" value={incident.airport_code} />
+            <DetailRow icon={MapPin} label={vocab.locationLabel} value={incident.airport_code} />
             <DetailRow icon={MapPin} label="Country" value={incident.country} />
             <DetailRow
               icon={Users}
-              label="Pax impacted"
+              label={vocab.peopleLabel}
               value={incident.estimated_passengers_impacted?.toLocaleString() ?? null}
             />
             <DetailRow
@@ -471,8 +481,12 @@ function DetailRow({
   );
 }
 
-function buildRecommendations(inc: Incident): { title: string; detail: string }[] {
+function buildRecommendations(
+  inc: Incident,
+  vocab: ReturnType<typeof vocabFor>,
+): { title: string; detail: string }[] {
   const recs: { title: string; detail: string }[] = [];
+  const peopleNoun = vocab.peopleLabel.replace(/ impacted$/i, "").toLowerCase();
   const isCrisis = (inc.crisis_level ?? 0) >= 3 || inc.risk === "critical" || inc.risk === "high";
 
   // 1. Activation level
@@ -480,7 +494,7 @@ function buildRecommendations(inc: Incident): { title: string; detail: string }[
     isCrisis
       ? {
           title: "Activate CCC at full level",
-          detail: "Convene the Crisis Communications Center, assign an incident commander and open a 24/7 duty rotation across OCC, Legal, Customer Experience and Corporate Affairs.",
+          detail: "Convene the Crisis Communications Center, assign an incident commander and open a 24/7 duty rotation across Operations, Legal, Customer Experience and Corporate Affairs.",
         }
       : {
           title: "Maintain monitoring posture",
@@ -492,7 +506,7 @@ function buildRecommendations(inc: Incident): { title: string; detail: string }[
   if (inc.injury_fatality || inc.regulator_involved) {
     recs.push({
       title: "Notify regulators and authorities promptly",
-      detail: "Coordinate mandatory reporting with EASA, the national CAA and CIAIAC within the regulatory window, and align legal counsel before any public statement.",
+      detail: "Coordinate mandatory reporting with the relevant transportation regulators and authorities within the regulatory window, and align legal counsel before any public statement.",
     });
   } else {
     recs.push({
@@ -504,8 +518,8 @@ function buildRecommendations(inc: Incident): { title: string; detail: string }[
   // 3. Passenger care
   if ((inc.estimated_passengers_impacted ?? 0) > 0 || inc.incident_type === "delay" || inc.incident_type === "safety") {
     recs.push({
-      title: "Activate passenger care workflow",
-      detail: `Open a dedicated multilingual support line, deploy rebooking and hotel vouchers, and proactively contact ${inc.estimated_passengers_impacted ? inc.estimated_passengers_impacted.toLocaleString() : "all"} impacted passengers and their families.`,
+      title: "Activate customer care workflow",
+      detail: `Open a dedicated multilingual support line, deploy rebooking/compensation options, and proactively contact ${inc.estimated_passengers_impacted ? inc.estimated_passengers_impacted.toLocaleString() : "all"} impacted ${peopleNoun}.`,
     });
   } else {
     recs.push({
@@ -530,7 +544,7 @@ function buildRecommendations(inc: Incident): { title: string; detail: string }[
   // 5. Post-incident
   recs.push({
     title: "Capture evidence and schedule debrief",
-    detail: "Preserve CCTV, ACARS, gate logs and crew reports, assign a root-cause owner and book a post-incident review within 7 days to update playbooks.",
+    detail: "Preserve CCTV, telemetry/system logs and crew/staff reports, assign a root-cause owner and book a post-incident review within 7 days to update playbooks.",
   });
 
   return recs.slice(0, 5);

@@ -1,31 +1,36 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { vocabFor } from "../_shared/transportation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SYSTEM_PROMPT = `You are SEVRA, an AI crisis analyst for an airline. You analyze a single social media mention (which may be in ANY language: Spanish, English, Portuguese, French, etc.) and decide if it represents a real incident that should be tracked.
+function buildSystemPrompt(companyName: string | null, industry: string | null): string {
+  const vocab = vocabFor(industry);
+  const company = companyName ?? "a transportation company";
+  return `You are SEVRA, an AI crisis analyst for ${company}${industry ? ` (${industry})` : ""}. You analyze a single social media mention (which may be in ANY language: Spanish, English, Portuguese, French, etc.) and decide if it represents a real incident that should be tracked.
 
-CRITICAL LANGUAGE RULE: Regardless of the source language of the post, ALL your output fields (title, summary, sub_type, etc.) MUST be written in ENGLISH. Translate as needed. Preserve proper nouns (airline names, airports, flight numbers) as-is.
+CRITICAL LANGUAGE RULE: Regardless of the source language of the post, ALL your output fields (title, summary, sub_type, etc.) MUST be written in ENGLISH. Translate as needed. Preserve proper nouns (operator names, locations, service numbers) as-is.
 
 Classify into one of these incident_type values and pick a matching sub_type:
-- safety: injury_report, turbulence_event, medical_emergency, onboard_incident, technical_failure, emergency_landing
-- delay: cancellation_wave, flight_delay, missed_connections, crew_shortage, airport_disruption
+- safety: injury_report, safety_event, medical_emergency, onboard_incident, technical_failure, emergency_stop
+- delay: cancellation_wave, service_delay, missed_connections, staff_shortage, hub_disruption
 - customer_treatment: discrimination_claim, staff_behavior_issue, passenger_removal, accessibility_issue, service_complaint
 - outage: system_outage, checkin_failure, boarding_system_issue, baggage_system_failure, app_or_website_down
 - misinformation: false_rumor, misleading_video, fake_news, manipulated_content, social_media_backlash
 
 Risk levels: critical, high, medium, low. risk_score 0-100.
 Set should_create_incident=false only for clear noise (jokes, unrelated, spam). Otherwise true.
-Extract any flight_number, route (e.g. MAD-BCN), airport_code, country, airline_name, estimated_passengers_impacted you can infer.
+Extract any ${vocab.serviceLabel.toLowerCase()} (e.g. ${vocab.serviceExample}), route (e.g. ${vocab.routeExample}), ${vocab.locationLabel.toLowerCase()}, country, ${vocab.operatorLabel.toLowerCase()} name, ${vocab.peopleLabel.toLowerCase()} you can infer.
 Title: short ENGLISH headline (max 80 chars). Summary: 1-2 ENGLISH sentences.`;
+}
 
 // Check if a recent incident already exists that matches this mention's signature.
 // Dedup rules (any one is enough):
-//  1. Same flight_number (within 48h)
-//  2. Same airline + same incident_type + same sub_type (within 24h)
-//  3. Same airport_code + same incident_type (within 24h)
+//  1. Same service/flight number (within 48h)
+//  2. Same operator + same incident_type + same sub_type (within 24h)
+//  3. Same location code + same incident_type (within 24h)
 async function findExistingIncident(admin: any, analysis: any) {
   const since48h = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
   const since24h = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
@@ -105,6 +110,9 @@ Deno.serve(async (req) => {
 
     await admin.from("social_mentions").update({ status: "analyzing" }).eq("id", mention_id);
 
+    const { data: settings } = await admin.from("company_settings").select("company_name, industry").maybeSingle();
+    const systemPrompt = buildSystemPrompt(settings?.company_name ?? null, settings?.industry ?? null);
+
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -114,7 +122,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: systemPrompt },
           {
             role: "user",
             content: `Channel: ${mention.channel}\nAuthor: ${mention.author_name} (@${mention.author_handle}) verified=${mention.is_verified} influencer=${mention.is_influencer}\nReach: ${mention.reach} | Likes: ${mention.likes} | Shares: ${mention.shares}\n\nContent (original language — translate to English in your output):\n${mention.content}`,
@@ -125,7 +133,7 @@ Deno.serve(async (req) => {
             type: "function",
             function: {
               name: "classify_mention",
-              description: "Classify the social mention as a potential airline incident. All output strings must be in English.",
+              description: "Classify the social mention as a potential transportation incident. All output strings must be in English.",
               parameters: {
                 type: "object",
                 properties: {
