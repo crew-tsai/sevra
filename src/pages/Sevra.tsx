@@ -87,168 +87,6 @@ const CHANNEL_META: Record<string, { icon: typeof Twitter; label: string; color:
   facebook: { icon: Facebook, label: "Facebook", color: "text-blue-600" },
 };
 
-// All mock posts reference Aurora Skylines (AS) — Madrid-hubbed hybrid carrier.
-const MOCK_FEED = [
-  // 🇪🇸 Spanish
-  {
-    channel: "twitter",
-    author_name: "Carla Méndez",
-    author_handle: "carlamendez",
-    content: "Llevamos 4 horas en pista en MAD vuelo AS118 a BCN sin información. Hay una señora mayor descompensada y nadie del crew responde 😡 @auroraskylines",
-    likes: 1240, shares: 320, reach: 84000, is_verified: false, is_influencer: false,
-  },
-  {
-    channel: "instagram",
-    author_name: "Sara López",
-    author_handle: "saralopez",
-    content: "Discriminación clarísima en el embarque de hoy AS340 MAD-LIM con Aurora Skylines. A mi amiga le impidieron subir por su silla de ruedas diciendo 'no entra'. Inaceptable.",
-    likes: 2300, shares: 880, reach: 67000, is_verified: false, is_influencer: true,
-  },
-  {
-    channel: "tiktok",
-    author_name: "Pedro G.",
-    author_handle: "pedrogfly",
-    content: "App de Aurora Skylines caída desde esta mañana, no se puede hacer check-in online ni ver tarjetas de embarque. Colas enormes en T4 Barajas.",
-    likes: 980, shares: 210, reach: 45000, is_verified: false, is_influencer: false,
-  },
-
-  // 🇬🇧 English
-  {
-    channel: "tiktok",
-    author_name: "TravelWithMike",
-    author_handle: "travelwithmike",
-    content: "VIRAL: extreme turbulence on Aurora Skylines AS412 Madrid–Bogotá, people screaming, oxygen masks dropped. This should never happen.",
-    likes: 58000, shares: 12000, reach: 1200000, is_verified: true, is_influencer: true,
-  },
-  {
-    channel: "twitter",
-    author_name: "Aviation Watch",
-    author_handle: "aviationwatch",
-    content: "UNCONFIRMED rumor circulating about an Aurora Skylines emergency landing at LIS. NO official confirmation from ANAC or the airline. Be careful before resharing.",
-    likes: 8900, shares: 4200, reach: 320000, is_verified: true, is_influencer: false,
-  },
-  {
-    channel: "instagram",
-    author_name: "Diego R.",
-    author_handle: "diegor.fly",
-    content: "Third day with no luggage after flying Aurora Skylines AS705 LIS-JFK. Baggage system reportedly down per the desk staff. This is chaos.",
-    likes: 410, shares: 45, reach: 9800, is_verified: false, is_influencer: false,
-  },
-
-  // 🇫🇷 French
-  {
-    channel: "twitter",
-    author_name: "Julien Bernard",
-    author_handle: "julienbrnd",
-    content: "Vol Aurora Skylines AS220 CDG-MAD annulé sans explication, 180 passagers bloqués au terminal 2E depuis 6h. Aucun agent au comptoir. C'est honteux !",
-    likes: 3200, shares: 1100, reach: 145000, is_verified: false, is_influencer: false,
-  },
-  {
-    channel: "instagram",
-    author_name: "Camille Dubois",
-    author_handle: "camille.voyage",
-    content: "Atterrissage d'urgence à Lisbonne ce matin sur Aurora Skylines AS512, fumée en cabine. Tout le monde évacué par les toboggans. Merci à l'équipage incroyable 🙏",
-    likes: 15600, shares: 4800, reach: 420000, is_verified: true, is_influencer: true,
-  },
-  {
-    channel: "tiktok",
-    author_name: "Lucas M.",
-    author_handle: "lucasmfly",
-    content: "Le personnel de bord d'Aurora Skylines a refusé d'embarquer ma mère car elle parlait arabe au téléphone. Inacceptable, je porte plainte.",
-    likes: 22000, shares: 6500, reach: 580000, is_verified: false, is_influencer: false,
-  },
-  {
-    channel: "facebook",
-    author_name: "Marta Ruiz",
-    author_handle: "marta.ruiz",
-    content: "Aurora Skylines AS118 MAD-BCN cancelado de nuevo. Tercera vez este mes. ¿Alguien sabe cómo reclamar la compensación EU261? @auroraskylines",
-    likes: 540, shares: 180, reach: 22000, is_verified: false, is_influencer: false,
-  },
-  {
-    channel: "facebook",
-    author_name: "James O'Connor",
-    author_handle: "james.oconnor",
-    content: "Huge thanks to the Aurora Skylines crew on AS705 LIS-JFK last night — handled a medical emergency onboard with total professionalism. Diverted to Boston, all good. 👏",
-    likes: 8900, shares: 1200, reach: 156000, is_verified: false, is_influencer: false,
-  },
-
-  // ===== L3 (High) pre-analyzed mentions =====
-  {
-    channel: "twitter",
-    author_name: "Reuters Aviation",
-    author_handle: "reutersavi",
-    content: "BREAKING: Aurora Skylines AS744 reports bird strike on departure from BCN, returning to airport. No injuries reported. Runway 25R closed.",
-    likes: 14200, shares: 5600, reach: 890000, is_verified: true, is_influencer: true,
-    status: "analyzed", ai_risk: "high", ai_risk_score: 72,
-    ai_incident_type: "safety", ai_summary: "Bird strike on AS744, aircraft returning to BCN. Major operational impact, media picking up.",
-  },
-  {
-    channel: "tiktok",
-    author_name: "CrewLeaksES",
-    author_handle: "crewleaks",
-    content: "Pilots union confirms 48h strike at Aurora Skylines starting Friday. Expect 60% of MAD operations cancelled. Pass it on ✈️🚨",
-    likes: 31000, shares: 9800, reach: 1100000, is_verified: false, is_influencer: true,
-    status: "analyzed", ai_risk: "high", ai_risk_score: 68,
-    ai_incident_type: "labor", ai_summary: "Pilot strike announcement, widespread cancellations expected.",
-  },
-  {
-    channel: "twitter",
-    author_name: "DataBreach Today",
-    author_handle: "databreachtoday",
-    content: "Aurora Skylines loyalty program exposed: 180k member records (names, emails, tier status) circulating on a hacking forum. Investigating.",
-    likes: 9700, shares: 4100, reach: 540000, is_verified: true, is_influencer: false,
-    status: "analyzed", ai_risk: "high", ai_risk_score: 75,
-    ai_incident_type: "cyber", ai_summary: "Customer data leak, 180k records. Reputational and regulatory risk.",
-  },
-  {
-    channel: "instagram",
-    author_name: "Nuria Vega",
-    author_handle: "nuriavega",
-    content: "AS221 BCN: tug colisionó con el avión en pista, retraso de 6 horas y todos a hotel. Ningún herido pero el ala dañada. Fotos en stories.",
-    likes: 4200, shares: 980, reach: 120000, is_verified: false, is_influencer: false,
-    status: "analyzed", ai_risk: "high", ai_risk_score: 64,
-    ai_incident_type: "ground_ops", ai_summary: "Ground collision tug vs AS221 at BCN, wing damage, long delay.",
-  },
-
-  // ===== L4 (Critical) pre-analyzed mentions =====
-  {
-    channel: "twitter",
-    author_name: "BBC Breaking",
-    author_handle: "bbcbreaking",
-    content: "BREAKING: Aurora Skylines AS208 reports runway excursion on landing at LIS. Emergency services on scene. Passengers being evacuated.",
-    likes: 89000, shares: 32000, reach: 4500000, is_verified: true, is_influencer: true,
-    status: "analyzed", ai_risk: "critical", ai_risk_score: 92,
-    ai_incident_type: "accident", ai_summary: "Runway excursion AS208 at LIS. Global media coverage, regulator involvement expected.",
-  },
-  {
-    channel: "tiktok",
-    author_name: "PaxOnboard",
-    author_handle: "paxonboard",
-    content: "I was on AS412 MAD-BOG — severe turbulence, multiple passengers injured, blood in the aisle. Aurora Skylines crew was heroic. Praying for everyone 🙏",
-    likes: 240000, shares: 78000, reach: 6800000, is_verified: false, is_influencer: true,
-    status: "analyzed", ai_risk: "critical", ai_risk_score: 95,
-    ai_incident_type: "safety", ai_summary: "Severe turbulence injuries on AS412, viral first-person account. Critical media exposure.",
-  },
-  {
-    channel: "twitter",
-    author_name: "AVHerald",
-    author_handle: "avherald",
-    content: "Aurora Skylines AS617 (B738) engine failure shortly after takeoff from MAD, declared MAYDAY, returned safely. Investigation opened by AESA.",
-    likes: 18500, shares: 7200, reach: 920000, is_verified: true, is_influencer: true,
-    status: "analyzed", ai_risk: "critical", ai_risk_score: 88,
-    ai_incident_type: "accident", ai_summary: "Engine failure + MAYDAY on AS617, regulator AESA investigating.",
-  },
-  {
-    channel: "instagram",
-    author_name: "Lisbon News",
-    author_handle: "lisbonnews",
-    content: "Tragedy at LIS: ramp agent fatally injured during Aurora Skylines turnaround. Operations suspended at gate 24. Thoughts with the family.",
-    likes: 42000, shares: 16000, reach: 1800000, is_verified: true, is_influencer: false,
-    status: "analyzed", ai_risk: "critical", ai_risk_score: 96,
-    ai_incident_type: "fatality", ai_summary: "Fatal ground accident at LIS, ramp agent. Highest severity, regulatory and PR crisis.",
-  },
-];
-
 export default function Sevra() {
   const navigate = useNavigate();
   const [mentions, setMentions] = useState<Mention[]>([]);
@@ -330,71 +168,6 @@ export default function Sevra() {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
-
-  const seedMocks = async () => {
-    const { data: userData } = await supabase.auth.getUser();
-    const userId = userData.user?.id;
-    if (!userId) {
-      toast.error("Sign in required");
-      navigate("/login");
-      return;
-    }
-    // Fetch incidents so we can attach mentions to matching ones (by flight number).
-    const { data: incidentRows } = await supabase
-      .from("incidents")
-      .select("id, flight_number, title");
-    const byFlight = new Map<string, string>();
-    (incidentRows ?? []).forEach((i) => {
-      if (i.flight_number) byFlight.set(i.flight_number.toUpperCase(), i.id);
-    });
-    const byTitle = (incidentRows ?? []).map((i) => ({ id: i.id, title: (i.title ?? "").toLowerCase() }));
-    const titleKeywords: Array<{ keys: string[]; match: string }> = [
-      { keys: ["pilot strike", "pilots union", "huelga", "industrial action", "grève"], match: "pilot strike" },
-      { keys: ["loyalty", "data exposure", "data breach", "180k", "hacking forum", "filtración"], match: "loyalty program data exposure" },
-      { keys: ["ramp agent", "fatally", "fatal ground", "agente de rampa"], match: "fatal ground accident" },
-      { keys: ["dcs outage", "check-in system", "app caída", "app down", "boarding system outage"], match: "check-in" },
-      { keys: ["cancellation wave", "crew shortage", "falta de tripulación"], match: "cancellation wave" },
-      { keys: ["bird strike", "impacto de ave"], match: "bird strike" },
-      { keys: ["runway excursion", "salida de pista"], match: "runway excursion" },
-      { keys: ["engine failure", "mayday", "fallo de motor"], match: "engine failure" },
-      { keys: ["cabin smoke", "fumée en cabine", "humo en cabina"], match: "cabin smoke" },
-      { keys: ["tug", "ground collision", "colisionó"], match: "ground-collision" },
-      { keys: ["near miss", "mid-air"], match: "mid-air near miss" },
-      { keys: ["medical emergency", "medical diversion", "urgence médicale", "emergencia médica"], match: "medical diversion" },
-      { keys: ["hard landing", "gear collapse"], match: "hard landing" },
-      { keys: ["discriminaci", "discrimination", "wheelchair", "silla de ruedas"], match: "discrimination" },
-      { keys: ["luggage", "baggage", "maletas", "equipaje", "bagages"], match: "baggage" },
-      { keys: ["turbulen"], match: "turbulence" },
-    ];
-    const findIncidentId = (content: string): string | null => {
-      const upper = content.toUpperCase();
-      const flights = upper.match(/AS\s?\d{2,4}/g);
-      if (flights) {
-        for (const flight of flights) {
-          const norm = flight.replace(/\s+/g, "");
-          if (byFlight.has(norm)) return byFlight.get(norm)!;
-        }
-      }
-      const lower = content.toLowerCase();
-      for (const rule of titleKeywords) {
-        if (rule.keys.some((k) => lower.includes(k))) {
-          const hit = byTitle.find((t) => t.title.includes(rule.match));
-          if (hit) return hit.id;
-        }
-      }
-      return null;
-    };
-    const rows = MOCK_FEED.map((m) => ({
-      status: "pending",
-      ...m,
-      created_by: userId,
-      posted_at: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 30).toISOString(),
-      incident_id: findIncidentId(m.content),
-    }));
-    const { error } = await supabase.from("social_mentions").insert(rows);
-    if (error) return toast.error(error.message);
-    toast.success("New mentions ingested from social channels");
-  };
 
   const analyzeOne = async (m: Mention) => {
     setAnalyzingId(m.id);
@@ -481,16 +254,13 @@ export default function Sevra() {
             <h1 className="text-xl sm:text-2xl font-bold text-foreground">SEVRA · Social Intel</h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Live ingest from airline social channels. AI classifies, scores, and auto-creates incidents.
+            Live ingest from social channels. AI classifies, scores, and auto-creates incidents.
           </p>
         </div>
         <div className="flex gap-2 flex-wrap w-full sm:w-auto">
           <Button variant="outline" size="sm" onClick={runMonitorNow} disabled={monitorRunning} className="flex-1 sm:flex-none">
             {monitorRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radio className="h-4 w-4" />}
             <span className="hidden xs:inline">Run monitor now</span><span className="xs:hidden">Monitor</span>
-          </Button>
-          <Button variant="outline" size="sm" onClick={seedMocks} className="flex-1 sm:flex-none">
-            <RefreshCw className="h-4 w-4" /> <span className="hidden xs:inline">Pull demo mentions</span><span className="xs:hidden">Pull</span>
           </Button>
           <Button size="sm" onClick={analyzeAllPending} disabled={!stats.crisis_level} className="flex-1 sm:flex-none">
             <Sparkles className="h-4 w-4" /> Analyze all ({stats.crisis_level})
@@ -621,7 +391,9 @@ export default function Sevra() {
       ) : !filtered.length ? (
         <Card className="p-10 text-center">
           <p className="text-muted-foreground mb-4">No mentions yet. Pull from social channels to start.</p>
-          <Button onClick={seedMocks}><RefreshCw className="h-4 w-4" /> Pull mentions</Button>
+          <Button onClick={runMonitorNow} disabled={monitorRunning}>
+            {monitorRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Run monitor now
+          </Button>
         </Card>
       ) : (
         <div className="space-y-3">
