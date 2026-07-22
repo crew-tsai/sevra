@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.social-oauth-disconnect]
 verify_jwt = false
+
+[functions.social-oauth-credentials]
+verify_jwt = false

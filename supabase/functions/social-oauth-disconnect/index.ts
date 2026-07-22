@@ -64,17 +64,20 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       const provider = PROVIDERS[network];
-      const clientId = Deno.env.get(provider.clientIdEnv);
-      const clientSecret = Deno.env.get(provider.clientSecretEnv);
-      if (tokenRow?.access_token && provider.revokeUrl && clientId && clientSecret) {
+      const { data: creds } = await admin
+        .from("social_app_credentials")
+        .select("client_id, client_secret")
+        .eq("network", network)
+        .maybeSingle();
+      if (tokenRow?.access_token && provider.revokeUrl && creds) {
         try {
           await fetch(provider.revokeUrl, {
             method: "POST",
             headers: {
               "Content-Type": "application/x-www-form-urlencoded",
-              Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+              Authorization: `Basic ${btoa(`${creds.client_id}:${creds.client_secret}`)}`,
             },
-            body: new URLSearchParams({ token: tokenRow.access_token, [provider.clientIdParam]: clientId }),
+            body: new URLSearchParams({ token: tokenRow.access_token, [provider.clientIdParam]: creds.client_id }),
           });
         } catch (e) {
           // Non-fatal: proceed to clear local state regardless.

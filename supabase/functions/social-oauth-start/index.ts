@@ -58,16 +58,21 @@ Deno.serve(async (req) => {
     }
 
     const provider = PROVIDERS[network];
-    const clientId = Deno.env.get(provider.clientIdEnv);
-    if (!clientId) {
+    const { data: creds } = await admin
+      .from("social_app_credentials")
+      .select("client_id")
+      .eq("network", network)
+      .maybeSingle();
+    if (!creds) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: `${provider.clientIdEnv} is not configured. Set it with 'supabase secrets set ${provider.clientIdEnv}=...' after registering a developer app.`,
+          error: `No developer app credentials saved for this network yet. Add your Client ID/Secret above before connecting.`,
         }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+    const clientId = creds.client_id;
 
     const state = crypto.randomUUID();
     let codeVerifier: string | null = null;

@@ -78,11 +78,16 @@ Deno.serve(async (req) => {
       return redirect(siteUrl, { error: "Unknown network" });
     }
     const provider = PROVIDERS[network];
-    const clientId = Deno.env.get(provider.clientIdEnv);
-    const clientSecret = Deno.env.get(provider.clientSecretEnv);
-    if (!clientId || !clientSecret) {
-      return redirect(siteUrl, { network, error: `${provider.clientIdEnv}/${provider.clientSecretEnv} not configured` });
+    const { data: creds } = await admin
+      .from("social_app_credentials")
+      .select("client_id, client_secret")
+      .eq("network", network)
+      .maybeSingle();
+    if (!creds) {
+      return redirect(siteUrl, { network, error: "Developer app credentials not configured for this network" });
     }
+    const clientId = creds.client_id;
+    const clientSecret = creds.client_secret;
 
     const redirectUri = callbackRedirectUri(supabaseUrl);
     const body = new URLSearchParams({

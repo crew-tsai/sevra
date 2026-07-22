@@ -571,6 +571,30 @@ export type Database = {
           },
         ]
       }
+      social_app_credentials: {
+        Row: {
+          client_id: string
+          client_secret: string
+          network: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          client_id: string
+          client_secret: string
+          network: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          client_id?: string
+          client_secret?: string
+          network?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       social_connection_tokens: {
         Row: {
           access_token: string

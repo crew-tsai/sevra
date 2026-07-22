@@ -16,8 +16,6 @@ export type ProviderConfig = {
   tokenUrl: string;
   revokeUrl?: string;
   scope: string;
-  clientIdEnv: string;
-  clientSecretEnv: string;
   // Some providers (TikTok) call the client id param "client_key" instead of
   // "client_id" in both the authorize and token requests.
   clientIdParam: "client_id" | "client_key";
@@ -29,14 +27,15 @@ export type ProviderConfig = {
   profileUrl?: string;
 };
 
+// Client ID/Secret are NOT configured here — each client's admin enters
+// their own via Admin -> Social connections (see social-oauth-credentials),
+// stored in the social_app_credentials table.
 export const PROVIDERS: Record<Network, ProviderConfig> = {
   x: {
     authorizeUrl: "https://twitter.com/i/oauth2/authorize",
     tokenUrl: "https://api.twitter.com/2/oauth2/token",
     revokeUrl: "https://api.twitter.com/2/oauth2/revoke",
     scope: "tweet.read tweet.write users.read offline.access",
-    clientIdEnv: "X_CLIENT_ID",
-    clientSecretEnv: "X_CLIENT_SECRET",
     clientIdParam: "client_id",
     tokenAuthStyle: "basic",
     pkce: true,
@@ -46,8 +45,6 @@ export const PROVIDERS: Record<Network, ProviderConfig> = {
     authorizeUrl: "https://www.facebook.com/v19.0/dialog/oauth",
     tokenUrl: "https://graph.facebook.com/v19.0/oauth/access_token",
     scope: "pages_show_list,pages_read_engagement,pages_manage_posts",
-    clientIdEnv: "META_CLIENT_ID",
-    clientSecretEnv: "META_CLIENT_SECRET",
     clientIdParam: "client_id",
     tokenAuthStyle: "body",
     pkce: false,
@@ -62,8 +59,6 @@ export const PROVIDERS: Record<Network, ProviderConfig> = {
     authorizeUrl: "https://www.facebook.com/v19.0/dialog/oauth",
     tokenUrl: "https://graph.facebook.com/v19.0/oauth/access_token",
     scope: "instagram_basic,pages_show_list,pages_read_engagement",
-    clientIdEnv: "META_CLIENT_ID",
-    clientSecretEnv: "META_CLIENT_SECRET",
     clientIdParam: "client_id",
     tokenAuthStyle: "body",
     pkce: false,
@@ -74,8 +69,6 @@ export const PROVIDERS: Record<Network, ProviderConfig> = {
     tokenUrl: "https://open.tiktokapis.com/v2/oauth/token",
     revokeUrl: "https://open.tiktokapis.com/v2/oauth/revoke",
     scope: "user.info.basic",
-    clientIdEnv: "TIKTOK_CLIENT_KEY",
-    clientSecretEnv: "TIKTOK_CLIENT_SECRET",
     clientIdParam: "client_key",
     tokenAuthStyle: "body",
     pkce: true,
