@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.social-publish]
 verify_jwt = false
+
+[functions.generate-asset-image]
+verify_jwt = false

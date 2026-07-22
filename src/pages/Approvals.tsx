@@ -10,7 +10,7 @@ import { SendEmailDialog } from "@/components/SendEmailDialog";
 import { AssetComments } from "@/components/AssetComments";
 import { PublishSocialDialog } from "@/components/PublishSocialDialog";
 import { isEmailAsset, isSocialAsset, socialNetworkLabel } from "@/lib/distribution";
-import { CheckCircle2, XCircle, FileText, Copy, Loader2, ExternalLink, Megaphone, MessageSquare, Users, HelpCircle, RefreshCw, LayoutDashboard, X, Filter, Mail, Send, ChevronDown, Film, Building2, Briefcase, Newspaper, Headphones, Pencil, MessageCircle, Lock } from "lucide-react";
+import { CheckCircle2, XCircle, FileText, Copy, Loader2, ExternalLink, Megaphone, MessageSquare, Users, HelpCircle, RefreshCw, LayoutDashboard, X, Filter, Mail, Send, ChevronDown, Film, Building2, Briefcase, Newspaper, Headphones, Pencil, MessageCircle, Lock, Upload, Sparkles, Image as ImageIcon, Video } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { TimeRangeFilter, DEFAULT_TIME_RANGE, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
@@ -30,6 +30,9 @@ type Asset = {
   approval_status: string;
   approved_at: string | null;
   created_at: string;
+  media_url: string | null;
+  media_type: string | null;
+  media_source: string | null;
 };
 
 type IncidentLite = {
@@ -106,6 +109,10 @@ export default function Approvals() {
   const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [isAdmin, setIsAdmin] = useState(false);
+  const [mediaBusyId, setMediaBusyId] = useState<string | null>(null);
+  const [showPromptFor, setShowPromptFor] = useState<Set<string>>(new Set());
+  const [promptDraft, setPromptDraft] = useState<Record<string, string>>({});
+  const mediaInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -236,6 +243,52 @@ export default function Approvals() {
     }
     toast.success(`${asset.title} regenerated`);
     setTab("pending");
+  };
+
+  const suggestedImagePrompt = (asset: Asset) =>
+    `Photo-realistic image for an airline social media post: ${asset.content.replace(/\s+/g, " ").trim().slice(0, 200)}`;
+
+  const uploadMedia = async (asset: Asset, file: File) => {
+    const isVideo = asset.asset_type === "tiktok_script";
+    const maxMb = isVideo ? 100 : 10;
+    if (file.size > maxMb * 1024 * 1024) {
+      return toast.error(`File too large (max ${maxMb}MB)`);
+    }
+    setMediaBusyId(asset.id);
+    const ext = file.name.split(".").pop() || (isVideo ? "mp4" : "jpg");
+    const path = `${asset.id}-upload-${Date.now()}.${ext}`;
+    const { error: uploadErr } = await supabase.storage.from("asset-media").upload(path, file, { upsert: true });
+    if (uploadErr) {
+      setMediaBusyId(null);
+      return toast.error(uploadErr.message);
+    }
+    const { data: pub } = supabase.storage.from("asset-media").getPublicUrl(path);
+    const { error } = await supabase
+      .from("incident_assets")
+      .update({ media_url: pub.publicUrl, media_type: isVideo ? "video" : "image", media_source: "upload" })
+      .eq("id", asset.id);
+    setMediaBusyId(null);
+    if (error) return toast.error(error.message);
+    toast.success("Media attached");
+  };
+
+  const generateAssetImage = async (asset: Asset) => {
+    const prompt = (promptDraft[asset.id] ?? suggestedImagePrompt(asset)).trim();
+    if (!prompt) return toast.error("Enter a prompt first");
+    setMediaBusyId(asset.id);
+    const { data, error } = await supabase.functions.invoke("generate-asset-image", {
+      body: { asset_id: asset.id, prompt },
+    });
+    setMediaBusyId(null);
+    if (error || !data?.success) {
+      return toast.error(data?.error ?? error?.message ?? "Failed to generate image");
+    }
+    toast.success("Image generated");
+    setShowPromptFor((s) => {
+      const next = new Set(s);
+      next.delete(asset.id);
+      return next;
+    });
   };
 
   const openEdit = (asset: Asset) => {
@@ -444,6 +497,110 @@ export default function Approvals() {
             <pre className="text-sm text-muted-foreground leading-relaxed mt-3 whitespace-pre-wrap font-sans">
               {item.content}
             </pre>
+
+            {(item.asset_type === "post_instagram" || item.asset_type === "tiktok_script") && (
+              <div className="mt-3 rounded-md border p-3 bg-muted/20 space-y-2">
+                <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  {item.asset_type === "tiktok_script" ? (
+                    <Video className="h-3.5 w-3.5" />
+                  ) : (
+                    <ImageIcon className="h-3.5 w-3.5" />
+                  )}
+                  {item.asset_type === "tiktok_script" ? "Video" : "Image"}
+                </div>
+
+                {item.media_url ? (
+                  <div className="space-y-2">
+                    {item.media_type === "video" ? (
+                      <video src={item.media_url} controls className="max-h-48 rounded-md border" />
+                    ) : (
+                      <img src={item.media_url} alt="" className="max-h-48 rounded-md border object-contain" />
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={mediaBusyId === item.id}
+                      onClick={() => mediaInputRefs.current[item.id]?.click()}
+                    >
+                      {mediaBusyId === item.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Upload className="h-3.5 w-3.5" />
+                      )}
+                      Replace
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={mediaBusyId === item.id}
+                        onClick={() => mediaInputRefs.current[item.id]?.click()}
+                      >
+                        {mediaBusyId === item.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Upload className="h-3.5 w-3.5" />
+                        )}
+                        Upload {item.asset_type === "tiktok_script" ? "video" : "image"}
+                      </Button>
+                      {item.asset_type === "post_instagram" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            setShowPromptFor((s) => {
+                              const next = new Set(s);
+                              next.add(item.id);
+                              return next;
+                            })
+                          }
+                        >
+                          <Sparkles className="h-3.5 w-3.5" /> Generate with AI
+                        </Button>
+                      )}
+                    </div>
+                    {showPromptFor.has(item.id) && (
+                      <div className="space-y-2">
+                        <Textarea
+                          value={promptDraft[item.id] ?? suggestedImagePrompt(item)}
+                          onChange={(e) => setPromptDraft((d) => ({ ...d, [item.id]: e.target.value }))}
+                          className="text-xs"
+                          rows={3}
+                        />
+                        <Button
+                          size="sm"
+                          disabled={mediaBusyId === item.id}
+                          onClick={() => generateAssetImage(item)}
+                        >
+                          {mediaBusyId === item.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Sparkles className="h-3.5 w-3.5" />
+                          )}
+                          Generate
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <input
+                  type="file"
+                  ref={(el) => (mediaInputRefs.current[item.id] = el)}
+                  accept={item.asset_type === "tiktok_script" ? "video/*" : "image/*"}
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.currentTarget.value = "";
+                    if (file) void uploadMedia(item, file);
+                  }}
+                />
+              </div>
+            )}
+
             <div className="flex items-center gap-2 mt-3 flex-wrap">
               <Button size="sm" variant="outline" onClick={() => copy(item.content)}>
                 <Copy className="h-3.5 w-3.5" /> Copy
