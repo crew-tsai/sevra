@@ -10,7 +10,32 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -25,6 +50,10 @@ export type Database = {
           id: string
           industry: string | null
           logo_url: string | null
+          monitor_active: boolean
+          monitor_auto_incident_threshold: number
+          monitor_last_result: Json | null
+          monitor_last_run_at: string | null
           singleton: boolean
           updated_at: string
         }
@@ -38,6 +67,10 @@ export type Database = {
           id?: string
           industry?: string | null
           logo_url?: string | null
+          monitor_active?: boolean
+          monitor_auto_incident_threshold?: number
+          monitor_last_result?: Json | null
+          monitor_last_run_at?: string | null
           singleton?: boolean
           updated_at?: string
         }
@@ -51,7 +84,41 @@ export type Database = {
           id?: string
           industry?: string | null
           logo_url?: string | null
+          monitor_active?: boolean
+          monitor_auto_incident_threshold?: number
+          monitor_last_result?: Json | null
+          monitor_last_run_at?: string | null
           singleton?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      distribution_lists: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          emails: string[]
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          emails?: string[]
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          emails?: string[]
+          id?: string
+          name?: string
           updated_at?: string
         }
         Relationships: []
@@ -305,6 +372,7 @@ export type Database = {
           source: string
           status: string
           sub_type: string | null
+          tags: string[]
           title: string
           updated_at: string
         }
@@ -334,6 +402,7 @@ export type Database = {
           source?: string
           status?: string
           sub_type?: string | null
+          tags?: string[]
           title: string
           updated_at?: string
         }
@@ -363,6 +432,7 @@ export type Database = {
           source?: string
           status?: string
           sub_type?: string | null
+          tags?: string[]
           title?: string
           updated_at?: string
         }
@@ -395,6 +465,186 @@ export type Database = {
           industry?: string | null
           message?: string | null
           name?: string
+        }
+        Relationships: []
+      }
+      oauth_states: {
+        Row: {
+          code_verifier: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          network: string
+          state: string
+        }
+        Insert: {
+          code_verifier?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          network: string
+          state: string
+        }
+        Update: {
+          code_verifier?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          network?: string
+          state?: string
+        }
+        Relationships: []
+      }
+      raci_assignments: {
+        Row: {
+          asset_type: string
+          id: string
+          level: string
+          list_id: string
+        }
+        Insert: {
+          asset_type: string
+          id?: string
+          level: string
+          list_id: string
+        }
+        Update: {
+          asset_type?: string
+          id?: string
+          level?: string
+          list_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "raci_assignments_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "distribution_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      response_plan: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          generated_by: string | null
+          id: string
+          incident_id: string
+          phase_immediate: Json | null
+          phase_long: Json | null
+          phase_medium: Json | null
+          phase_short: Json | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          generated_by?: string | null
+          id?: string
+          incident_id: string
+          phase_immediate?: Json | null
+          phase_long?: Json | null
+          phase_medium?: Json | null
+          phase_short?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          generated_by?: string | null
+          id?: string
+          incident_id?: string
+          phase_immediate?: Json | null
+          phase_long?: Json | null
+          phase_medium?: Json | null
+          phase_short?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "response_plan_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: true
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_connection_tokens: {
+        Row: {
+          access_token: string
+          connection_id: string
+          refresh_token: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          connection_id: string
+          refresh_token?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          connection_id?: string
+          refresh_token?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_connection_tokens_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "social_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_connections: {
+        Row: {
+          account_id: string | null
+          account_label: string | null
+          avatar_url: string | null
+          connected_at: string | null
+          connected_by: string | null
+          created_at: string
+          id: string
+          last_error: string | null
+          network: string
+          scopes: string[] | null
+          status: string
+          token_expires_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          account_label?: string | null
+          avatar_url?: string | null
+          connected_at?: string | null
+          connected_by?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          network: string
+          scopes?: string[] | null
+          status?: string
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          account_label?: string | null
+          avatar_url?: string | null
+          connected_at?: string | null
+          connected_by?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          network?: string
+          scopes?: string[] | null
+          status?: string
+          token_expires_at?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -573,19 +823,92 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_first_admin: { Args: never; Returns: boolean }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
-      email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      get_assets_by_month: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: {
+          approved: number
+          month: string
+          pending: number
+          rejected: number
+          total: number
+        }[]
+      }
+      get_crisis_pressure: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: Json
+      }
+      get_dashboard_summary: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: Json
+      }
+      get_incidents_by_month: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: {
+          critical: number
+          high: number
+          low: number
+          medium: number
+          month: string
+          total: number
+        }[]
+      }
+      get_incidents_by_source: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: {
+          count: number
+          source: string
+        }[]
+      }
+      get_incidents_by_type: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: {
+          count: number
+          incident_type: string
+        }[]
+      }
+      get_mention_channel_stats: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: {
+          channel: string
+          count: number
+          influencer_count: number
+          negative_pct: number
+          reach: number
+        }[]
+      }
+      get_mention_risk_mix: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: Json
+      }
+      get_mentions_by_month: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: {
+          count: number
+          month: string
+        }[]
+      }
+      get_reach_weighted_sentiment: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: Json
+      }
+      get_report_kpis: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: Json
       }
       get_social_monitor_status: {
         Args: never
         Returns: {
           active: boolean
+          last_result: Json
           last_run_at: string
           last_status: string
           schedule: string
@@ -766,6 +1089,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["admin", "coordinador", "manager", "ejecutivo"],

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,10 +14,11 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Upload, FileText, Trash2, ShieldAlert, Building2, Users, Palette, Mail, Network } from "lucide-react";
+import { Loader2, Upload, FileText, Trash2, ShieldAlert, Building2, Users, Palette, Mail, Network, Share2 } from "lucide-react";
 import { z } from "zod";
 import EmailListsManager from "@/components/admin/EmailListsManager";
 import ResponsibilityMatrixEditor from "@/components/admin/ResponsibilityMatrixEditor";
+import SocialConnectionsManager from "@/components/admin/SocialConnectionsManager";
 
 const INDUSTRIES = [
   "Aviation", "Hospitality", "Retail", "Banking & Finance", "Healthcare",
@@ -65,7 +67,29 @@ export default function Admin() {
   const logoInput = useRef<HTMLInputElement>(null);
   const manualInput = useRef<HTMLInputElement>(null);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") ?? "company";
+
   useEffect(() => { void init(); }, []);
+
+  // Land back on the Social connections tab (and surface the result) after
+  // an OAuth redirect from social-oauth-callback.
+  useEffect(() => {
+    const connected = searchParams.get("connected");
+    const error = searchParams.get("error");
+    if (connected) {
+      toast({ title: `${connected} connected` });
+    } else if (error) {
+      toast({ title: "Connection failed", description: error, variant: "destructive" });
+    }
+    if (connected || error) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("connected");
+      next.delete("error");
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function init() {
     setLoading(true);
@@ -211,13 +235,14 @@ export default function Admin() {
         <p className="text-sm text-muted-foreground">Configure your company, team, and branding.</p>
       </header>
 
-      <Tabs defaultValue="company">
+      <Tabs defaultValue={initialTab}>
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="company"><Building2 className="h-4 w-4 mr-2" />Company</TabsTrigger>
           <TabsTrigger value="branding"><Palette className="h-4 w-4 mr-2" />Branding</TabsTrigger>
           <TabsTrigger value="team"><Users className="h-4 w-4 mr-2" />Team & roles</TabsTrigger>
           <TabsTrigger value="lists"><Mail className="h-4 w-4 mr-2" />Email lists</TabsTrigger>
           <TabsTrigger value="raci"><Network className="h-4 w-4 mr-2" />Responsibility matrix</TabsTrigger>
+          <TabsTrigger value="social"><Share2 className="h-4 w-4 mr-2" />Social connections</TabsTrigger>
         </TabsList>
 
         {/* COMPANY */}
@@ -417,6 +442,11 @@ export default function Admin() {
         {/* RESPONSIBILITY MATRIX */}
         <TabsContent value="raci" className="space-y-4">
           <ResponsibilityMatrixEditor />
+        </TabsContent>
+
+        {/* SOCIAL CONNECTIONS */}
+        <TabsContent value="social" className="space-y-4">
+          <SocialConnectionsManager />
         </TabsContent>
       </Tabs>
     </div>

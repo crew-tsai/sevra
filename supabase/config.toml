@@ -23,3 +23,12 @@ verify_jwt = false
 
 [functions.agent-stripes]
 verify_jwt = false
+
+[functions.social-oauth-start]
+verify_jwt = false
+
+[functions.social-oauth-callback]
+verify_jwt = false
+
+[functions.social-oauth-disconnect]
+verify_jwt = false
