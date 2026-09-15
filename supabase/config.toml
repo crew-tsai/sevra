@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.generate-asset-image]
 verify_jwt = false
+
+[functions.deployment-heartbeat]
+verify_jwt = false
