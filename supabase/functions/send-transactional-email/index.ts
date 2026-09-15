@@ -30,10 +30,6 @@ function generateToken(): string {
     .join('')
 }
 
-// Auth note: this function uses verify_jwt = true in config.toml, so Supabase's
-// gateway validates the caller's JWT (anon or service_role) before the request
-// reaches this code. No in-function auth check is needed.
-
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -52,6 +48,25 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
+  }
+
+  // config.toml has verify_jwt = false for this function, and even
+  // verify_jwt = true wouldn't be sufficient on its own (Supabase's gateway
+  // treats the public anon key as a "valid JWT" too, so it doesn't require a
+  // real logged-in user) — so the real check happens here: require an
+  // actual authenticated user, same pattern used across this codebase's
+  // other user-invoked functions (sevra-analyze, social-publish, etc).
+  const authHeader = req.headers.get('Authorization') ?? ''
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? supabaseServiceKey
+  const userClient = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authHeader } },
+  })
+  const { data: userData } = await userClient.auth.getUser()
+  if (!userData?.user?.id) {
+    return new Response(JSON.stringify({ error: 'Not authenticated' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   }
 
   // Parse request body

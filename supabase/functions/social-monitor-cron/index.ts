@@ -13,6 +13,22 @@ const corsHeaders = {
 
 const SIM_CHANNELS = ["instagram", "tiktok"] as const;
 
+// Accepts two legitimate callers: the pg_cron job (Bearer = service-role
+// key) and the "Run monitor now" button (Bearer = a real user session).
+function parseJwtClaims(token: string): Record<string, unknown> | null {
+  const parts = token.split(".");
+  if (parts.length < 2) return null;
+  try {
+    const payload = parts[1]
+      .replaceAll("-", "+")
+      .replaceAll("_", "/")
+      .padEnd(Math.ceil(parts[1].length / 4) * 4, "=");
+    return JSON.parse(atob(payload)) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
 function buildSimPrompt(companyName: string | null, industry: string | null): string {
   const vocab = vocabFor(industry);
   const company = companyName ?? "the company";
@@ -262,6 +278,30 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
+
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    const claims = parseJwtClaims(token);
+    const isServiceRole = claims?.role === "service_role";
+
+    if (!isServiceRole) {
+      let userId: string | null = null;
+      try {
+        const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? serviceKey;
+        const userClient = createClient(supabaseUrl, anonKey, {
+          global: { headers: { Authorization: authHeader } },
+        });
+        const { data: userData } = await userClient.auth.getUser();
+        userId = userData?.user?.id ?? null;
+      } catch { /* non-fatal, checked below */ }
+
+      if (!userId) {
+        return new Response(JSON.stringify({ success: false, error: "Not authenticated" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     const { data: settings } = await admin.from("company_settings").select("company_name, industry").maybeSingle();
     const companyName = settings?.company_name ?? null;

@@ -16,6 +16,24 @@ Deno.serve(async (req) => {
     const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(url, key);
 
+    const authHeader = req.headers.get("Authorization") ?? "";
+    let userId: string | null = null;
+    try {
+      const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? key;
+      const userClient = createClient(url, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: userData } = await userClient.auth.getUser();
+      userId = userData?.user?.id ?? null;
+    } catch { /* non-fatal, checked below */ }
+
+    if (!userId) {
+      return new Response(JSON.stringify({ success: false, error: "Not authenticated" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     let action: "status" | "enable" | "disable" = "status";
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
@@ -23,6 +41,13 @@ Deno.serve(async (req) => {
     }
 
     if (action !== "status") {
+      const { data: isAdmin } = await admin.rpc("is_admin", { _user_id: userId });
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ success: false, error: "Admin access required" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const { error: updErr } = await admin.rpc("set_social_monitor_active", {
         p_active: action === "enable",
       });
