@@ -126,19 +126,40 @@ export default function Admin() {
     // Must go through the RPC: the "First user can claim admin" INSERT policy
     // was dropped in 20260527111803 and replaced by this SECURITY DEFINER
     // function, so a direct insert into user_roles is always blocked by RLS
-    // for a user who isn't already an admin.
-    const { data: claimed, error } = await supabase.rpc("claim_first_admin");
+    // for a user who isn't already an admin. The RPC also checks the caller
+    // against the admin email designated for this deployment.
+    const { data: status, error } = await supabase.rpc("claim_first_admin");
     if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
-    if (!claimed) {
+
+    if (status === "claimed") {
+      toast({ title: "You are admin", description: "You can now configure the system." });
       await init();
-      return toast({
+      return;
+    }
+
+    // adminExists is computed from a count query that RLS filters to the
+    // caller's own roles, so the claim button can appear even when the claim
+    // cannot succeed. Explain which case this is.
+    const reasons: Record<string, { title: string; description: string }> = {
+      already_claimed: {
         title: "Admin already claimed",
         description: "Someone else already holds the admin role. Ask them to invite you from Admin → Team & roles.",
-        variant: "destructive",
-      });
-    }
-    toast({ title: "You are admin", description: "You can now configure the system." });
+      },
+      not_authorized: {
+        title: "Not the designated administrator",
+        description: "This workspace is assigned to a different administrator. Ask them to invite you from Admin → Team & roles.",
+      },
+      not_configured: {
+        title: "Workspace not set up yet",
+        description: "No administrator has been designated for this deployment. Contact your Sevra administrator to finish setup.",
+      },
+    };
+    const reason = reasons[status as string] ?? {
+      title: "Could not claim admin",
+      description: "Please contact your Sevra administrator.",
+    };
     await init();
+    toast({ ...reason, variant: "destructive" });
   }
 
   async function saveSettings() {

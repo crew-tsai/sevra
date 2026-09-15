@@ -39,7 +39,15 @@ export default function Login() {
       }
       navigate("/welcome", { replace: true });
     } catch (err: any) {
-      toast.error(err.message || "Authentication failed");
+      // The invite-only signup trigger raises a database exception, which
+      // GoTrue surfaces as a generic "database error saving new user" rather
+      // than the message itself. Translate it into something actionable.
+      const raw = err?.message ?? "";
+      if (mode === "signup" && /database error|saving new user/i.test(raw)) {
+        toast.error("This workspace is invite-only. Ask your administrator to invite you.");
+      } else {
+        toast.error(raw || "Authentication failed");
+      }
     } finally {
       setLoading(false);
     }
