@@ -13,6 +13,7 @@ import {
   Settings,
   ArrowRight,
   AlertTriangle,
+  ExternalLink,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { RiskLevel } from "@/lib/types";
@@ -67,14 +68,29 @@ const paths = [
 
 const RISK_RANK: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
 
+/** Sevra's internal portfolio console. Only staff ever see the link to it. */
+const CONSOLE_URL = "https://sevra-console.vercel.app";
+
 export default function Welcome() {
   const [urgent, setUrgent] = useState<UrgentIncident[]>([]);
   const [name, setName] = useState<string>("");
+  const [isSupport, setIsSupport] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       const email = data.user?.email ?? "";
       setName(email.split("@")[0] ?? "");
+
+      // The console link is for Sevra staff, not for the customer whose
+      // workspace this is — gate it on the support role so the client's own
+      // team never sees that an internal portfolio tool exists.
+      const userId = data.user?.id;
+      if (!userId) return;
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
+      setIsSupport((roles ?? []).some((r) => r.role === "soporte"));
     });
     supabase
       .from("incidents")
@@ -170,6 +186,20 @@ export default function Welcome() {
           ))}
         </div>
       </section>
+
+      {isSupport && (
+        <footer className="pt-2 border-t">
+          <a
+            href={CONSOLE_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ExternalLink className="h-3 w-3" />
+            Sevra control plane
+          </a>
+        </footer>
+      )}
     </div>
   );
 }
