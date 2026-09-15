@@ -39,7 +39,6 @@ const inviteSchema = z.object({
 export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
   const [adminExists, setAdminExists] = useState(true);
 
   // Settings
@@ -91,7 +90,6 @@ export default function Admin() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
-    setUserId(user.id);
 
     const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
     const admin = roles?.some((r: any) => r.role === "admin") ?? false;
@@ -125,9 +123,20 @@ export default function Admin() {
   }
 
   async function claimAdmin() {
-    if (!userId) return;
-    const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: "admin" });
+    // Must go through the RPC: the "First user can claim admin" INSERT policy
+    // was dropped in 20260527111803 and replaced by this SECURITY DEFINER
+    // function, so a direct insert into user_roles is always blocked by RLS
+    // for a user who isn't already an admin.
+    const { data: claimed, error } = await supabase.rpc("claim_first_admin");
     if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
+    if (!claimed) {
+      await init();
+      return toast({
+        title: "Admin already claimed",
+        description: "Someone else already holds the admin role. Ask them to invite you from Admin → Team & roles.",
+        variant: "destructive",
+      });
+    }
     toast({ title: "You are admin", description: "You can now configure the system." });
     await init();
   }
