@@ -794,6 +794,27 @@ export type Database = {
           },
         ]
       }
+      support_access_log: {
+        Row: {
+          accessed_at: string
+          id: string
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          accessed_at?: string
+          id?: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          accessed_at?: string
+          id?: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
@@ -976,6 +997,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      log_support_access: { Args: never; Returns: undefined }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -999,7 +1021,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "coordinador" | "manager" | "ejecutivo"
+      app_role: "admin" | "coordinador" | "manager" | "ejecutivo" | "soporte"
       incident_source:
         | "manual"
         | "social_media"
@@ -1148,7 +1170,7 @@ export const Constants = {
   },
   public: {
     Enums: {
-      app_role: ["admin", "coordinador", "manager", "ejecutivo"],
+      app_role: ["admin", "coordinador", "manager", "ejecutivo", "soporte"],
       incident_source: [
         "manual",
         "social_media",

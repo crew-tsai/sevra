@@ -26,14 +26,18 @@ const ROLES = [
   { value: "coordinador", label: "Coordinator" },
   { value: "manager", label: "Manager" },
   { value: "ejecutivo", label: "Executive" },
+  { value: "soporte", label: "Sevra Support" },
 ] as const;
 
 type Role = typeof ROLES[number]["value"];
 
+// Keep in sync with ROLES above — the invite is validated against this list
+// before it reaches the database, so a value missing here is rejected client
+// side even though the column accepts it.
 const inviteSchema = z.object({
   email: z.string().trim().email("Invalid email").max(255),
   full_name: z.string().trim().max(120).optional(),
-  role: z.enum(["admin", "coordinador", "manager", "ejecutivo"]),
+  role: z.enum(["admin", "coordinador", "manager", "ejecutivo", "soporte"]),
 });
 
 export default function Admin() {

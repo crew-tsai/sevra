@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, History } from "lucide-react";
+import { ArrowRight, History, LifeBuoy } from "lucide-react";
 import { CrisisLevelBadge } from "@/components/CrisisLevelBadge";
 
 type AuditEntry = {
@@ -17,6 +17,12 @@ type AuditEntry = {
   field_name: string;
   old_value: string | null;
   new_value: string | null;
+};
+
+type SupportAccess = {
+  id: string;
+  user_email: string | null;
+  accessed_at: string;
 };
 
 const FIELD_LABEL: Record<string, string> = {
@@ -41,6 +47,18 @@ export default function AuditLog() {
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [fieldFilter, setFieldFilter] = useState<string>("all");
+  const [supportAccess, setSupportAccess] = useState<SupportAccess[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("support_access_log")
+        .select("id, user_email, accessed_at")
+        .order("accessed_at", { ascending: false })
+        .limit(100);
+      setSupportAccess((data ?? []) as SupportAccess[]);
+    })();
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -80,6 +98,48 @@ export default function AuditLog() {
           </SelectContent>
         </Select>
       </div>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <LifeBuoy className="h-4 w-4 text-muted-foreground" /> Sevra support access
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            When Sevra staff opened this workspace. Support accounts are listed under
+            Admin → Team &amp; roles, and these entries cannot be edited or deleted.
+          </p>
+        </CardHeader>
+        <CardContent className="p-0">
+          {supportAccess.length === 0 ? (
+            <div className="px-6 pb-6 text-sm text-muted-foreground">
+              No Sevra staff have opened this workspace.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>When</TableHead>
+                    <TableHead>Who</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {supportAccess.map((s) => (
+                    <TableRow key={s.id}>
+                      <TableCell className="whitespace-nowrap text-sm">
+                        {new Date(s.accessed_at).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {s.user_email ?? "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
