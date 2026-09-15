@@ -8,15 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { vocabFor } from "@/lib/transportation";
-
-const INCIDENT_TYPES: Record<string, string[]> = {
-  safety: ["injury_report", "safety_event", "medical_emergency", "onboard_incident", "technical_failure", "emergency_stop"],
-  delay: ["cancellation_wave", "service_delay", "missed_connections", "staff_shortage", "hub_disruption"],
-  customer_treatment: ["discrimination_claim", "staff_behavior_issue", "passenger_removal", "accessibility_issue", "service_complaint"],
-  outage: ["system_outage", "checkin_failure", "boarding_system_issue", "baggage_system_failure", "app_or_website_down"],
-  misinformation: ["false_rumor", "misleading_video", "fake_news", "manipulated_content", "social_media_backlash"],
-};
+import {
+  INCIDENT_TYPES,
+  humanizeSubType,
+  profileFor,
+  typeLabel,
+  type IncidentType,
+} from "@/lib/industries";
 
 const SOURCES = [
   { value: "manual", label: "Manual" },
@@ -31,7 +29,7 @@ export default function NewIncident() {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [industry, setIndustry] = useState<string | null>(null);
-  const vocab = vocabFor(industry);
+  const vocab = profileFor(industry);
 
   useEffect(() => {
     void (async () => {
@@ -63,7 +61,10 @@ export default function NewIncident() {
   // Source
   const [source, setSource] = useState("manual");
 
-  const subTypes = incidentType ? INCIDENT_TYPES[incidentType] || [] : [];
+  // The offered sub-types follow the configured industry, so a hospital is
+  // asked about medication errors rather than baggage systems. sub_type is
+  // free text in the database, so this varies with no schema impact.
+  const subTypes = incidentType ? vocab.subTypes[incidentType as IncidentType] ?? [] : [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,8 +143,8 @@ export default function NewIncident() {
               <Select value={incidentType} onValueChange={(v) => { setIncidentType(v); setSubType(""); }}>
                 <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
                 <SelectContent>
-                  {Object.keys(INCIDENT_TYPES).map((t) => (
-                    <SelectItem key={t} value={t} className="capitalize">{t.charAt(0).toUpperCase() + t.slice(1)}</SelectItem>
+                  {INCIDENT_TYPES.map((t) => (
+                    <SelectItem key={t} value={t}>{typeLabel(industry, t)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -154,7 +155,7 @@ export default function NewIncident() {
                 <SelectTrigger><SelectValue placeholder={incidentType ? "Select sub-type" : "Select type first"} /></SelectTrigger>
                 <SelectContent>
                   {subTypes.map((s) => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                    <SelectItem key={s} value={s}>{humanizeSubType(s)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

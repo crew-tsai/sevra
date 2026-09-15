@@ -4,7 +4,7 @@
 // Triggered by pg_cron every 15 minutes (or on-demand).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { refreshXToken } from "../_shared/social-providers.ts";
-import { vocabFor } from "../_shared/transportation.ts";
+import { profileFor } from "../_shared/industries.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,7 +30,7 @@ function parseJwtClaims(token: string): Record<string, unknown> | null {
 }
 
 function buildSimPrompt(companyName: string | null, industry: string | null): string {
-  const vocab = vocabFor(industry);
+  const vocab = profileFor(industry);
   const company = companyName ?? "the company";
   return `Generate 2 realistic, DISTINCT social media posts (in Spanish, English, or French — mix languages) about possible incidents happening RIGHT NOW with ${company.toUpperCase()}, a ${vocab.simFlavor} operator. All posts MUST mention ${company} by name and use realistic ${vocab.serviceLabel.toLowerCase()}s in the style of "${vocab.serviceExample}". Vary routes/locations in the style of "${vocab.routeExample}" and location codes like "${vocab.locationExample}". Mix risk levels: include 1 likely real incident (delay, safety, customer treatment, outage, etc.) and 1 lower-risk or noise post (joke, vague complaint, or unrelated). Never mention competitor companies.
 

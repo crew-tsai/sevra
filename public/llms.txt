@@ -1,10 +1,10 @@
 # Sevra
 
-> AI-powered crisis management platform that helps transportation operators detect, decide, and respond to reputation crises in real time.
+> AI-powered crisis management platform that helps organizations detect, decide, and respond to reputation crises in real time.
 
-Sevra brings together social monitoring, crisis-level scoring (L0–L4), AI-drafted statements, approvals, and distribution in one workspace — built for crisis teams at airlines, rail and transit operators, bus and coach companies, ferry and shipping lines, ride-hailing services, and freight and logistics providers.
+Sevra brings together social monitoring, crisis-level scoring (L0–L4), AI-drafted statements, approvals, and distribution in one workspace — built for crisis teams across transportation, healthcare, financial services, utilities and telecoms, retail and hospitality, education and the public sector.
 
-The workspace adapts to the operator's mode of transport: incident fields, AI classification, and drafted communications all use the vocabulary of the specific operation.
+The workspace adapts to the customer's industry: incident fields, the incident taxonomy, AI classification, and drafted communications all use the vocabulary of that sector.
 
 ## Pages
 

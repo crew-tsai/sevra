@@ -1,8 +1,10 @@
 # Sevra — AI-Powered Crisis Communications Platform
 
-Sevra is an AI-driven crisis communications platform for **transportation operators** — airlines, rail, bus and coach, maritime and ferry, ride-hailing, public transit, and freight. It ingests social media mentions and manual reports, uses AI to triage them into structured incidents with risk scoring, generates a full communication asset package, gates publication behind a two-stage approval workflow, and maintains an append-only audit trail.
+Sevra is an AI-driven crisis communications platform for organizations that have to answer publicly when something goes wrong — transportation operators, healthcare providers, financial institutions, utilities, retailers, public agencies and more. It ingests social media mentions and manual reports, uses AI to triage them into structured incidents with risk scoring, generates a full communication asset package, gates publication behind a two-stage approval workflow, and maintains an append-only audit trail.
 
-The workspace retunes itself to the operator: setting the transportation type in Admin → Company changes the incident field labels (a rail operator is asked for a *train number* and *station code*; a shipping line for a *voyage number* and *port code*) and briefs the AI that classifies mentions and drafts communications.
+The workspace retunes itself to the customer: setting the industry in Admin → Company changes the incident field labels (a rail operator is asked for a *train number* and *station code*; a hospital for a *case ID* and *facility*), swaps the incident sub-type taxonomy (an airline files a *baggage system failure*, a hospital a *medication error*, a bank a *payments outage*), and briefs the AI that classifies mentions and drafts communications.
+
+Transportation is listed per mode because an airline and a shipping line genuinely differ in vocabulary; other sectors are listed per sector. This is all presentation and prompting: `incident_type` stays fixed to five values by a CHECK constraint and `sub_type` is free text, so adding an industry needs no migration.
 
 ---
 
@@ -10,7 +12,7 @@ The workspace retunes itself to the operator: setting the transportation type in
 
 **One deployment per client.** Each customer runs in their own Supabase project and their own database. A company's data is isolated structurally, not by policy — a misconfigured rule cannot leak one operator's unpublished holding statement to another, because they do not share a database.
 
-The trade-off is that no single place shows the client portfolio. That is what the separate [control plane](https://github.com/roayca-tech/sevra-console) is for: each deployment reports **metadata only** (company name, transport mode, counts, health) to a central registry. Incident content never leaves the client's database.
+The trade-off is that no single place shows the client portfolio. That is what the separate [control plane](https://github.com/roayca-tech/sevra-console) is for: each deployment reports **metadata only** (company name, industry, counts, health) to a central registry. Incident content never leaves the client's database.
 
 ---
 
@@ -56,7 +58,7 @@ src/
   components/     # Shared UI components
   integrations/   # Supabase client + generated types
   hooks/          # Custom React hooks
-  lib/            # Utilities, transportation vocabulary, distribution helpers
+  lib/            # Utilities, industry profiles, distribution helpers
 supabase/
   functions/      # 17 Deno edge functions
   migrations/     # PostgreSQL migrations (chronological)

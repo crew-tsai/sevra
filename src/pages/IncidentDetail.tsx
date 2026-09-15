@@ -28,7 +28,7 @@ import {
   Lightbulb,
 } from "lucide-react";
 import { toast } from "sonner";
-import { vocabFor } from "@/lib/transportation";
+import { profileFor } from "@/lib/industries";
 
 type Incident = {
   id: string;
@@ -106,7 +106,7 @@ export default function IncidentDetail() {
   const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [industry, setIndustry] = useState<string | null>(null);
-  const vocab = vocabFor(industry);
+  const vocab = profileFor(industry);
 
   useEffect(() => {
     void (async () => {
@@ -483,7 +483,7 @@ function DetailRow({
 
 function buildRecommendations(
   inc: Incident,
-  vocab: ReturnType<typeof vocabFor>,
+  vocab: ReturnType<typeof profileFor>,
 ): { title: string; detail: string }[] {
   const recs: { title: string; detail: string }[] = [];
   const peopleNoun = vocab.peopleLabel.replace(/ impacted$/i, "").toLowerCase();
@@ -506,7 +506,7 @@ function buildRecommendations(
   if (inc.injury_fatality || inc.regulator_involved) {
     recs.push({
       title: "Notify regulators and authorities promptly",
-      detail: "Coordinate mandatory reporting with the relevant transportation regulators and authorities within the regulatory window, and align legal counsel before any public statement.",
+      detail: "Coordinate mandatory reporting with the relevant regulators and authorities within the regulatory window, and align legal counsel before any public statement.",
     });
   } else {
     recs.push({

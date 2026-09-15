@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -19,7 +19,7 @@ import { z } from "zod";
 import EmailListsManager from "@/components/admin/EmailListsManager";
 import ResponsibilityMatrixEditor from "@/components/admin/ResponsibilityMatrixEditor";
 import SocialConnectionsManager from "@/components/admin/SocialConnectionsManager";
-import { TRANSPORT_TYPES } from "@/lib/transportation";
+import { INDUSTRY_GROUPS } from "@/lib/industries";
 
 const ROLES = [
   { value: "admin", label: "Admin" },
@@ -289,13 +289,22 @@ export default function Admin() {
                   <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} maxLength={120} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Transportation type</Label>
+                  <Label>Industry</Label>
                   <Select value={industry} onValueChange={setIndustry}>
-                    <SelectTrigger><SelectValue placeholder="Select transportation type" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select industry" /></SelectTrigger>
                     <SelectContent>
-                      {TRANSPORT_TYPES.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}
+                      {INDUSTRY_GROUPS.map((g) => (
+                        <SelectGroup key={g.group}>
+                          <SelectLabel>{g.group}</SelectLabel>
+                          {g.values.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}
+                        </SelectGroup>
+                      ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Sets the incident field labels and the incident types offered across the workspace,
+                    and briefs the AI that classifies mentions and drafts communications.
+                  </p>
                 </div>
               </div>
 

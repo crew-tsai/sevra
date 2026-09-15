@@ -12,7 +12,7 @@ import { ShieldAlert, Megaphone, Activity, Sparkles, Users, Clock, Check, ArrowR
 import { DeviceMockup } from "@/components/marketing/DeviceMockup";
 import dashboardShot from "@/assets/product-dashboard.png";
 import dashboardMobileShot from "@/assets/product-dashboard-mobile.png";
-import { TRANSPORT_TYPES } from "@/lib/transportation";
+import { INDUSTRY_GROUPS } from "@/lib/industries";
 
 const leadSchema = z.object({
   name: z.string().trim().min(1, "Name required").max(100),
@@ -74,7 +74,7 @@ export default function Home() {
             </h1>
             <p className="mt-6 text-lg text-muted-foreground max-w-xl">
               Sevra is the enterprise platform for crisis communications teams. Detect, decide and respond
-              with confidence — across airlines, rail, bus, maritime and the wider transportation industry.
+              with confidence — across transportation, healthcare, financial services, utilities and beyond.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a
@@ -142,7 +142,7 @@ export default function Home() {
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <option value="">Select…</option>
-                      {TRANSPORT_TYPES.map((i) => (
+                      {INDUSTRY_GROUPS.flatMap((g) => g.values).map((i) => (
                         <option key={i} value={i}>{i}</option>
                       ))}
                     </select>

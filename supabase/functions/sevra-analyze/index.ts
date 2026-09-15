@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { vocabFor } from "../_shared/transportation.ts";
+import { INCIDENT_TYPES, profileFor } from "../_shared/industries.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,18 +7,15 @@ const corsHeaders = {
 };
 
 function buildSystemPrompt(companyName: string | null, industry: string | null): string {
-  const vocab = vocabFor(industry);
-  const company = companyName ?? "a transportation company";
+  const vocab = profileFor(industry);
+  const company = companyName ?? "the company";
   return `You are SEVRA, an AI crisis analyst for ${company}${industry ? ` (${industry})` : ""}. You analyze a single social media mention (which may be in ANY language: Spanish, English, Portuguese, French, etc.) and decide if it represents a real incident that should be tracked.
 
 CRITICAL LANGUAGE RULE: Regardless of the source language of the post, ALL your output fields (title, summary, sub_type, etc.) MUST be written in ENGLISH. Translate as needed. Preserve proper nouns (operator names, locations, service numbers) as-is.
 
-Classify into one of these incident_type values and pick a matching sub_type:
-- safety: injury_report, safety_event, medical_emergency, onboard_incident, technical_failure, emergency_stop
-- delay: cancellation_wave, service_delay, missed_connections, staff_shortage, hub_disruption
-- customer_treatment: discrimination_claim, staff_behavior_issue, passenger_removal, accessibility_issue, service_complaint
-- outage: system_outage, checkin_failure, boarding_system_issue, baggage_system_failure, app_or_website_down
-- misinformation: false_rumor, misleading_video, fake_news, manipulated_content, social_media_backlash
+Classify into one of these incident_type values and pick a matching sub_type. The
+sub_types below are specific to this organization's industry — use them verbatim:
+${INCIDENT_TYPES.map((t) => `- ${t}: ${vocab.subTypes[t].join(", ")}`).join("\n")}
 
 Risk levels: critical, high, medium, low. risk_score 0-100.
 Set should_create_incident=false only for clear noise (jokes, unrelated, spam). Otherwise true.
@@ -133,7 +130,7 @@ Deno.serve(async (req) => {
             type: "function",
             function: {
               name: "classify_mention",
-              description: "Classify the social mention as a potential transportation incident. All output strings must be in English.",
+              description: "Classify the social mention as a potential incident. All output strings must be in English.",
               parameters: {
                 type: "object",
                 properties: {
