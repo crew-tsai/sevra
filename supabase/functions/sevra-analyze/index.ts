@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { INCIDENT_TYPES, profileFor } from "../_shared/industries.ts";
+import { chatCompletion, MODELS } from "../_shared/ai.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -80,8 +81,6 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const authHeader = req.headers.get("Authorization") ?? "";
     const admin = createClient(supabaseUrl, serviceKey);
@@ -110,56 +109,49 @@ Deno.serve(async (req) => {
     const { data: settings } = await admin.from("company_settings").select("company_name, industry").maybeSingle();
     const systemPrompt = buildSystemPrompt(settings?.company_name ?? null, settings?.industry ?? null);
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content: `Channel: ${mention.channel}\nAuthor: ${mention.author_name} (@${mention.author_handle}) verified=${mention.is_verified} influencer=${mention.is_influencer}\nReach: ${mention.reach} | Likes: ${mention.likes} | Shares: ${mention.shares}\n\nContent (original language — translate to English in your output):\n${mention.content}`,
-          },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "classify_mention",
-              description: "Classify the social mention as a potential incident. All output strings must be in English.",
-              parameters: {
-                type: "object",
-                properties: {
-                  should_create_incident: { type: "boolean" },
-                  title: { type: "string", description: "English headline, max 80 chars" },
-                  summary: { type: "string", description: "1-2 sentence English summary" },
-                  incident_type: {
-                    type: "string",
-                    enum: ["safety", "delay", "customer_treatment", "outage", "misinformation"],
-                  },
-                  sub_type: { type: "string" },
-                  risk: { type: "string", enum: ["critical", "high", "medium", "low"] },
-                  risk_score: { type: "number" },
-                  airline_name: { type: "string" },
-                  flight_number: { type: "string" },
-                  route: { type: "string" },
-                  airport_code: { type: "string" },
-                  country: { type: "string" },
-                  estimated_passengers_impacted: { type: "number" },
-                  injury_fatality: { type: "boolean" },
-                  regulator_involved: { type: "boolean" },
+    const aiResp = await chatCompletion({
+      model: MODELS.reasoning,
+      messages: [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content: `Channel: ${mention.channel}\nAuthor: ${mention.author_name} (@${mention.author_handle}) verified=${mention.is_verified} influencer=${mention.is_influencer}\nReach: ${mention.reach} | Likes: ${mention.likes} | Shares: ${mention.shares}\n\nContent (original language — translate to English in your output):\n${mention.content}`,
+        },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "classify_mention",
+            description: "Classify the social mention as a potential incident. All output strings must be in English.",
+            parameters: {
+              type: "object",
+              properties: {
+                should_create_incident: { type: "boolean" },
+                title: { type: "string", description: "English headline, max 80 chars" },
+                summary: { type: "string", description: "1-2 sentence English summary" },
+                incident_type: {
+                  type: "string",
+                  enum: ["safety", "delay", "customer_treatment", "outage", "misinformation"],
                 },
-                required: ["should_create_incident", "title", "summary", "incident_type", "sub_type", "risk", "risk_score"],
+                sub_type: { type: "string" },
+                risk: { type: "string", enum: ["critical", "high", "medium", "low"] },
+                risk_score: { type: "number" },
+                airline_name: { type: "string" },
+                flight_number: { type: "string" },
+                route: { type: "string" },
+                airport_code: { type: "string" },
+                country: { type: "string" },
+                estimated_passengers_impacted: { type: "number" },
+                injury_fatality: { type: "boolean" },
+                regulator_involved: { type: "boolean" },
               },
+              required: ["should_create_incident", "title", "summary", "incident_type", "sub_type", "risk", "risk_score"],
             },
           },
-        ],
-        tool_choice: { type: "function", function: { name: "classify_mention" } },
-      }),
+        },
+      ],
+      tool_choice: { type: "function", function: { name: "classify_mention" } },
     });
 
     if (!aiResp.ok) {

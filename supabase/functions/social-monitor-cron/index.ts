@@ -6,6 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { refreshXToken } from "../_shared/social-providers.ts";
 import { resolveCredentials } from "../_shared/social-credentials.ts";
 import { profileFor } from "../_shared/industries.ts";
+import { chatCompletion, MODELS } from "../_shared/ai.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -73,28 +74,18 @@ type MentionRow = {
 
 // deno-lint-ignore no-explicit-any
 async function generateSimulatedMentions(companyName: string | null, industry: string | null): Promise<any[]> {
-  const apiKey = Deno.env.get("LOVABLE_API_KEY");
-  if (!apiKey) throw new Error("LOVABLE_API_KEY missing");
-
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        { role: "system", content: "You produce realistic synthetic social media data. Output strict JSON only." },
-        { role: "user", content: buildSimPrompt(companyName, industry) },
-      ],
-      response_format: { type: "json_object" },
-    }),
+  const res = await chatCompletion({
+    model: MODELS.fast,
+    messages: [
+      { role: "system", content: "You produce realistic synthetic social media data. Output strict JSON only." },
+      { role: "user", content: buildSimPrompt(companyName, industry) },
+    ],
+    response_format: { type: "json_object" },
   });
 
   if (!res.ok) {
     const txt = await res.text();
-    throw new Error(`AI gateway ${res.status}: ${txt}`);
+    throw new Error(`AI request failed (${res.status}): ${txt}`);
   }
   const json = await res.json();
   const content = json.choices?.[0]?.message?.content ?? "{}";

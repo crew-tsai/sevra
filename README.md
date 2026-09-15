@@ -26,7 +26,7 @@ The trade-off is that no single place shows the client portfolio. That is what t
 | RBAC | `user_roles` table + RLS policies (`admin`, `coordinador`, `manager`, `ejecutivo`, `soporte`) |
 | REST API | Supabase PostgREST |
 | Edge Functions | Deno (17 functions) |
-| AI | Lovable AI Gateway (`ai.gateway.lovable.dev`) — `google/gemini-2.5-flash`, `google/gemini-3-flash-preview`, `google/gemini-2.5-flash-image` |
+| AI | Google Gemini direct — `gemini-3-flash-preview`, `gemini-2.5-flash`, `gemini-2.5-flash-image` (see [`_shared/ai.ts`](supabase/functions/_shared/ai.ts)) |
 | Email queue | pgmq + pg_cron + transactional email edge functions |
 | Scheduler | pg_cron — `sevra-social-monitor-15min`, `process-email-queue-5s`, `sevra-deployment-heartbeat-15min` |
 
@@ -105,7 +105,8 @@ An end-user walkthrough for the client's administrator is kept separately as the
 
 | Secret | Required | Purpose |
 |---|---|---|
-| `LOVABLE_API_KEY` | Yes | AI gateway access for analysis, asset generation, and Agent Stripes |
+| `GEMINI_API_KEY` | Yes | Google AI Studio key: analysis, asset generation, Agent Stripes, monitoring |
+| `LOVABLE_API_KEY` | Yes (email only) | Still required by the email pipeline until it is migrated off Lovable |
 | `SITE_URL` | Yes | Public app origin; used to build the OAuth return URL |
 | `CONTROL_PLANE_URL` | No | Control plane project URL. Unset ⇒ the deployment does not report |
 | `HEARTBEAT_SECRET` | No | Shared secret authenticating the heartbeat |

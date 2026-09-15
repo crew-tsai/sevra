@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { profileFor } from "../_shared/industries.ts";
+import { chatCompletion, MODELS } from "../_shared/ai.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,8 +42,6 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const authHeader = req.headers.get("Authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
@@ -90,57 +89,50 @@ LINKED SOCIAL MENTIONS (${mentions?.length ?? 0}):
 ${(mentions ?? []).map((m: any) => `- [${m.channel}] @${m.author_handle}: ${m.content}`).join("\n")}
 `.trim();
 
-    // Single Lovable AI call returning all assets via tool call
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content:
-              `You are SEVRA, a crisis-communication writer for ${companyName ?? "the company"}${industry ? ` (${industry})` : ""}. Produce a complete, ready-to-publish communication package. Be factual, empathetic, and avoid speculation. Match each asset's tone & length brief exactly. Output only via the tool call.`,
-          },
-          {
-            role: "user",
-            content: `Generate ${singleKey ? "ONLY the following asset" : "the full communication package"} for the following incident.\n\n${context}\n\nAsset briefs:\n${targetSpecs.map((a) => `- ${a.key}: ${a.title} — ${a.description}`).join("\n")}`,
-          },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "emit_assets",
-              description: "Return all communication assets for the incident.",
-              parameters: {
-                type: "object",
-                properties: {
-                  assets: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        key: { type: "string", enum: targetSpecs.map((a) => a.key) },
-                        title: { type: "string" },
-                        content: { type: "string" },
-                      },
-                      required: ["key", "title", "content"],
-                      additionalProperties: false,
+    // Single AI call returning all assets via tool call
+    const aiResp = await chatCompletion({
+      model: MODELS.fast,
+      messages: [
+        {
+          role: "system",
+          content:
+            `You are SEVRA, a crisis-communication writer for ${companyName ?? "the company"}${industry ? ` (${industry})` : ""}. Produce a complete, ready-to-publish communication package. Be factual, empathetic, and avoid speculation. Match each asset's tone & length brief exactly. Output only via the tool call.`,
+        },
+        {
+          role: "user",
+          content: `Generate ${singleKey ? "ONLY the following asset" : "the full communication package"} for the following incident.\n\n${context}\n\nAsset briefs:\n${targetSpecs.map((a) => `- ${a.key}: ${a.title} — ${a.description}`).join("\n")}`,
+        },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "emit_assets",
+            description: "Return all communication assets for the incident.",
+            parameters: {
+              type: "object",
+              properties: {
+                assets: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      key: { type: "string", enum: targetSpecs.map((a) => a.key) },
+                      title: { type: "string" },
+                      content: { type: "string" },
                     },
+                    required: ["key", "title", "content"],
+                    additionalProperties: false,
                   },
                 },
-                required: ["assets"],
-                additionalProperties: false,
               },
+              required: ["assets"],
+              additionalProperties: false,
             },
           },
-        ],
-        tool_choice: { type: "function", function: { name: "emit_assets" } },
-      }),
+        },
+      ],
+      tool_choice: { type: "function", function: { name: "emit_assets" } },
     });
 
     if (!aiResp.ok) {
@@ -152,12 +144,12 @@ ${(mentions ?? []).map((m: any) => `- [${m.channel}] @${m.author_handle}: ${m.co
         });
       }
       if (aiResp.status === 402) {
-        return new Response(JSON.stringify({ error: "Add credits to your Lovable AI workspace." }), {
+        return new Response(JSON.stringify({ error: "The AI provider reports no remaining quota." }), {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error(`AI gateway error ${aiResp.status}: ${txt}`);
+      throw new Error(`AI request failed (${aiResp.status}): ${txt}`);
     }
 
     const aiJson = await aiResp.json();

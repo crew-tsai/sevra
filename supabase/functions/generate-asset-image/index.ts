@@ -1,28 +1,14 @@
-// Generates an image for an Instagram asset via the Lovable AI Gateway and
-// stores it in the asset-media bucket. There is no existing use of an
-// image-generation model anywhere in this codebase (only text chat models),
-// so this is written defensively: if the gateway/model doesn't return an
-// image in any recognized shape, it fails with a clear, specific error
-// rather than crashing or silently doing nothing.
+// Generates an image for an Instagram asset and stores it in the asset-media
+// bucket. This is the only image-generation call in the codebase, so it stays
+// defensive: if no image comes back in a recognized shape it fails with a
+// clear, specific error rather than crashing or silently doing nothing.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { generateImage } from "../_shared/ai.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-function extractImageDataUrl(message: any): string | null {
-  const candidates = [
-    message?.images?.[0]?.image_url?.url,
-    message?.images?.[0]?.url,
-    message?.image_url?.url,
-    message?.image_url,
-  ];
-  for (const c of candidates) {
-    if (typeof c === "string" && c.length > 0) return c;
-  }
-  return null;
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -30,8 +16,6 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
 
     const authHeader = req.headers.get("Authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
@@ -70,38 +54,16 @@ Deno.serve(async (req) => {
     if (assetErr) throw assetErr;
     if (!asset) throw new Error("Asset not found");
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
-        messages: [{ role: "user", content: prompt }],
-        modalities: ["image", "text"],
-      }),
-    });
-    const aiJson = await aiRes.json().catch(() => ({}));
-    if (!aiRes.ok) {
-      console.error("generate-asset-image: gateway error", aiJson);
-      return new Response(
-        JSON.stringify({ success: false, error: `Image generation request failed (${aiRes.status})` }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    // Image modalities aren't carried by the OpenAI-compatible surface, so
+    // this one goes through Gemini's native endpoint.
+    const image = await generateImage(prompt);
+    if ("error" in image) {
+      return new Response(JSON.stringify({ success: false, error: image.error }), {
+        status: image.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
-
-    const dataUrl = extractImageDataUrl(aiJson.choices?.[0]?.message);
-    if (!dataUrl) {
-      console.error("generate-asset-image: no image in response", JSON.stringify(aiJson).slice(0, 500));
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: "Image generation isn't available on this gateway/model — try uploading an image instead.",
-        }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
+    const dataUrl = image.dataUrl;
 
     const match = dataUrl.match(/^data:(image\/\w+);base64,(.+)$/);
     if (!match) {
