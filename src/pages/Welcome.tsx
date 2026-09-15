@@ -15,7 +15,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import type { RiskLevel } from "@/lib/mock-data";
+import type { RiskLevel } from "@/lib/types";
 
 type UrgentIncident = {
   id: string;

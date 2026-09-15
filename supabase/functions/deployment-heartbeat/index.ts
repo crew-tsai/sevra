@@ -1,16 +1,16 @@
-// Reporta metadatos de este despliegue al plano de control de Sevra.
+// Reports this deployment's metadata to the Sevra control plane.
 //
-// Sevra se despliega una base de datos por cliente, así que no hay forma de
-// ver la cartera desde ningún sitio. Esta función manda un latido periódico
-// (pg_cron, cada 15 min) con el pulso de este despliegue.
+// Sevra deploys one database per client, so there is nowhere to see the
+// portfolio. This function sends a periodic heartbeat (pg_cron, every 15 min)
+// with this deployment's pulse.
 //
-// LÍMITE DE PRIVACIDAD, INNEGOCIABLE: solo se envían conteos y el nombre de
-// la empresa. Nunca títulos de incidentes, descripciones, contenido de
-// comunicados ni menciones. Es lo que permite dar visibilidad de cartera sin
-// romper el aislamiento entre clientes.
+// PRIVACY LINE, NON-NEGOTIABLE: only counts and the company name are sent.
+// Never incident titles, descriptions, communication content or mentions.
+// That is what makes portfolio visibility possible without breaking the
+// isolation between clients.
 //
-// Si CONTROL_PLANE_URL o HEARTBEAT_SECRET no están configurados, la función
-// no hace nada y devuelve skipped: un despliegue que no reporta es válido.
+// If CONTROL_PLANE_URL or HEARTBEAT_SECRET are unset the function no-ops and
+// returns skipped: a deployment that doesn't report is a valid setup.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
 
     const admin = createClient(supabaseUrl, serviceKey);
 
-    // project_ref sale de la propia URL: https://<ref>.supabase.co
+    // project_ref comes from the URL itself: https://<ref>.supabase.co
     const projectRef = new URL(supabaseUrl).hostname.split(".")[0];
 
     const [settings, incidentsTotal, incidentsOpen, assets, mentions, users, social] =
@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     const payload = {
       project_ref: projectRef,
       company_name: settings.data?.company_name ?? null,
-      transport_type: settings.data?.industry ?? null,
+      industry: settings.data?.industry ?? null,
       app_url: Deno.env.get("SITE_URL") ?? null,
       metrics: {
         incidents_total: incidentsTotal.count ?? 0,

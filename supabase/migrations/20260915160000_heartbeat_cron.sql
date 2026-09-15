@@ -1,19 +1,18 @@
--- Latido periódico al plano de control de Sevra.
+-- Periodic heartbeat to the Sevra control plane.
 --
--- Cada despliegue de cliente vive en su propia base de datos, así que la
--- cartera de clientes no es visible desde ningún sitio. deployment-heartbeat
--- envía metadatos (nombre de empresa, tipo de transporte y conteos -- nunca
--- contenido de incidentes) al registro central cada 15 minutos.
+-- Each client deployment lives in its own database, so the client portfolio is
+-- not visible anywhere. deployment-heartbeat sends metadata (company name,
+-- industry and counts -- never incident content) to the central registry every
+-- 15 minutes.
 --
--- La función sale sin hacer nada si CONTROL_PLANE_URL o HEARTBEAT_SECRET no
--- están configurados, así que este cron es inofensivo en un despliegue que no
--- deba reportar.
+-- The function no-ops if CONTROL_PLANE_URL or HEARTBEAT_SECRET are unset, so
+-- this job is harmless on a deployment that shouldn't report.
 --
--- Reutiliza el secreto de Vault 'sevra_cron_service_role_key' que ya usan los
--- otros dos cron (ver 20260722160000_cron_jobs.sql). Aquí no vive ninguna
--- credencial: solo se referencia por nombre.
+-- Reuses the Vault secret 'sevra_cron_service_role_key' the other two jobs
+-- already use (see 20260722160000_cron_jobs.sql). No credential lives here:
+-- it is referenced by name only.
 --
--- Para revertir:
+-- To revert:
 --   select cron.unschedule('sevra-deployment-heartbeat-15min');
 
 select cron.schedule(

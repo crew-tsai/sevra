@@ -38,7 +38,7 @@ import {
   ExternalLink,
   Zap,
 } from "lucide-react";
-import type { RiskLevel } from "@/lib/mock-data";
+import type { RiskLevel } from "@/lib/types";
 
 type Incident = {
   id: string;

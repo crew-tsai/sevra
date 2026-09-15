@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import type { IncidentStatus } from "@/lib/mock-data";
+import type { IncidentStatus } from "@/lib/types";
 import { AlertCircle, Eye, ShieldCheck, CheckCircle2 } from "lucide-react";
 
 const STAGES: { key: IncidentStatus; label: string; icon: typeof AlertCircle }[] = [

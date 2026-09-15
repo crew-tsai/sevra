@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import type { RiskLevel } from "@/lib/mock-data";
+import type { RiskLevel } from "@/lib/types";
 
 const riskConfig: Record<RiskLevel, { label: string; className: string }> = {
   critical: { label: "Critical", className: "bg-risk-critical-bg text-risk-critical" },

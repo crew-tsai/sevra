@@ -1,10 +1,10 @@
--- Acceso de soporte explícito y registrado.
+-- Explicit, logged support access.
 --
--- El personal de Sevra podía leer todo el workspace de un cliente porque las
--- políticas de lectura de incidents/incident_assets/social_mentions son
--- USING (true), pero lo hacía con cuentas sin rol: invisible para el cliente y
--- sin dejar rastro. Ahora tienen el rol 'soporte' (visible en Admin -> Team &
--- roles) y su entrada al workspace queda registrada donde el cliente la ve.
+-- Sevra staff could already read a client's whole workspace, because the read
+-- policies on incidents/incident_assets/social_mentions are USING (true) — but
+-- they did so with accounts holding no role: invisible to the client and
+-- leaving no trace. They now hold the 'soporte' role (visible in Admin -> Team
+-- & roles) and entering the workspace is recorded where the client can see it.
 
 CREATE TABLE public.support_access_log (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -18,19 +18,19 @@ CREATE INDEX idx_support_access_log_accessed_at
 
 ALTER TABLE public.support_access_log ENABLE ROW LEVEL SECURITY;
 
--- El cliente debe poder verlo: la transparencia es justamente el objetivo.
+-- The client must be able to see this: transparency is the whole point.
 CREATE POLICY "Authenticated can view support access" ON public.support_access_log
   FOR SELECT TO authenticated USING (true);
 
--- Sin políticas de INSERT/UPDATE/DELETE. Solo escribe el RPC SECURITY DEFINER
--- de abajo, y nadie -- tampoco el propio soporte -- puede editar ni borrar una
--- entrada para tapar un acceso.
+-- No INSERT/UPDATE/DELETE policies. Only the SECURITY DEFINER RPC below
+-- writes, and nobody -- support included -- can edit or delete an entry to
+-- cover up an access.
 
--- Registra la entrada al workspace de un usuario de soporte.
+-- Records a support user entering the workspace.
 --
--- No hace nada si quien llama no tiene rol 'soporte', de modo que el frontend
--- puede invocarlo siempre sin averiguar antes el rol. Como mucho una fila por
--- usuario y hora, para que una sesión larga no genere cientos de filas.
+-- No-ops if the caller doesn't hold the 'soporte' role, so the frontend can
+-- call it unconditionally without checking the role first. At most one row per
+-- user per hour, so a long session doesn't produce hundreds of rows.
 CREATE OR REPLACE FUNCTION public.log_support_access()
 RETURNS void
 LANGUAGE plpgsql
@@ -68,13 +68,13 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.log_support_access() TO authenticated;
 
--- Personal de Sevra con acceso a este despliegue.
--- team_members los hace visibles al admin del cliente en Admin -> Team & roles,
--- y permite el registro (el workspace es solo por invitación).
+-- Sevra staff with access to this deployment.
+-- team_members makes them visible to the client's admin in Admin -> Team &
+-- roles, and permits registration (the workspace is invite-only).
 INSERT INTO public.team_members (email, full_name, role)
 VALUES
-  ('gavargas@sevra.com', 'Soporte Sevra', 'soporte'),
-  ('roayca@gmail.com',   'Soporte Sevra', 'soporte')
+  ('gavargas@sevra.com', 'Sevra Support', 'soporte'),
+  ('roayca@gmail.com',   'Sevra Support', 'soporte')
 ON CONFLICT (email) DO UPDATE SET role = EXCLUDED.role;
 
 INSERT INTO public.user_roles (user_id, role)

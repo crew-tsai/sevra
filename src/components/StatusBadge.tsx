@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import type { IncidentStatus } from "@/lib/mock-data";
+import type { IncidentStatus } from "@/lib/types";
 
 const statusConfig: Record<IncidentStatus, { label: string; className: string }> = {
   active: { label: "Active", className: "bg-risk-critical-bg text-risk-critical" },

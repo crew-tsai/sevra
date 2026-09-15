@@ -9,13 +9,13 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const accessLogged = useRef(false);
 
-  // Registra la entrada al workspace del personal de soporte de Sevra, para
-  // que el cliente pueda auditarla. El RPC no hace nada si quien llama no
-  // tiene rol 'soporte', así que se invoca sin comprobar el rol antes.
+  // Records Sevra support staff entering the workspace so the client can audit
+  // it. The RPC no-ops when the caller doesn't hold the 'soporte' role, so it
+  // is called without checking the role first.
   //
-  // Doble guarda: la ref cubre el doble montaje de StrictMode en desarrollo y
-  // sessionStorage evita repetirlo en cada TOKEN_REFRESHED o recarga de la
-  // pestaña. (El RPC además ignora accesos repetidos dentro de la misma hora.)
+  // Two guards: the ref covers StrictMode's double mount in development, and
+  // sessionStorage stops it repeating on every TOKEN_REFRESHED or tab reload.
+  // (The RPC also ignores repeat access within the same hour.)
   const logSupportAccess = () => {
     if (accessLogged.current) return;
     accessLogged.current = true;
@@ -23,8 +23,8 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
       if (sessionStorage.getItem(SUPPORT_ACCESS_LOGGED_KEY)) return;
       sessionStorage.setItem(SUPPORT_ACCESS_LOGGED_KEY, "1");
     } catch {
-      // sessionStorage puede fallar en modo privado; la ref ya evita el duplicado
-      // dentro de esta carga de página.
+      // sessionStorage can throw in private mode; the ref already prevents a
+      // duplicate within this page load.
     }
     void supabase.rpc("log_support_access");
   };
