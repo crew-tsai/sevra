@@ -4,6 +4,7 @@
 // flow it replaces) — only the account *connection* itself is admin-gated.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { refreshXToken } from "../_shared/social-providers.ts";
+import { resolveCredentials } from "../_shared/social-credentials.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -89,11 +90,7 @@ Deno.serve(async (req) => {
       const nearExpiry = expiresAt !== null && expiresAt - Date.now() < 60_000;
 
       if (nearExpiry && tokenRow.refresh_token) {
-        const { data: creds } = await admin
-          .from("social_app_credentials")
-          .select("client_id, client_secret")
-          .eq("network", "x")
-          .maybeSingle();
+        const creds = await resolveCredentials(admin, "x");
         if (!creds) {
           return new Response(
             JSON.stringify({ success: false, error: "X developer app credentials not configured." }),
@@ -101,7 +98,7 @@ Deno.serve(async (req) => {
           );
         }
         try {
-          accessToken = await refreshXToken(admin, connection.id, creds.client_id, creds.client_secret, tokenRow.refresh_token);
+          accessToken = await refreshXToken(admin, connection.id, creds.clientId, creds.clientSecret, tokenRow.refresh_token);
         } catch (e: any) {
           return new Response(JSON.stringify({ success: false, error: e?.message ?? String(e) }), {
             status: 400,

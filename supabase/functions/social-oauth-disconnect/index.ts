@@ -2,6 +2,7 @@
 // token with the provider, then clears local state back to 'disconnected'.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { isNetwork, PROVIDERS } from "../_shared/social-providers.ts";
+import { resolveCredentials } from "../_shared/social-credentials.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -64,20 +65,17 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       const provider = PROVIDERS[network];
-      const { data: creds } = await admin
-        .from("social_app_credentials")
-        .select("client_id, client_secret")
-        .eq("network", network)
-        .maybeSingle();
+      // Revoking has to present the app the token belongs to.
+      const creds = await resolveCredentials(admin, network);
       if (tokenRow?.access_token && provider.revokeUrl && creds) {
         try {
           await fetch(provider.revokeUrl, {
             method: "POST",
             headers: {
               "Content-Type": "application/x-www-form-urlencoded",
-              Authorization: `Basic ${btoa(`${creds.client_id}:${creds.client_secret}`)}`,
+              Authorization: `Basic ${btoa(`${creds.clientId}:${creds.clientSecret}`)}`,
             },
-            body: new URLSearchParams({ token: tokenRow.access_token, [provider.clientIdParam]: creds.client_id }),
+            body: new URLSearchParams({ token: tokenRow.access_token, [provider.clientIdParam]: creds.clientId }),
           });
         } catch (e) {
           // Non-fatal: proceed to clear local state regardless.

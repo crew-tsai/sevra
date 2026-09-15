@@ -4,6 +4,7 @@
 // `state` value we minted in social-oauth-start.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { callbackRedirectUri, isNetwork, PROVIDERS } from "../_shared/social-providers.ts";
+import { resolveCredentials } from "../_shared/social-credentials.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -124,16 +125,14 @@ Deno.serve(async (req) => {
       return redirect(siteUrl, { error: "Unknown network" });
     }
     const provider = PROVIDERS[network];
-    const { data: creds } = await admin
-      .from("social_app_credentials")
-      .select("client_id, client_secret")
-      .eq("network", network)
-      .maybeSingle();
+    // Must resolve to the same app social-oauth-start sent the user to, so the
+    // precedence rule in resolveCredentials has to be identical on both sides.
+    const creds = await resolveCredentials(admin, network);
     if (!creds) {
       return redirect(siteUrl, { network, error: "Developer app credentials not configured for this network" });
     }
-    const clientId = creds.client_id;
-    const clientSecret = creds.client_secret;
+    const clientId = creds.clientId;
+    const clientSecret = creds.clientSecret;
 
     const redirectUri = callbackRedirectUri(supabaseUrl);
     const body = new URLSearchParams({

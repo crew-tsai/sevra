@@ -109,10 +109,24 @@ An end-user walkthrough for the client's administrator is kept separately as the
 | `SITE_URL` | Yes | Public app origin; used to build the OAuth return URL |
 | `CONTROL_PLANE_URL` | No | Control plane project URL. Unset ⇒ the deployment does not report |
 | `HEARTBEAT_SECRET` | No | Shared secret authenticating the heartbeat |
+| `PLATFORM_X_CLIENT_ID` / `_SECRET` | No | Sevra's X app. Unset ⇒ X connects only with the client's own app |
+| `PLATFORM_META_CLIENT_ID` / `_SECRET` | No | Sevra's Meta app, shared by Facebook **and** Instagram |
+| `PLATFORM_TIKTOK_CLIENT_ID` / `_SECRET` | No | Sevra's TikTok app |
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are injected by Supabase automatically.
 
-Per-network OAuth credentials (X, Meta, TikTok client IDs and secrets) are **not** secrets here — the client's own admin enters them in Admin → Social connections, so onboarding needs no CLI access.
+### Which developer app a social connection uses
+
+Two sources, resolved in [`_shared/social-credentials.ts`](supabase/functions/_shared/social-credentials.ts):
+
+1. **The client's own app** — entered in Admin → Social connections, stored in `social_app_credentials`.
+2. **Sevra's shared app** — the `PLATFORM_*` secrets above, seeded automatically at provisioning.
+
+The client's own app **always wins** when present. That ordering is deliberate: an admin who registered their own app did so for their own API quota and their own name on the OAuth consent screen, and must not be silently moved onto the shared app, whose rate limit is pooled across every client.
+
+Why both exist: the Meta scopes this product needs (`pages_manage_posts`, `pages_read_engagement`, `pages_read_user_content`) are Advanced Access. An **unreviewed** Meta app can only act on Pages belonging to people who hold a role on the app itself — so a client using their own app needs no App Review, while Sevra's shared app requires App Review and Business Verification before it works for anyone else. Until that review passes, leave `PLATFORM_META_*` unset and the UI falls back to asking for the client's own credentials.
+
+Changing the app for a network invalidates any account already connected through the old one — the stored tokens were issued to that app and cannot be refreshed or revoked by another. Saving or clearing credentials therefore flips that connection to `error` with a message telling the admin to reconnect, rather than letting it fail later mid-incident.
 
 ### Cron jobs
 

@@ -11,6 +11,15 @@ export function isNetwork(value: unknown): value is Network {
   return typeof value === "string" && (NETWORKS as string[]).includes(value);
 }
 
+// How each network is named in messages shown to an admin. Kept here so the
+// edge functions and the Admin UI don't drift on what to call X.
+export const NETWORK_LABELS: Record<Network, string> = {
+  x: "X (Twitter)",
+  instagram: "Instagram",
+  tiktok: "TikTok",
+  facebook: "Facebook",
+};
+
 export type ProviderConfig = {
   authorizeUrl: string;
   tokenUrl: string;

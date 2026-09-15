@@ -4,6 +4,7 @@
 // Triggered by pg_cron every 15 minutes (or on-demand).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { refreshXToken } from "../_shared/social-providers.ts";
+import { resolveCredentials } from "../_shared/social-credentials.ts";
 import { profileFor } from "../_shared/industries.ts";
 
 const corsHeaders = {
@@ -124,13 +125,11 @@ async function pullRealX(admin: any, companyName: string | null): Promise<{ rows
     let accessToken = tokenRow.access_token;
     const expiresAt = connection.token_expires_at ? new Date(connection.token_expires_at).getTime() : null;
     if (expiresAt !== null && expiresAt - Date.now() < 60_000 && tokenRow.refresh_token) {
-      const { data: creds } = await admin
-        .from("social_app_credentials")
-        .select("client_id, client_secret")
-        .eq("network", "x")
-        .maybeSingle();
+      // Must be the same app the token was minted under, so this goes through
+      // the shared resolver rather than reading the table directly.
+      const creds = await resolveCredentials(admin, "x");
       if (creds) {
-        accessToken = await refreshXToken(admin, connection.id, creds.client_id, creds.client_secret, tokenRow.refresh_token);
+        accessToken = await refreshXToken(admin, connection.id, creds.clientId, creds.clientSecret, tokenRow.refresh_token);
       }
     }
 

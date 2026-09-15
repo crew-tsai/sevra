@@ -33,9 +33,14 @@ type SocialConnection = {
 };
 
 type CredentialStatus = {
+  /** This company registered its own developer app. */
   configured: boolean;
   client_id: string | null;
   updated_at: string | null;
+  /** Sevra's shared app covers this network, so no setup is required. */
+  platform_available: boolean;
+  /** Whose developer app a connection will actually run through. */
+  source: "client" | "platform" | "none";
 };
 
 const NETWORK_META: Record<Network, { label: string; icon: typeof Twitter }> = {
@@ -51,7 +56,15 @@ const REDIRECT_URI = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-o
 
 function emptyCredentials(): Record<Network, CredentialStatus> {
   const out = {} as Record<Network, CredentialStatus>;
-  for (const network of NETWORK_ORDER) out[network] = { configured: false, client_id: null, updated_at: null };
+  for (const network of NETWORK_ORDER) {
+    out[network] = {
+      configured: false,
+      client_id: null,
+      updated_at: null,
+      platform_available: false,
+      source: "none",
+    };
+  }
   return out;
 }
 
@@ -112,10 +125,16 @@ export default function SocialConnectionsManager() {
     if (error || !data?.success) {
       toast({ title: "Couldn't save credentials", description: data?.error ?? error?.message, variant: "destructive" });
     } else {
-      toast({ title: `${NETWORK_META[network].label} developer app saved` });
+      toast({
+        title: `${NETWORK_META[network].label} developer app saved`,
+        description: data.requires_reconnect
+          ? "The account connected under the previous app must be reconnected before it can publish again."
+          : undefined,
+      });
       setEditingCreds((s) => ({ ...s, [network]: false }));
       setCredForm((s) => ({ ...s, [network]: { client_id: "", client_secret: "" } }));
       await loadCredentials();
+      await loadConnections();
     }
     setSavingCreds(null);
   }
@@ -163,11 +182,9 @@ export default function SocialConnectionsManager() {
           <CardTitle>Social connections</CardTitle>
           <CardDescription>
             Connect the company's official social accounts. These are shared, company-wide
-            connections — not personal staff accounts. Each network requires your own developer
-            app (registered by you on that platform's developer site); paste the resulting Client
-            ID and Client Secret below, then connect the account. Publishing directly through
-            these connections is coming in a later update; for now this establishes the account
-            link itself.
+            connections — not personal staff accounts. Most networks connect with one click,
+            through Sevra's own developer app. You can register your own instead if you'd rather
+            use your company's name on the authorization screen or keep a separate API quota.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -181,7 +198,11 @@ export default function SocialConnectionsManager() {
           const isConnected = conn?.status === "connected";
           const isPending = pending === network;
           const isSavingCreds = savingCreds === network;
-          const showCredForm = editingCreds[network] || !cred?.configured;
+          // Only demand credentials when there is genuinely no way to connect.
+          // If Sevra's shared app covers this network, registering a developer
+          // app is an option, not a prerequisite.
+          const showCredForm =
+            editingCreds[network] || (!cred?.configured && !cred?.platform_available);
 
           return (
             <Card key={network}>
@@ -226,7 +247,11 @@ export default function SocialConnectionsManager() {
                       />
                     </div>
                     <div className="text-[11px] text-muted-foreground space-y-1">
-                      <p>Register an app on {meta.label}'s developer site with this redirect URI:</p>
+                      <p>
+                        {cred?.platform_available
+                          ? `Optional — ${meta.label} already works through Sevra's app. To use your own instead, register an app on ${meta.label}'s developer site with this redirect URI:`
+                          : `Register an app on ${meta.label}'s developer site with this redirect URI:`}
+                      </p>
                       <div className="flex items-center gap-1">
                         <code className="flex-1 truncate rounded bg-background px-1.5 py-1 border text-[10px]">
                           {REDIRECT_URI}
@@ -241,7 +266,9 @@ export default function SocialConnectionsManager() {
                         {isSavingCreds && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                         Save
                       </Button>
-                      {cred?.configured && (
+                      {/* Cancellable whenever there's something to fall back to:
+                          their saved app, or Sevra's. */}
+                      {(cred?.configured || cred?.platform_available) && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -260,11 +287,18 @@ export default function SocialConnectionsManager() {
                     <div className="flex items-center gap-1.5 text-xs min-w-0">
                       <KeyRound className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                       <span className="truncate text-muted-foreground">
-                        Developer app configured · {cred?.client_id}
+                        {cred?.configured
+                          ? `Your developer app · ${cred.client_id}`
+                          : "Using Sevra's app · no setup needed"}
                       </span>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => setEditingCreds((s) => ({ ...s, [network]: true }))}>
-                      <Pencil className="h-3 w-3" />
+                    <Button
+                      variant="ghost"
+                      size={cred?.configured ? "icon" : "sm"}
+                      className={cred?.configured ? "h-6 w-6 shrink-0" : "h-6 shrink-0 text-[11px]"}
+                      onClick={() => setEditingCreds((s) => ({ ...s, [network]: true }))}
+                    >
+                      {cred?.configured ? <Pencil className="h-3 w-3" /> : "Use my own app"}
                     </Button>
                   </div>
                 )}
@@ -307,7 +341,7 @@ export default function SocialConnectionsManager() {
                   <Button
                     size="sm"
                     className="w-full"
-                    disabled={isPending || !cred?.configured}
+                    disabled={isPending || (!cred?.configured && !cred?.platform_available)}
                     onClick={() => connect(network)}
                   >
                     {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}

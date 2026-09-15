@@ -3,12 +3,14 @@
 // redirect to it. The provider then redirects to social-oauth-callback.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import {
+  NETWORK_LABELS,
   PROVIDERS,
   callbackRedirectUri,
   codeChallengeFromVerifier,
   generateCodeVerifier,
   isNetwork,
 } from "../_shared/social-providers.ts";
+import { noCredentialsMessage, resolveCredentials } from "../_shared/social-credentials.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -58,21 +60,16 @@ Deno.serve(async (req) => {
     }
 
     const provider = PROVIDERS[network];
-    const { data: creds } = await admin
-      .from("social_app_credentials")
-      .select("client_id")
-      .eq("network", network)
-      .maybeSingle();
+    // This client's own developer app if they registered one, otherwise
+    // Sevra's shared app.
+    const creds = await resolveCredentials(admin, network);
     if (!creds) {
       return new Response(
-        JSON.stringify({
-          success: false,
-          error: `No developer app credentials saved for this network yet. Add your Client ID/Secret above before connecting.`,
-        }),
+        JSON.stringify({ success: false, error: noCredentialsMessage(NETWORK_LABELS[network]) }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
-    const clientId = creds.client_id;
+    const clientId = creds.clientId;
 
     const state = crypto.randomUUID();
     let codeVerifier: string | null = null;

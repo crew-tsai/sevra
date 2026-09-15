@@ -2,11 +2,44 @@
 // (Client ID/Secret) instead of requiring `supabase secrets set` access.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { isNetwork, NETWORKS } from "../_shared/social-providers.ts";
+import { platformNetworks } from "../_shared/social-credentials.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+/**
+ * Changing which developer app a network uses invalidates any account already
+ * connected through the old one: the stored access and refresh tokens were
+ * issued to that app and no other app can refresh or revoke them. Left alone,
+ * the connection keeps looking healthy and then fails at the worst moment --
+ * mid-incident, when a statement needs publishing.
+ *
+ * So the connection is marked as needing attention right away, using the
+ * existing error state the Admin UI already renders.
+ *
+ * Returns true when an account was actually affected.
+ */
+async function invalidateConnection(admin: any, network: string): Promise<boolean> {
+  const { data } = await admin
+    .from("social_connections")
+    .select("id")
+    .eq("network", network)
+    .eq("status", "connected")
+    .maybeSingle();
+  if (!data) return false;
+
+  await admin
+    .from("social_connections")
+    .update({
+      status: "error",
+      last_error:
+        "The developer app for this network changed, so the existing authorization is no longer valid. Reconnect this account.",
+    })
+    .eq("id", data.id);
+  return true;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -51,10 +84,37 @@ Deno.serve(async (req) => {
         .select("network, client_id, updated_at");
       if (error) throw error;
 
-      const byNetwork: Record<string, { configured: boolean; client_id: string | null; updated_at: string | null }> = {};
-      for (const network of NETWORKS) byNetwork[network] = { configured: false, client_id: null, updated_at: null };
+      // `source` is what the admin actually needs to know: whose developer app
+      // a connection will run through. "platform" means Sevra's shared app and
+      // no setup is required; "client" means their own app takes precedence.
+      const platform = platformNetworks();
+      const byNetwork: Record<
+        string,
+        {
+          configured: boolean;
+          client_id: string | null;
+          updated_at: string | null;
+          platform_available: boolean;
+          source: "client" | "platform" | "none";
+        }
+      > = {};
+      for (const network of NETWORKS) {
+        byNetwork[network] = {
+          configured: false,
+          client_id: null,
+          updated_at: null,
+          platform_available: platform[network],
+          source: platform[network] ? "platform" : "none",
+        };
+      }
       for (const row of data ?? []) {
-        byNetwork[row.network] = { configured: true, client_id: row.client_id, updated_at: row.updated_at };
+        byNetwork[row.network] = {
+          configured: true,
+          client_id: row.client_id,
+          updated_at: row.updated_at,
+          platform_available: platform[row.network as keyof typeof platform] ?? false,
+          source: "client",
+        };
       }
 
       return new Response(JSON.stringify({ success: true, credentials: byNetwork }), {
@@ -86,7 +146,8 @@ Deno.serve(async (req) => {
       });
       if (error) throw error;
 
-      return new Response(JSON.stringify({ success: true }), {
+      const reconnect = await invalidateConnection(admin, network);
+      return new Response(JSON.stringify({ success: true, requires_reconnect: reconnect }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -102,7 +163,8 @@ Deno.serve(async (req) => {
       const { error } = await admin.from("social_app_credentials").delete().eq("network", network);
       if (error) throw error;
 
-      return new Response(JSON.stringify({ success: true }), {
+      const reconnect = await invalidateConnection(admin, network);
+      return new Response(JSON.stringify({ success: true, requires_reconnect: reconnect }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
