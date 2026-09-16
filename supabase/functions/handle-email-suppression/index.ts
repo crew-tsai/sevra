@@ -1,8 +1,10 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { WebhookError, verifyWebhookRequest } from 'npm:@lovable.dev/webhooks-js'
+import { verifySvix } from '../_shared/webhook-verify.ts'
 
-// Suppression event payload sent by the Go API when Mailgun reports
-// a bounce, complaint, or unsubscribe.
+// Suppression events from the email provider's webhook (Resend, Svix-signed).
+// A bounce or complaint must reach the suppression list: continuing to mail an
+// address that already hard-bounced is the fastest way to lose sending
+// reputation for every client on the domain.
 interface SuppressionPayload {
   email: string
   reason: 'bounce' | 'complaint' | 'unsubscribe'
@@ -12,17 +14,6 @@ interface SuppressionPayload {
   retry_count: number
 }
 
-function parseSuppressionPayload(body: string): SuppressionPayload {
-  const parsed = JSON.parse(body)
-  if (!parsed.data) {
-    throw new Error('Missing data field in payload')
-  }
-  const data = parsed.data as SuppressionPayload
-  if (!data.email || !data.reason) {
-    throw new Error('Missing required fields: email, reason')
-  }
-  return data
-}
 
 function jsonResponse(data: Record<string, unknown>, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -36,47 +27,54 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'Method not allowed' }, 405)
   }
 
-  const apiKey = Deno.env.get('LOVABLE_API_KEY')
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
-  if (!apiKey || !supabaseUrl || !supabaseServiceKey) {
+  if (!supabaseUrl || !supabaseServiceKey) {
     console.error('Missing required environment variables')
     return jsonResponse({ error: 'Server configuration error' }, 500)
   }
 
-  // Verify HMAC signature using the Lovable API Key (same as auth-email-hook)
+  // This endpoint is public — the provider calls it — so the signature is the
+  // only thing separating a real bounce from anyone who can POST. Without a
+  // secret configured it refuses rather than trusting the body, because an
+  // unauthenticated caller could otherwise suppress any address at will and
+  // silently stop mail reaching it.
+  const verified = await verifySvix(req, Deno.env.get('EMAIL_WEBHOOK_SECRET'))
+  if (!verified.ok) {
+    const status = verified.reason === 'no_secret' ? 503 : 401
+    console.error('Webhook verification failed', { reason: verified.reason })
+    return jsonResponse({ error: `Webhook rejected: ${verified.reason}` }, status)
+  }
+
   let payload: SuppressionPayload
   try {
-    const verified = await verifyWebhookRequest({
-      req,
-      secret: apiKey,
-      parser: parseSuppressionPayload,
-    })
-    payload = verified.payload
-  } catch (error) {
-    if (error instanceof WebhookError) {
-      switch (error.code) {
-        case 'invalid_signature':
-          console.error('Invalid webhook signature')
-          return jsonResponse({ error: 'Invalid signature' }, 401)
-        case 'stale_timestamp':
-          console.error('Stale webhook timestamp')
-          return jsonResponse({ error: 'Stale timestamp' }, 401)
-        case 'invalid_payload':
-        case 'invalid_json':
-          console.error('Invalid payload', { code: error.code })
-          return jsonResponse({ error: 'Invalid payload' }, 400)
-        default:
-          console.error('Webhook verification failed', {
-            code: error.code,
-            message: error.message,
-          })
-          return jsonResponse({ error: 'Verification failed' }, 401)
-      }
+    const event = JSON.parse(verified.body) as {
+      type?: string
+      data?: { to?: string[] | string; email_id?: string }
     }
-    console.error('Unexpected error during verification', { error })
-    return jsonResponse({ error: 'Internal error' }, 500)
+    // Resend names these email.bounced / email.complained; anything else is a
+    // delivery or open notification we have no use for.
+    const reason =
+      event.type === 'email.bounced' ? 'bounce'
+      : event.type === 'email.complained' ? 'complaint'
+      : null
+    if (!reason) {
+      return jsonResponse({ ok: true, ignored: event.type ?? 'unknown' }, 200)
+    }
+    const to = Array.isArray(event.data?.to) ? event.data?.to[0] : event.data?.to
+    if (!to) return jsonResponse({ error: 'Event carried no recipient' }, 400)
+
+    payload = {
+      email: to,
+      reason,
+      message_id: event.data?.email_id,
+      is_retry: false,
+      retry_count: 0,
+    } as SuppressionPayload
+  } catch (error) {
+    console.error('Invalid webhook payload', { error })
+    return jsonResponse({ error: 'Invalid payload' }, 400)
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey)

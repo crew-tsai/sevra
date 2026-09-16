@@ -27,7 +27,7 @@ The trade-off is that no single place shows the client portfolio. That is what t
 | REST API | Supabase PostgREST |
 | Edge Functions | Deno (17 functions) |
 | AI | Google Gemini direct — `gemini-3-flash-preview`, `gemini-2.5-flash`, `gemini-2.5-flash-image` (see [`_shared/ai.ts`](supabase/functions/_shared/ai.ts)) |
-| Email queue | pgmq + pg_cron + transactional email edge functions |
+| Email queue | pgmq + pg_cron + Resend |
 | Scheduler | pg_cron — `sevra-social-monitor-15min`, `process-email-queue-5s`, `sevra-deployment-heartbeat-15min` |
 
 > Only `admin` currently changes what a user can do. `coordinador`, `manager` and `ejecutivo` are recorded against each person but do not yet restrict anything, and every signed-in user can read the workspace. `soporte` marks Sevra staff (see [Support access](#support-access)).
@@ -106,7 +106,8 @@ An end-user walkthrough for the client's administrator is kept separately as the
 | Secret | Required | Purpose |
 |---|---|---|
 | `GEMINI_API_KEY` | Yes | Google AI Studio key: analysis, asset generation, Agent Stripes, monitoring |
-| `LOVABLE_API_KEY` | Yes (email only) | Still required by the email pipeline until it is migrated off Lovable |
+| `RESEND_API_KEY` | Yes | Transactional email delivery |
+| `EMAIL_WEBHOOK_SECRET` | No | Verifies the provider's bounce/complaint webhook. Unset ⇒ the endpoint refuses everything |
 | `SITE_URL` | Yes | Public app origin; used to build the OAuth return URL |
 | `CONTROL_PLANE_URL` | No | Control plane project URL. Unset ⇒ the deployment does not report |
 | `HEARTBEAT_SECRET` | No | Shared secret authenticating the heartbeat |

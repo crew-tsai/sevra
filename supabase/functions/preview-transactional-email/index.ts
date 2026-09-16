@@ -1,6 +1,7 @@
 import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,30 +9,39 @@ const corsHeaders = {
 }
 
 // Renders all registered templates with their previewData.
-// Gated by LOVABLE_API_KEY — only the Go API calls this.
+//
+// Admin-only. It was gated on LOVABLE_API_KEY, a vendor credential that no
+// longer exists on these deployments, which left it unreachable rather than
+// secure. The people who need it are this workspace's admins.
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
-  const apiKey = Deno.env.get('LOVABLE_API_KEY')
-  if (!apiKey) {
-    return new Response(
-      JSON.stringify({ error: 'Server configuration error' }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+
+  // The gateway accepts the public anon key as a valid JWT, so it establishes
+  // nothing about the caller. Only this does.
+  const authHeader = req.headers.get('Authorization') ?? ''
+  const userClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    global: { headers: { Authorization: authHeader } },
+  })
+  const { data: userData } = await userClient.auth.getUser()
+  const userId = userData?.user?.id ?? null
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Not authenticated' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   }
 
-  // Verify the caller is authorized with LOVABLE_API_KEY
-  const authHeader = req.headers.get('Authorization')
-  const token = authHeader?.replace(/^Bearer\s+/i, '')
-  if (token !== apiKey) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
+  const admin = createClient(supabaseUrl, serviceKey)
+  const { data: isAdmin } = await admin.rpc('is_admin', { _user_id: userId })
+  if (!isAdmin) {
+    return new Response(JSON.stringify({ error: 'Admin access required' }), {
+      status: 403,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }

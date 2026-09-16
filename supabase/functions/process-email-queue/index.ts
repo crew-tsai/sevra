@@ -1,4 +1,4 @@
-import { sendLovableEmail } from 'npm:@lovable.dev/email-js'
+import { providerConfigured, sendTransactional } from '../_shared/email-provider.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const MAX_RETRIES = 5
@@ -79,15 +79,25 @@ async function moveToDlq(
 }
 
 Deno.serve(async (req) => {
-  const apiKey = Deno.env.get('LOVABLE_API_KEY')
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
-  if (!apiKey || !supabaseUrl || !supabaseServiceKey) {
+  if (!supabaseUrl || !supabaseServiceKey) {
     console.error('Missing required environment variables')
     return new Response(
       JSON.stringify({ error: 'Server configuration error' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
+
+  // Say which thing is missing. The previous guard lumped the provider key in
+  // with the platform's own variables and answered every case with "Server
+  // configuration error", which is what let ~946,000 identical failures
+  // accumulate here without anyone being able to tell what was wrong.
+  if (!providerConfigured()) {
+    return new Response(
+      JSON.stringify({ error: 'No email provider configured (RESEND_API_KEY)' }),
+      { status: 503, headers: { 'Content-Type': 'application/json' } }
     )
   }
 
@@ -249,26 +259,17 @@ Deno.serve(async (req) => {
       }
 
       try {
-        await sendLovableEmail(
-          {
-            run_id: payload.run_id,
-            to: payload.to,
-            from: payload.from,
-            sender_domain: payload.sender_domain,
-            subject: payload.subject,
-            html: payload.html,
-            text: payload.text,
-            purpose: payload.purpose,
-            label: payload.label,
-            idempotency_key: payload.idempotency_key,
-            unsubscribe_token: payload.unsubscribe_token,
-            message_id: payload.message_id,
-          },
-          // sendUrl is optional — when LOVABLE_SEND_URL is not set, the library
-          // falls back to the default Lovable API endpoint (https://api.lovable.dev).
-          // Set LOVABLE_SEND_URL as a Supabase secret to override (e.g. for local dev).
-          { apiKey, sendUrl: Deno.env.get('LOVABLE_SEND_URL') }
-        )
+        await sendTransactional({
+          to: payload.to,
+          from: payload.from,
+          subject: payload.subject,
+          html: payload.html,
+          text: payload.text,
+          // Falls back to message_id so a retry after a crash between "sent"
+          // and "removed from queue" still collapses at the provider.
+          idempotency_key: payload.idempotency_key ?? payload.message_id,
+          unsubscribe_token: payload.unsubscribe_token,
+        })
 
         // Log success
         await supabase.from('email_send_log').insert({
