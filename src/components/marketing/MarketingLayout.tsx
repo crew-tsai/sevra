@@ -95,7 +95,17 @@ export default function MarketingLayout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <img src={sevraLogo} alt="Sevra logo" className="h-12 sm:h-16 md:h-24 lg:h-32 w-auto" />
-            <span className="text-xs sm:text-sm text-muted-foreground">© {new Date().getFullYear()} Sevra. All rights reserved.</span>
+            <span className="text-xs sm:text-sm text-muted-foreground">
+              © {new Date().getFullYear()} Sevra · a product by{" "}
+              <a
+                href="https://thestellar.ai"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-foreground underline underline-offset-2 decoration-border"
+              >
+                The Stellar Crew
+              </a>
+            </span>
           </div>
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
             <Link to="/product" className="hover:text-foreground">Product</Link>

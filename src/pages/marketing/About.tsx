@@ -43,8 +43,9 @@ export default function About() {
         <p className="text-xs uppercase tracking-widest text-primary">About Us</p>
         <h1 className="mt-3 text-4xl sm:text-5xl font-bold tracking-tight">Built by people who've lived the crisis.</h1>
         <p className="mt-5 text-muted-foreground max-w-2xl mx-auto">
-          Sevra was founded to give crisis teams the clarity, speed and confidence they need when the world
-          is watching. We bring decades of experience across communications, technology, law and growth.
+          Sevra was built by <a href="https://thestellar.ai" target="_blank" rel="noreferrer" className="text-foreground hover:text-primary underline underline-offset-2 decoration-border">The Stellar Crew</a> to
+          give crisis teams the clarity, speed and confidence they need when the world is watching. We bring
+          decades of experience across communications, technology, law and growth.
         </p>
       </section>
 

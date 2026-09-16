@@ -62,6 +62,7 @@ export default function Login() {
           </div>
           <h1 className="sr-only">Sign in to Sevra</h1>
           <p className="text-sm text-muted-foreground">Enterprise crisis management platform</p>
+          <p className="text-xs text-muted-foreground/70">a product by The Stellar Crew</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
