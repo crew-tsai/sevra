@@ -47,11 +47,14 @@ Deno.serve(async (req) => {
         admin.from("incident_assets").select("id", { count: "exact", head: true }),
         admin.from("social_mentions").select("id", { count: "exact", head: true }),
         admin.from("user_roles").select("id", { count: "exact", head: true }),
-        admin
-          .from("social_connections")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "connected"),
+        // Names, not just a count: "0 networks" and "2 networks" read the same
+        // when you are trying to work out why a client's monitoring is quiet.
+        admin.from("social_connections").select("network").eq("status", "connected"),
       ]);
+
+    const connectedNetworks = ((social.data ?? []) as Array<{ network: string }>)
+      .map((r) => r.network)
+      .sort();
 
     const payload = {
       project_ref: projectRef,
@@ -64,7 +67,11 @@ Deno.serve(async (req) => {
         assets_total: assets.count ?? 0,
         mentions_total: mentions.count ?? 0,
         users_total: users.count ?? 0,
-        social_connected: social.count ?? 0,
+        social_connected: connectedNetworks.length,
+        // Which networks, not just how many. A count of 0 and a count of 2 read
+        // the same when you are trying to work out why a client's monitoring is
+        // quiet; the names say whether anything was ever connected.
+        social_networks: connectedNetworks,
       },
     };
 

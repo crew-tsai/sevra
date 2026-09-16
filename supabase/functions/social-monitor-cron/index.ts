@@ -293,17 +293,25 @@ Deno.serve(async (req) => {
       }
     }
 
-    const { data: settings } = await admin.from("company_settings").select("company_name, industry").maybeSingle();
+    const { data: settings } = await admin.from("company_settings").select("company_name, industry, simulation_enabled").maybeSingle();
     const companyName = settings?.company_name ?? null;
     const industry = settings?.industry ?? null;
 
     const networkErrors: Record<string, string> = {};
 
+    // Only fabricate mentions where a workspace has explicitly asked for it.
+    // These become incident rows indistinguishable from real ones, and a
+    // client who connected nothing should see an empty board, not invented
+    // emergencies.
+    const simulate = settings?.simulation_enabled === true;
+
     const [simPosts, xResult, fbResult] = await Promise.all([
-      generateSimulatedMentions(companyName, industry).catch((e) => {
-        networkErrors.simulation = e?.message ?? String(e);
-        return [];
-      }),
+      simulate
+        ? generateSimulatedMentions(companyName, industry).catch((e) => {
+            networkErrors.simulation = e?.message ?? String(e);
+            return [];
+          })
+        : Promise.resolve([] as any[]),
       pullRealX(admin, companyName),
       pullRealFacebook(admin),
     ]);
