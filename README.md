@@ -1,5 +1,7 @@
 # Sevra — AI-Powered Crisis Communications Platform
 
+A product by [The Stellar Crew](https://thestellar.ai).
+
 Sevra is an AI-driven crisis communications platform for organizations that have to answer publicly when something goes wrong — transportation operators, healthcare providers, financial institutions, utilities, retailers, public agencies and more. It ingests social media mentions and manual reports, uses AI to triage them into structured incidents with risk scoring, generates a full communication asset package, gates publication behind a two-stage approval workflow, and maintains an append-only audit trail.
 
 The workspace retunes itself to the customer: setting the industry in Admin → Company changes the incident field labels (a rail operator is asked for a *train number* and *station code*; a hospital for a *case ID* and *facility*), swaps the incident sub-type taxonomy (an airline files a *baggage system failure*, a hospital a *medication error*, a bank a *payments outage*), and briefs the AI that classifies mentions and drafts communications.
