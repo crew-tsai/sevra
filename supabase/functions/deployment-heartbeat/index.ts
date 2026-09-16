@@ -49,11 +49,14 @@ Deno.serve(async (req) => {
         admin.from("user_roles").select("id", { count: "exact", head: true }),
         // Names, not just a count: "0 networks" and "2 networks" read the same
         // when you are trying to work out why a client's monitoring is quiet.
-        admin.from("social_connections").select("network").eq("status", "connected"),
+        admin.from("social_connections").select("network, account_label").eq("status", "connected"),
       ]);
 
-    const connectedNetworks = ((social.data ?? []) as Array<{ network: string }>)
-      .map((r) => r.network)
+    // The handle, not just the network. A network name says monitoring is on;
+    // the handle says *whose* account it is watching -- which is how you catch
+    // a client wired to the wrong account. Public handles only, never content.
+    const connectedNetworks = ((social.data ?? []) as Array<{ network: string; account_label: string | null }>)
+      .map((r) => (r.account_label ? `${r.network}:${r.account_label}` : r.network))
       .sort();
 
     const payload = {
