@@ -2,18 +2,11 @@ import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
+import { fromAddress, senderDomain } from '../_shared/sender-identity.ts'
 
-// Configuration baked in at scaffold time — do NOT change these manually.
-// To update, re-run the email domain setup flow.
-const SITE_NAME = "sevra"
-// SENDER_DOMAIN is the verified sender subdomain FQDN (e.g., "notify.example.com").
-// It MUST match the subdomain delegated to Lovable's nameservers — never the root domain.
-// The email API looks up this exact domain; a mismatch causes "No email domain record found".
-const SENDER_DOMAIN = "notify.thestellar.ai"
-// FROM_DOMAIN is the domain shown in the From: header (e.g., "example.com").
-// When display_from_root is enabled, this can be the root domain for cleaner branding,
-// even though actual sending uses the subdomain above.
-const FROM_DOMAIN = "thestellar.ai"
+// Sender identity is per deployment, not baked in — see _shared/sender-identity.ts
+// for why (one shared sending domain meant one shared reputation across every
+// client). Unset falls back to Sevra's own domain.
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -297,6 +290,17 @@ Deno.serve(async (req) => {
     )
   }
 
+  // The email is the client's communication to their own people, so it is
+  // signed with their name, not the vendor's. An explicit companyName in
+  // templateData still wins.
+  if (!templateData.companyName) {
+    const { data: settings } = await supabase
+      .from('company_settings')
+      .select('company_name')
+      .maybeSingle()
+    if (settings?.company_name) templateData.companyName = settings.company_name
+  }
+
   // 4. Render React Email template to HTML and plain text
   const html = await renderAsync(
     React.createElement(template.component, templateData)
@@ -328,8 +332,8 @@ Deno.serve(async (req) => {
     payload: {
       message_id: messageId,
       to: effectiveRecipient,
-      from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-      sender_domain: SENDER_DOMAIN,
+      from: fromAddress(),
+      sender_domain: senderDomain(),
       subject: resolvedSubject,
       html,
       text: plainText,

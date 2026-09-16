@@ -113,8 +113,29 @@ An end-user walkthrough for the client's administrator is kept separately as the
 | `PLATFORM_X_CLIENT_ID` / `_SECRET` | No | Sevra's X app. Unset ⇒ X connects only with the client's own app |
 | `PLATFORM_META_CLIENT_ID` / `_SECRET` | No | Sevra's Meta app, shared by Facebook **and** Instagram |
 | `PLATFORM_TIKTOK_CLIENT_ID` / `_SECRET` | No | Sevra's TikTok app |
+| `SENDER_DOMAIN` | No | Verified sending subdomain, e.g. `notify.client.com`. Unset ⇒ Sevra's |
+| `FROM_DOMAIN` | No | Domain in the `From:` header, e.g. `client.com` |
+| `SITE_NAME` | No | Display name in the `From:` header |
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are injected by Supabase automatically.
+
+### Who transactional email comes from
+
+Sevra holds **one** provider account and operates it; each client verifies their
+**own** sending subdomain under it. Set `SENDER_DOMAIN`, `FROM_DOMAIN` and `SITE_NAME`
+per deployment (see [`_shared/sender-identity.ts`](supabase/functions/_shared/sender-identity.ts)).
+
+This is not cosmetic. With one shared sending domain, every client shares one sending
+reputation — spam complaints against one degrade deliverability for all of them. The
+product isolates data structurally, one database per client; leaving the outbound channel
+shared quietly undoes that for email. Separate domains keep reputation separated without
+asking a comms team to go register anything.
+
+Unset falls back to Sevra's domain, which is correct for a client who hasn't verified
+theirs yet: mail still sends, it just isn't branded to them.
+
+The client's Google Workspace (or whatever hosts their human mailboxes) is unaffected —
+only DKIM/SPF records on the sending **subdomain** are involved, never the root domain's MX.
 
 ### Which developer app a social connection uses
 

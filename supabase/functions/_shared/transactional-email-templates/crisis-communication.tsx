@@ -12,7 +12,11 @@ import {
 } from 'npm:@react-email/components@0.0.22'
 import type { TemplateEntry } from './registry.ts'
 
-const SITE_NAME = 'Sevra'
+// The sending organisation, not the vendor. This email is the client's
+// communication to their own people; signing it "The Sevra team" or calling
+// Sevra "our platform" misattributes it at the moment attribution matters most.
+// Falls back only when the workspace has no company name set.
+const DEFAULT_ORG = 'Communications'
 
 interface CrisisCommunicationProps {
   assetTitle?: string
@@ -22,6 +26,7 @@ interface CrisisCommunicationProps {
   packageRef?: string
   recipientName?: string
   senderName?: string
+  companyName?: string
 }
 
 const ASSET_TYPE_LABELS: Record<string, string> = {
@@ -40,6 +45,7 @@ const CrisisCommunicationEmail = ({
   packageRef,
   recipientName,
   senderName,
+  companyName,
 }: CrisisCommunicationProps) => {
   const typeLabel = ASSET_TYPE_LABELS[assetType] || assetType
   const greeting = recipientName ? `Hi ${recipientName},` : 'Hi,'
@@ -85,13 +91,11 @@ const CrisisCommunicationEmail = ({
           <Hr style={hr} />
 
           <Text style={signoff}>
-            {senderName ? `— ${senderName}` : `— The ${SITE_NAME} team`}
+            {senderName ? `— ${senderName}` : `— The ${companyName || DEFAULT_ORG} team`}
           </Text>
 
           <Text style={footer}>
-            This message was sent via {SITE_NAME}, our crisis communications
-            platform. Please treat this content as confidential until publicly
-            released.
+            Please treat this content as confidential until publicly released.
           </Text>
         </Container>
       </Body>
