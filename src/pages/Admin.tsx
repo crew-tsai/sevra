@@ -177,11 +177,24 @@ export default function Admin() {
       comms_manual_url: manualUrl,
       comms_manual_name: manualName,
     };
-    const { error } = settingsId
-      ? await supabase.from("company_settings").update(payload).eq("id", settingsId)
-      : await supabase.from("company_settings").insert(payload);
+    // .select() is what makes this honest. An UPDATE blocked by RLS affects
+    // zero rows and returns no error, so without checking what came back we
+    // would report "Saved" over a write that never happened -- and then
+    // loadSettings() would quietly restore the old values, which reads to the
+    // user as their input being deleted.
+    const { data, error } = settingsId
+      ? await supabase.from("company_settings").update(payload).eq("id", settingsId).select()
+      : await supabase.from("company_settings").insert(payload).select();
     setSavingSettings(false);
     if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
+    if (!data || data.length === 0) {
+      return toast({
+        title: "Not saved",
+        description:
+          "You don't have permission to change company settings. Ask an administrator, or ask them to grant you the admin role.",
+        variant: "destructive",
+      });
+    }
     toast({ title: "Saved", description: "Settings updated." });
     await loadSettings();
   }
@@ -280,7 +293,7 @@ export default function Admin() {
           <Card>
             <CardHeader>
               <CardTitle>Company information</CardTitle>
-              <CardDescription>Transportation type and communications manual.</CardDescription>
+              <CardDescription>Company name, industry and communications manual.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
