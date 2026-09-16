@@ -24,9 +24,25 @@ export function senderDomain(): string {
   return Deno.env.get("SENDER_DOMAIN")?.trim() || "notify.thestellar.ai";
 }
 
-/** Domain shown in the From: header, e.g. "client.com". */
+/**
+ * Domain shown in the From: header.
+ *
+ * Defaults to the verified sending domain rather than the root. The previous
+ * default was the root domain, inherited from a Mailgun setup that allowed
+ * displaying one domain while sending through another. Resend refuses that
+ * outright:
+ *
+ *   This API key is not authorized to send emails from thestellar.ai
+ *
+ * Most providers now require the From: domain to be the one actually
+ * verified, and anti-spoofing checks at the recipient expect the same, so
+ * defaulting to the sending domain is both what works and what aligns.
+ *
+ * Set FROM_DOMAIN explicitly only when that exact domain is also verified
+ * with the provider.
+ */
 export function fromDomain(): string {
-  return Deno.env.get("FROM_DOMAIN")?.trim() || "thestellar.ai";
+  return Deno.env.get("FROM_DOMAIN")?.trim() || senderDomain();
 }
 
 /** Display name in the From: header. */
