@@ -10,6 +10,7 @@ import { SendEmailDialog } from "@/components/SendEmailDialog";
 import { AssetComments } from "@/components/AssetComments";
 import { PublishSocialDialog } from "@/components/PublishSocialDialog";
 import { isEmailAsset, isSocialAsset, socialNetworkLabel } from "@/lib/distribution";
+import { profileFor } from "@/lib/industries";
 import { CheckCircle2, XCircle, FileText, Copy, Loader2, ExternalLink, Megaphone, MessageSquare, Users, HelpCircle, RefreshCw, LayoutDashboard, X, Filter, Mail, Send, ChevronDown, Film, Building2, Briefcase, Newspaper, Headphones, Pencil, MessageCircle, Lock, Upload, Sparkles, Image as ImageIcon, Video } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -112,6 +113,7 @@ export default function Approvals() {
   const [mediaBusyId, setMediaBusyId] = useState<string | null>(null);
   const [showPromptFor, setShowPromptFor] = useState<Set<string>>(new Set());
   const [promptDraft, setPromptDraft] = useState<Record<string, string>>({});
+  const [industry, setIndustry] = useState<string | null>(null);
   const mediaInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   useEffect(() => {
@@ -126,6 +128,13 @@ export default function Approvals() {
       if (!cancelled) {
         setIsAdmin((roles ?? []).some((r: { role: string }) => r.role === "admin"));
       }
+      // The suggested image prompt names the industry, so it has to come from
+      // the workspace rather than being assumed.
+      const { data: settings } = await supabase
+        .from("company_settings")
+        .select("industry")
+        .maybeSingle();
+      if (!cancelled) setIndustry(settings?.industry ?? null);
     })();
     return () => {
       cancelled = true;
@@ -245,8 +254,14 @@ export default function Approvals() {
     setTab("pending");
   };
 
+  // Deliberately not photo-realistic. This image accompanies a crisis
+  // statement, and a synthetic photo of the event reads to an audience as
+  // documentation of it — which turns one crisis into two. A branded graphic
+  // carries the message without pretending to be evidence.
   const suggestedImagePrompt = (asset: Asset) =>
-    `Photo-realistic image for an airline social media post: ${asset.content.replace(/\s+/g, " ").trim().slice(0, 200)}`;
+    `Clean, professional branded graphic for a ${profileFor(industry).simFlavor} operator's ` +
+    `social media post. No photo-realistic depiction of people, vehicles or the incident ` +
+    `itself. Message: ${asset.content.replace(/\s+/g, " ").trim().slice(0, 200)}`;
 
   const uploadMedia = async (asset: Asset, file: File) => {
     const isVideo = asset.asset_type === "tiktok_script";

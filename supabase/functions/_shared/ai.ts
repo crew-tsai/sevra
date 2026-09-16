@@ -26,12 +26,24 @@ const NATIVE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
  */
 export const MODELS = {
   /** Classification and reasoning. */
-  reasoning: "gemini-3-flash-preview",
+  reasoning: "gemini-3.8-flash",
   /** Drafting and lighter-weight generation. */
-  fast: "gemini-2.5-flash",
+  fast: "gemini-3.8-flash",
   /** Image generation. */
-  image: "gemini-2.5-flash-image",
+  image: "gemini-3.1-flash-image",
 } as const;
+
+// These ids were chosen by calling them, not by reading a model list. Two traps
+// turned up doing that and are worth not re-learning:
+//
+//   - gemini-2.5-flash is still advertised by ListModels, but generateContent
+//     rejects it for newer keys: "no longer available to new users".
+//   - gemini-3-flash-preview answers a tool-calling request, but came back
+//     without a tool_call. Three of the four call sites parse one and would
+//     have failed. A model responding is not enough; it has to return tools.
+//
+// `reasoning` and `fast` are the same model for now because that is what was
+// verified to do both. Split them again only after testing the candidate.
 
 export function aiKey(): string | null {
   return Deno.env.get("GEMINI_API_KEY")?.trim() || null;
