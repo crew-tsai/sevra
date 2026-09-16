@@ -57,10 +57,27 @@ ALTER FUNCTION public.move_to_dlq(text, text, bigint, jsonb) SET search_path = p
 ALTER FUNCTION public.update_updated_at_column() SET search_path = public;
 
 -- 7. Realtime authorization: only authenticated users can subscribe
-ALTER TABLE realtime.messages ENABLE ROW LEVEL SECURITY;
+--
+-- realtime.messages is owned by supabase_realtime_admin. Applied through the
+-- CLI this runs fine, but automated provisioning reaches the database through
+-- the Management API as `postgres`, which is not a member of that role and
+-- cannot SET ROLE to it -- so the statement is simply impossible on that path
+-- and would abort the whole migration run.
+--
+-- Skipping it costs little here: this governs Broadcast and Presence channels,
+-- and this product subscribes only via postgres_changes, which is gated by the
+-- publication plus each table's own RLS instead. The WARNING makes the gap
+-- visible rather than silent.
+DO $realtime_rls$
+BEGIN
+  ALTER TABLE realtime.messages ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Authenticated can read realtime messages" ON realtime.messages;
-CREATE POLICY "Authenticated can read realtime messages"
-ON realtime.messages
-FOR SELECT TO authenticated
-USING (true);
+  DROP POLICY IF EXISTS "Authenticated can read realtime messages" ON realtime.messages;
+  CREATE POLICY "Authenticated can read realtime messages"
+  ON realtime.messages
+  FOR SELECT TO authenticated
+  USING (true);
+EXCEPTION WHEN insufficient_privilege THEN
+  RAISE WARNING 'Skipped realtime.messages RLS: not owner. Broadcast/Presence channels are unrestricted on this deployment.';
+END
+$realtime_rls$;
