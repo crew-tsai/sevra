@@ -19,6 +19,7 @@ import { z } from "zod";
 import EmailListsManager from "@/components/admin/EmailListsManager";
 import ResponsibilityMatrixEditor from "@/components/admin/ResponsibilityMatrixEditor";
 import SocialConnectionsManager from "@/components/admin/SocialConnectionsManager";
+import SendingDomainManager from "@/components/admin/SendingDomainManager";
 import { INDUSTRY_GROUPS } from "@/lib/industries";
 
 const ROLES = [
@@ -520,6 +521,7 @@ export default function Admin() {
 
         {/* EMAIL LISTS */}
         <TabsContent value="lists" className="space-y-4">
+          <SendingDomainManager />
           <EmailListsManager />
         </TabsContent>
 

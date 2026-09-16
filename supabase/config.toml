@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.deployment-heartbeat]
 verify_jwt = false
+
+[functions.email-domain]
+verify_jwt = false
