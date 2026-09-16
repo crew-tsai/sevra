@@ -108,7 +108,18 @@ export default function Admin() {
   }
 
   async function loadSettings() {
-    const { data } = await supabase.from("company_settings").select("*").maybeSingle();
+    // A swallowed read error here is indistinguishable from "there is nothing
+    // saved": the fields render empty and the user concludes the workspace
+    // threw their input away. Say which it is.
+    const { data, error } = await supabase.from("company_settings").select("*").maybeSingle();
+    if (error) {
+      toast({
+        title: "Couldn't load company settings",
+        description: `${error.message} — your saved settings are still there; this is a loading problem.`,
+        variant: "destructive",
+      });
+      return;
+    }
     if (data) {
       setSettingsId(data.id);
       setCompanyName(data.company_name ?? "");
