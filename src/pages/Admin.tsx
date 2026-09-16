@@ -92,8 +92,29 @@ export default function Admin() {
 
   async function init() {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setLoading(false); return; }
+    // getUser() is a network call that returns {user: null} on failure rather
+    // than throwing. Treating that as "not signed in" shows a real admin the
+    // Restricted access page and skips loading their settings -- which is what
+    // a transient blip looks like from the user's side: their workspace
+    // suddenly forgot who they are and lost their data.
+    //
+    // getSession() reads local storage, so it distinguishes "no session" from
+    // "couldn't reach the server just now".
+    const { data: { user }, error: userErr } = await supabase.auth.getUser();
+    if (!user) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setLoading(false);
+        toast({
+          title: "Couldn't verify your account",
+          description: `${userErr?.message ?? "The server didn't respond"} — reload the page. Nothing has been lost.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      setLoading(false);
+      return;
+    }
 
     const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
     const admin = roles?.some((r: any) => r.role === "admin") ?? false;
