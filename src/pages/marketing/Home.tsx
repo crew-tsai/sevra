@@ -14,6 +14,14 @@ import dashboardShot from "@/assets/product-dashboard.png";
 import dashboardMobileShot from "@/assets/product-dashboard-mobile.png";
 import { INDUSTRY_GROUPS } from "@/lib/industries";
 
+/** Marketing wording for the sector names. Anything unmapped shows as-is. */
+const SECTOR_LABEL: Record<string, string> = {
+  Health: "Healthcare",
+  Finance: "Financial Services",
+  Consumer: "Retail & Hospitality",
+  Infrastructure: "Energy, Utilities & Telecoms",
+};
+
 const leadSchema = z.object({
   name: z.string().trim().min(1, "Name required").max(100),
   email: z.string().trim().email("Invalid email").max(255),
@@ -134,7 +142,7 @@ export default function Home() {
                     <Input id="company" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="industry">Transportation type</Label>
+                    <Label htmlFor="industry">Industry</Label>
                     <select
                       id="industry"
                       value={form.industry}
@@ -169,8 +177,8 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <p className="text-xs uppercase tracking-widest text-muted-foreground text-center">Built for crisis teams across</p>
           <div className="mt-6 flex flex-wrap justify-center gap-x-10 gap-y-3 text-muted-foreground">
-            {["Airlines", "Rail", "Bus/Coach", "Maritime/Ferry", "Ride-hailing", "Public Transit", "Freight/Logistics"].map((i) => (
-              <span key={i} className="text-sm font-medium">{i}</span>
+            {INDUSTRY_GROUPS.filter((g) => g.group !== "Other").map((g) => (
+              <span key={g.group} className="text-sm font-medium">{SECTOR_LABEL[g.group] ?? g.group}</span>
             ))}
           </div>
         </div>
