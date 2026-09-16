@@ -83,9 +83,47 @@ export function fromDomain(): string {
   return Deno.env.get("FROM_DOMAIN")?.trim() || senderDomain();
 }
 
-/** Display name in the From: header. */
+/** Display name in the From: header, when nothing better is known. */
 export function siteName(): string {
   return Deno.env.get("SITE_NAME")?.trim() || "sevra";
+}
+
+/**
+ * The full From: header, resolved from the workspace's own settings.
+ *
+ * Verifying a domain means proving control of its DNS, which no provider will
+ * let anyone skip -- it is what stops strangers mailing as your company. But
+ * the *display name* needs no proof, and it is what a recipient actually reads
+ * in their inbox list. So a client who has configured nothing still sends as
+ * themselves:
+ *
+ *   Aeroméxico Comunicación <noreply@notify.thestellar.ai>
+ *
+ * rather than as their software vendor. A client who does verify their own
+ * domain gets both halves.
+ *
+ * Falls back to the platform name if the workspace has no company name yet,
+ * because an empty display name is worse than a generic one.
+ */
+export async function resolveFromAddress(
+  admin: { from: (t: string) => any },
+): Promise<{ from: string; domain: string; source: "env" | "client" | "platform" }> {
+  const { domain, source } = await resolveSenderDomain(admin);
+
+  let name = Deno.env.get("SITE_NAME")?.trim() ?? "";
+  if (!name) {
+    try {
+      const { data } = await admin.from("company_settings").select("company_name").maybeSingle();
+      name = String(data?.company_name ?? "").trim();
+    } catch {
+      // Falls through to the platform name below.
+    }
+  }
+  if (!name) name = siteName();
+
+  // A comma or angle bracket in the display name would break the header.
+  const safe = name.replace(/[<>,"\r\n]/g, " ").trim().slice(0, 64);
+  return { from: `${safe} <noreply@${domain}>`, domain, source };
 }
 
 /** The complete From: header value. */

@@ -2,7 +2,7 @@ import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
-import { fromAddress, senderDomain } from '../_shared/sender-identity.ts'
+import { resolveFromAddress, resolveSenderDomain } from '../_shared/sender-identity.ts'
 
 // Sender identity is per deployment, not baked in — see _shared/sender-identity.ts
 // for why (one shared sending domain meant one shared reputation across every
@@ -332,8 +332,8 @@ Deno.serve(async (req) => {
     payload: {
       message_id: messageId,
       to: effectiveRecipient,
-      from: fromAddress(),
-      sender_domain: senderDomain(),
+      from: (await resolveFromAddress(supabase)).from,
+      sender_domain: (await resolveSenderDomain(supabase)).domain,
       subject: resolvedSubject,
       html,
       text: plainText,

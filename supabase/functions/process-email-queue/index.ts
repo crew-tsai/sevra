@@ -1,4 +1,5 @@
 import { providerConfigured, sendTransactional } from '../_shared/email-provider.ts'
+import { resolveFromAddress } from '../_shared/sender-identity.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const MAX_RETRIES = 5
@@ -259,9 +260,13 @@ Deno.serve(async (req) => {
       }
 
       try {
+        // Resolved here rather than trusted from the queued payload: a message
+        // enqueued before the workspace set its company name or verified its
+        // domain should still go out with whatever is correct *now*.
+        const identity = await resolveFromAddress(supabase)
         await sendTransactional({
           to: payload.to,
-          from: payload.from,
+          from: payload.from ?? identity.from,
           subject: payload.subject,
           html: payload.html,
           text: payload.text,

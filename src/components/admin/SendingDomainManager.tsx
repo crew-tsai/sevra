@@ -98,10 +98,11 @@ export default function SendingDomainManager() {
           )}
         </div>
         <CardDescription>
-          Emails currently go out from Sevra's domain. Point your own domain here and press
-          releases and statements will arrive from your company instead — which matters most
-          with journalists and regulators, who are more likely to trust and open mail from a
-          sender they recognize.
+          Optional. Your emails already arrive under your company's name, so there is nothing
+          you need to do here to start sending. Adding your own domain changes the address
+          they come from as well, which is worth doing before a large send to journalists or
+          regulators — recipients who check the sending domain will see yours rather than
+          Sevra's.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
