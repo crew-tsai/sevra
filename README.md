@@ -12,7 +12,7 @@ Transportation is listed per mode because an airline and a shipping line genuine
 
 **One deployment per client.** Each customer runs in their own Supabase project and their own database. A company's data is isolated structurally, not by policy — a misconfigured rule cannot leak one operator's unpublished holding statement to another, because they do not share a database.
 
-The trade-off is that no single place shows the client portfolio. That is what the separate [control plane](https://github.com/roayca-tech/sevra-console) is for: each deployment reports **metadata only** (company name, industry, counts, health) to a central registry. Incident content never leaves the client's database.
+The trade-off is that no single place shows the client portfolio. That is what the separate [control plane](https://github.com/crew-tsai/sevra-console) is for: each deployment reports **metadata only** (company name, industry, counts, health) to a central registry. Incident content never leaves the client's database.
 
 ---
 
@@ -25,8 +25,8 @@ The trade-off is that no single place shows the client portfolio. That is what t
 | Auth | Supabase GoTrue (email + password, JWT) — **invite-only** |
 | RBAC | `user_roles` table + RLS policies (`admin`, `coordinador`, `manager`, `ejecutivo`, `soporte`) |
 | REST API | Supabase PostgREST |
-| Edge Functions | Deno (17 functions) |
-| AI | Google Gemini direct — `gemini-3-flash-preview`, `gemini-2.5-flash`, `gemini-2.5-flash-image` (see [`_shared/ai.ts`](supabase/functions/_shared/ai.ts)) |
+| Edge Functions | Deno (19 functions) |
+| AI | Google Gemini direct — `gemini-3.8-flash`, `gemini-3.1-flash-image` (see [`_shared/ai.ts`](supabase/functions/_shared/ai.ts)) |
 | Email queue | pgmq + pg_cron + Resend |
 | Scheduler | pg_cron — `sevra-social-monitor-15min`, `process-email-queue-5s`, `sevra-deployment-heartbeat-15min` |
 
@@ -36,7 +36,7 @@ The trade-off is that no single place shows the client portfolio. That is what t
 
 ## Features
 
-- **SEVRA Social Intel** — Pulls real mentions from connected X and Facebook accounts; Instagram and TikTok activity is AI-simulated until direct platform access is in place. AI classifies risk, suggests incident type, and deduplicates against existing incidents
+- **SEVRA Social Intel** — Pulls real mentions from connected X and Facebook accounts. AI classifies risk, suggests incident type, and deduplicates against existing incidents. Instagram and TikTok can be AI-simulated for demos, but `company_settings.simulation_enabled` defaults to **false**: synthetic mentions become real incident rows and are indistinguishable from genuine ones once created, which is not something a client should get by default
 - **Incident Management** — Create, update, and track incidents with crisis level (L0–L4), risk score, and approval status
 - **Assets** — Auto-generated communication assets: press releases, holding statements, social posts, internal memos, Q&As, FAQs. Instagram and TikTok assets can carry an uploaded image/video, or an AI-generated image
 - **Approvals** — Two-stage workflow: a team member sends a draft forward, an admin gives final approval. Approved assets unlock email, direct social publishing, and WhatsApp
@@ -60,7 +60,7 @@ src/
   hooks/          # Custom React hooks
   lib/            # Utilities, industry profiles, distribution helpers
 supabase/
-  functions/      # 17 Deno edge functions
+  functions/      # 19 Deno edge functions
   migrations/     # PostgreSQL migrations (chronological)
   seed.sql        # Optional demo data, airline-flavored — never runs automatically
 ```
@@ -68,6 +68,8 @@ supabase/
 ---
 
 ## Provisioning a new client
+
+**This is automated.** Staff create an invitation in the [control plane](https://github.com/crew-tsai/sevra-console); the client clicks the link and everything below happens on its own in about four minutes — Supabase project, schema, edge functions, secrets, cron wiring, Vercel frontend. The manual sequence is kept for reference and for deployments created by hand.
 
 Each client gets their own Supabase project. Run these in order; **step 4 is required** or nobody, including the client, can create an account.
 
@@ -97,7 +99,7 @@ supabase secrets set \
   HEARTBEAT_SECRET=<shared secret>
 ```
 
-The client's admin then signs up with the designated address, opens **Admin**, and clicks **Claim admin role**. From that point they invite their own team — an invitation both permits registration and assigns the role automatically on signup.
+The client's admin then signs up with the designated address, opens **Admin**, and clicks **Claim admin role**. That whole path is verified end to end: a stranger who finds the URL is refused by the invite-only trigger, the designated address is accepted, and the claim grants the role. From that point they invite their own team — an invitation both permits registration and assigns the role automatically on signup.
 
 An end-user walkthrough for the client's administrator is kept separately as the **Sevra Readiness Guide**.
 
@@ -116,21 +118,43 @@ An end-user walkthrough for the client's administrator is kept separately as the
 | `PLATFORM_TIKTOK_CLIENT_ID` / `_SECRET` | No | Sevra's TikTok app |
 | `SENDER_DOMAIN` | No | Verified sending subdomain, e.g. `notify.client.com`. Unset ⇒ Sevra's |
 | `FROM_DOMAIN` | No | Domain in the `From:` header, e.g. `client.com` |
-| `SITE_NAME` | No | Display name in the `From:` header |
+| `SITE_NAME` | No | Overrides the `From:` display name; defaults to the workspace's company name |
+| `ANTHROPIC_API_KEY` | No | Only `generate-response-plan`, which runs on Claude. Unset ⇒ that one endpoint 500s; nothing else is affected |
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are injected by Supabase automatically.
 
 ### Who transactional email comes from
 
-Sevra holds **one** provider account and operates it; each client verifies their
-**own** sending subdomain under it. Set `SENDER_DOMAIN`, `FROM_DOMAIN` and `SITE_NAME`
-per deployment (see [`_shared/sender-identity.ts`](supabase/functions/_shared/sender-identity.ts)).
+Resolved at send time by [`_shared/sender-identity.ts`](supabase/functions/_shared/sender-identity.ts),
+in this order:
 
-This is not cosmetic. With one shared sending domain, every client shares one sending
-reputation — spam complaints against one degrade deliverability for all of them. The
-product isolates data structurally, one database per client; leaving the outbound channel
-shared quietly undoes that for email. Separate domains keep reputation separated without
-asking a comms team to go register anything.
+| | Display name | Address |
+|---|---|---|
+| Nothing configured | the workspace's own company name | `noreply@notify.thestellar.ai` |
+| Client verified their domain | the workspace's own company name | `noreply@<their subdomain>` |
+| `SENDER_DOMAIN` / `SITE_NAME` set | the env value | the env value |
+
+**No setup is required to send as the client.** Proving you own a domain means proving
+control of its DNS and no provider lets anyone skip that — but a *display name* needs no
+proof, and it is what a recipient reads in their inbox list. So mail arrives from
+`Acme Corp <noreply@notify.thestellar.ai>` rather than from the client's software vendor,
+from the first day.
+
+Verifying their own domain is an upgrade, and it is self-service: **Admin → Email lists →
+Sending domain**. The client types a subdomain, gets the DNS records with copy buttons,
+and presses Check again. Until it verifies, mail keeps going out under Sevra's domain, so
+nothing breaks while DNS propagates. Root domains are refused — a company's root carries
+the MX records its own email runs on.
+
+Why the address matters at all, given the name is already right: these go to journalists
+and regulators. An unfamiliar sending domain mailing press lists is the shape of phishing,
+and a reporter checking authenticity sees a third party. It is also shared reputation —
+spam complaints against one client degrade deliverability for every other, including
+crisis statements, at the moment they matter most.
+
+The provider key that can create and delete domains lives on the control plane, never in a
+client project: one compromised client must not be able to unverify another's domain. The
+client's app relays over the shared-secret channel it already uses for heartbeats.
 
 Unset falls back to Sevra's domain, which is correct for a client who hasn't verified
 theirs yet: mail still sends, it just isn't branded to them.
@@ -153,13 +177,15 @@ Changing the app for a network invalidates any account already connected through
 
 ### Cron jobs
 
-`20260722160000_cron_jobs.sql` and `20260915160000_heartbeat_cron.sql` schedule the jobs but reference a Vault secret by name. Create it once per deployment:
+`20260722160000_cron_jobs.sql` and `20260915160000_heartbeat_cron.sql` schedule the jobs but reference a Vault secret by name. Automated provisioning creates it; for a deployment set up by hand, create it once:
 
 ```sql
 select vault.create_secret('<service_role_key>', 'sevra_cron_service_role_key');
 ```
 
-Without it the scheduled calls fail and "Continuous monitoring" stays inert.
+Without it every scheduled call goes out with an empty bearer and 401s silently — the original deployment accumulated roughly 946,000 such failures before anyone noticed, because a failing cron reports to nobody.
+
+Those migrations also spell out a full function URL, and it is the *original* deployment's. Provisioning rewrites them to point at the new project; a deployment created by hand must be checked, or its jobs call someone else's project instead of their own.
 
 ---
 
