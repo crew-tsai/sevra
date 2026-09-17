@@ -71,7 +71,20 @@ Deno.serve(async (req) => {
     }
     const clientId = creds.clientId;
 
-    const state = crypto.randomUUID();
+    // The state carries this project's ref as a prefix so the central relay
+    // can route the provider's redirect back here without holding any state
+    // of its own. The random half is still what makes it unguessable.
+    const projectRef = new URL(supabaseUrl).hostname.split(".")[0];
+    const state = `${projectRef}.${crypto.randomUUID()}`;
+
+    // Sevra's shared apps register ONE redirect URI — the control plane relay —
+    // rather than every client project's callback. A client's own app has this
+    // project's URL registered directly, so it keeps the direct path.
+    const controlPlane = Deno.env.get("CONTROL_PLANE_URL")?.replace(/\/+$/, "");
+    const redirectUri =
+      creds.source === "platform" && controlPlane
+        ? `${controlPlane}/functions/v1/oauth-relay`
+        : callbackRedirectUri(supabaseUrl);
     let codeVerifier: string | null = null;
     let codeChallenge: string | null = null;
     if (provider.pkce) {
@@ -84,10 +97,12 @@ Deno.serve(async (req) => {
       network,
       code_verifier: codeVerifier,
       created_by: userId,
+      // The exchange must echo exactly this, so it is recorded rather than
+      // recomputed at callback time.
+      redirect_uri: redirectUri,
     });
     if (insErr) throw insErr;
 
-    const redirectUri = callbackRedirectUri(supabaseUrl);
     const params = new URLSearchParams({
       [provider.clientIdParam]: clientId,
       redirect_uri: redirectUri,

@@ -134,7 +134,11 @@ Deno.serve(async (req) => {
     const clientId = creds.clientId;
     const clientSecret = creds.clientSecret;
 
-    const redirectUri = callbackRedirectUri(supabaseUrl);
+    // Must match the authorize request byte for byte. Flows through Sevra's
+    // shared apps started at the control plane relay, not here, so the value
+    // recorded at start time is authoritative; the fallback covers rows
+    // created before it was stored.
+    const redirectUri = stateRow.redirect_uri ?? callbackRedirectUri(supabaseUrl);
     const body = new URLSearchParams({
       grant_type: "authorization_code",
       code,

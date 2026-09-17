@@ -164,6 +164,32 @@ theirs yet: mail still sends, it just isn't branded to them.
 The client's Google Workspace (or whatever hosts their human mailboxes) is unaffected —
 only DKIM/SPF records on the sending **subdomain** are involved, never the root domain's MX.
 
+### One redirect URI for every client
+
+Meta and X require every OAuth redirect URI to be registered on the developer app in
+advance. With Sevra's shared apps serving every client, and every client in its own
+Supabase project with its own callback URL, that would mean adding a URL by hand for
+each new client — and X caps the list.
+
+So flows through Sevra's apps don't redirect to the client's project. They redirect to
+**one relay on the control plane**, registered once:
+
+```
+https://ocuicsgffeucdxqyzsai.supabase.co/functions/v1/oauth-relay
+```
+
+`social-oauth-start` prefixes the OAuth `state` with the project ref; the relay reads
+the prefix, checks it against the client registry, and forwards the provider's redirect
+to that project's `social-oauth-callback` unchanged. It holds no state and will only
+forward to a project in the registry — anything else would be an open redirect carrying
+an authorization code.
+
+The `redirect_uri` a flow started with is recorded on `oauth_states`, because the token
+exchange must echo it byte for byte and recomputing it would be a guess.
+
+A client using **their own** developer app keeps the direct path: their app has this
+project's callback URL registered, so the relay isn't involved.
+
 ### Which developer app a social connection uses
 
 Two sources, resolved in [`_shared/social-credentials.ts`](supabase/functions/_shared/social-credentials.ts):
