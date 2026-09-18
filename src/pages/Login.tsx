@@ -35,6 +35,9 @@ export default function Login() {
       // Only rate limiting is worth reporting. Any other answer would say
       // whether an account exists for this address.
       if (error && /rate|too many|seconds/i.test(error.message)) throw error;
+      // Someone invited who never created an account gets nothing from the
+      // reset above; this sends them a set-your-password link instead.
+      await supabase.functions.invoke("account-recovery", { body: { email: email.trim() } }).catch(() => {});
       setResetSent(true);
     } catch (err: any) {
       toast.error(err?.message ?? "Could not send the reset email. Try again in a minute.");
