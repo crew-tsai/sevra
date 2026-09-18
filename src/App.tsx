@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +7,9 @@ import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RouteMeta } from "@/components/RouteMeta";
 import Login from "@/pages/Login";
+import SignIn from "@/pages/SignIn";
+import OpenWorkspace from "@/pages/OpenWorkspace";
+import { isHome } from "@/lib/home";
 import Dashboard from "@/pages/Dashboard";
 import Welcome from "@/pages/Welcome";
 import NewIncident from "@/pages/NewIncident";
@@ -38,8 +41,12 @@ const App = () => (
         <RouteMeta />
         <Routes>
           <Route path="/login" element={<Login />} />
+          {/* The public site finds your workspace; a client workspace has no
+              marketing pages of its own and opens on its sign-in. */}
+          <Route path="/signin" element={isHome() ? <SignIn /> : <Navigate to="/login" replace />} />
+          <Route path="/open" element={<OpenWorkspace />} />
           <Route path="/unsubscribe" element={<Unsubscribe />} />
-          <Route element={<MarketingLayout />}>
+          <Route element={isHome() ? <MarketingLayout /> : <Navigate to="/login" replace />}>
             <Route path="/" element={<Home />} />
             <Route path="/product" element={<Product />} />
             

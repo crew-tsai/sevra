@@ -1,4 +1,5 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { signInPath } from "@/lib/home";
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import sevraLogo from "@/assets/sevra-logo-dark.png";
@@ -47,7 +48,7 @@ export default function MarketingLayout() {
           </nav>
           <div className="flex items-center gap-2">
             <Link
-              to="/login"
+              to={signInPath()}
               className="inline-flex items-center justify-center rounded-md bg-primary px-3 sm:px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition"
             >
               Log in
@@ -110,7 +111,7 @@ export default function MarketingLayout() {
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
             <Link to="/product" className="hover:text-foreground">Product</Link>
             <Link to="/about" className="hover:text-foreground">About</Link>
-            <Link to="/login" className="hover:text-foreground">Log in</Link>
+            <Link to={signInPath()} className="hover:text-foreground">Log in</Link>
           </div>
         </div>
       </footer>

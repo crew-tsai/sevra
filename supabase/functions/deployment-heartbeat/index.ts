@@ -9,6 +9,11 @@
 // That is what makes portfolio visibility possible without breaking the
 // isolation between clients.
 //
+// The one exception is who may sign in, and that only as keyed hashes: the
+// public Sevra site needs to know which workspace to send a person to, and a
+// hash lets it match an address someone types without the control plane ever
+// holding a list of client users.
+//
 // If CONTROL_PLANE_URL or HEARTBEAT_SECRET are unset the function no-ops and
 // returns skipped: a deployment that doesn't report is a valid setup.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -18,6 +23,42 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+/**
+ * Everyone who may sign in here: existing accounts, invited team members who
+ * have not signed up yet, and the administrator designated at provisioning --
+ * who is exactly the person most likely to go looking for the workspace first.
+ *
+ * HMAC-SHA256(HEARTBEAT_SECRET, lower(trim(email))), matching the control
+ * plane's _shared/workspace-link.ts byte for byte.
+ */
+async function memberHashes(admin: any, secret: string): Promise<string[]> {
+  const emails = new Set<string>();
+  const add = (e: unknown) => {
+    if (typeof e === "string" && e.includes("@")) emails.add(e.trim().toLowerCase());
+  };
+
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw error;
+    for (const u of data.users) add(u.email);
+    if (data.users.length < 1000) break;
+  }
+  const [team, boot] = await Promise.all([
+    admin.from("team_members").select("email"),
+    admin.from("bootstrap_config").select("bootstrap_admin_email").maybeSingle(),
+  ]);
+  for (const r of team.data ?? []) add(r.email);
+  add(boot.data?.bootstrap_admin_email);
+
+  const key = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"],
+  );
+  return Promise.all([...emails].map(async (e) => {
+    const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(e));
+    return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  }));
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -67,6 +108,8 @@ Deno.serve(async (req) => {
       .map((r) => (r.account_label ? `${r.network}:${r.account_label}` : r.network))
       .sort();
 
+    const member_hashes = await memberHashes(admin, secret);
+
     const payload = {
       project_ref: projectRef,
       company_name: settings.data?.company_name ?? null,
@@ -84,6 +127,7 @@ Deno.serve(async (req) => {
         // quiet; the names say whether anything was ever connected.
         social_networks: connectedNetworks,
       },
+      member_hashes,
     };
 
     const res = await fetch(`${controlPlaneUrl}/functions/v1/heartbeat-ingest`, {
@@ -100,7 +144,7 @@ Deno.serve(async (req) => {
       throw new Error(`control plane ${res.status}: ${txt.slice(0, 200)}`);
     }
 
-    return new Response(JSON.stringify({ success: true, reported: payload.metrics }), {
+    return new Response(JSON.stringify({ success: true, reported: payload.metrics, members: member_hashes.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {

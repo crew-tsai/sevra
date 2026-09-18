@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import sevraLogo from "@/assets/sevra-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { isHome } from "@/lib/home";
 
 export default function Login() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [params] = useSearchParams();
+  // Filled in when arriving from the public site's "your workspace" link.
+  const [email, setEmail] = useState(() => params.get("email") ?? "");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [loading, setLoading] = useState(false);
@@ -85,6 +88,15 @@ export default function Login() {
             {mode === "signin" ? "No account? Create one" : "Already have an account? Sign in"}
           </button>
         </form>
+
+        {/* The public site is also Sevra's own workspace. Anyone from a client
+            company who lands on its sign-in page is in the wrong place. */}
+        {isHome() && (
+          <p className="text-xs text-muted-foreground text-center">
+            Signing in to your company's workspace?{" "}
+            <Link to="/signin" className="text-primary hover:underline">Find it here</Link>
+          </p>
+        )}
       </div>
     </div>
   );
