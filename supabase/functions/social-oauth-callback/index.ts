@@ -134,31 +134,59 @@ Deno.serve(async (req) => {
     const clientId = creds.clientId;
     const clientSecret = creds.clientSecret;
 
-    // Must match the authorize request byte for byte. Flows through Sevra's
-    // shared apps started at the control plane relay, not here, so the value
-    // recorded at start time is authoritative; the fallback covers rows
-    // created before it was stored.
-    const redirectUri = stateRow.redirect_uri ?? callbackRedirectUri(supabaseUrl);
-    const body = new URLSearchParams({
-      grant_type: "authorization_code",
-      code,
-      redirect_uri: redirectUri,
-      [provider.clientIdParam]: clientId,
-    });
-    if (stateRow.code_verifier) body.set("code_verifier", stateRow.code_verifier);
+    // The exchange must echo the redirect_uri the authorize request used. There
+    // are only two it can be -- this project's own callback, or the control
+    // plane relay that Sevra's shared apps redirect to -- and the recorded one
+    // is authoritative when present. Older rows predate the column, so both are
+    // tried rather than failing on a value we cannot confirm.
+    const controlPlane = Deno.env.get("CONTROL_PLANE_URL")?.replace(/\/+$/, "");
+    const relayUri = controlPlane ? `${controlPlane}/functions/v1/oauth-relay` : null;
+    const candidates = [
+      stateRow.redirect_uri,
+      creds.source === "platform" ? relayUri : null,
+      callbackRedirectUri(supabaseUrl),
+      relayUri,
+    ].filter((v, i, a): v is string => !!v && a.indexOf(v) === i);
 
-    const tokenHeaders: Record<string, string> = { "Content-Type": "application/x-www-form-urlencoded" };
-    if (provider.tokenAuthStyle === "basic") {
-      tokenHeaders.Authorization = `Basic ${btoa(`${clientId}:${clientSecret}`)}`;
-    } else {
-      body.set("client_secret", clientSecret);
+    let tokenJson: Record<string, any> = {};
+    let ok = false;
+    let lastDetail = "";
+
+    for (const redirectUri of candidates) {
+      const body = new URLSearchParams({
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: redirectUri,
+        [provider.clientIdParam]: clientId,
+      });
+      if (stateRow.code_verifier) body.set("code_verifier", stateRow.code_verifier);
+
+      const tokenHeaders: Record<string, string> = { "Content-Type": "application/x-www-form-urlencoded" };
+      if (provider.tokenAuthStyle === "basic") {
+        tokenHeaders.Authorization = `Basic ${btoa(`${clientId}:${clientSecret}`)}`;
+      } else {
+        body.set("client_secret", clientSecret);
+      }
+
+      const tokenRes = await fetch(provider.tokenUrl, { method: "POST", headers: tokenHeaders, body });
+      tokenJson = await tokenRes.json().catch(() => ({}));
+      if (tokenRes.ok && tokenJson.access_token) {
+        ok = true;
+        break;
+      }
+      // The provider's own words. "Token exchange failed" told nobody anything
+      // and cost an afternoon of guessing.
+      lastDetail = String(
+        tokenJson?.error_description ?? tokenJson?.error ?? tokenJson?.detail ?? `HTTP ${tokenRes.status}`,
+      );
+      console.error(
+        `social-oauth-callback: ${network} exchange rejected with redirect_uri=${redirectUri}:`,
+        JSON.stringify(tokenJson).slice(0, 400),
+      );
     }
 
-    const tokenRes = await fetch(provider.tokenUrl, { method: "POST", headers: tokenHeaders, body });
-    const tokenJson = await tokenRes.json().catch(() => ({}));
-    if (!tokenRes.ok || !tokenJson.access_token) {
-      console.error(`social-oauth-callback: ${network} token exchange failed`, tokenJson);
-      return redirect(siteUrl, { network, error: "Token exchange failed" });
+    if (!ok) {
+      return redirect(siteUrl, { network, error: `Token exchange failed — ${lastDetail}`.slice(0, 190) });
     }
 
     let accessToken: string = tokenJson.access_token;
