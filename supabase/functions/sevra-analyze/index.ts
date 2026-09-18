@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { identifyCaller, unauthorized } from "../_shared/caller.ts";
 import { INCIDENT_TYPES, profileFor } from "../_shared/industries.ts";
 import { chatCompletion, MODELS } from "../_shared/ai.ts";
 
@@ -85,16 +86,14 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization") ?? "";
     const admin = createClient(supabaseUrl, serviceKey);
 
-    // Resolve the calling user's ID from their JWT (best-effort, nullable)
-    let userId: string | null = null;
-    try {
-      const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? serviceKey;
-      const userClient = createClient(supabaseUrl, anonKey, {
-        global: { headers: { Authorization: authHeader } },
-      });
-      const { data: userData } = await userClient.auth.getUser();
-      userId = userData?.user?.id ?? null;
-    } catch { /* non-fatal */ }
+    // Refuse anonymous callers. This used to resolve the user "best-effort"
+    // and carry on without one, so anyone holding the public anon key could
+    // run analysis — which can create incidents — with service-role rights.
+    // Legitimate callers are a signed-in user (Social Intel) or the monitor
+    // cron (service role).
+    const caller = await identifyCaller(req);
+    if (caller.kind === "anonymous") return unauthorized();
+    const userId: string | null = caller.kind === "user" ? caller.userId : null;
 
     const { data: mention, error: mErr } = await admin
       .from("social_mentions")

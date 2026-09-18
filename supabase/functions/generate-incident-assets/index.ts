@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { identifyCaller, unauthorized } from "../_shared/caller.ts";
 import { profileFor } from "../_shared/industries.ts";
 import { chatCompletion, MODELS } from "../_shared/ai.ts";
 
@@ -43,13 +44,13 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const token = authHeader.replace("Bearer ", "");
-    const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userData } = await userClient.auth.getUser(token);
-    const userId = userData?.user?.id ?? null;
+    // Refuse anonymous callers. The user used to be looked up and then ignored
+    // when absent, leaving asset generation — AI spend and writes into a
+    // client's workspace — open to anyone holding the public anon key. Only
+    // the Approvals and Incident pages call this, as a signed-in user.
+    const caller = await identifyCaller(req);
+    if (caller.kind === "anonymous") return unauthorized();
+    const userId: string | null = caller.kind === "user" ? caller.userId : null;
 
     const admin = createClient(supabaseUrl, serviceKey);
 

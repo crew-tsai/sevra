@@ -12,6 +12,7 @@
 // If CONTROL_PLANE_URL or HEARTBEAT_SECRET are unset the function no-ops and
 // returns skipped: a deployment that doesn't report is a valid setup.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { identifyCaller, unauthorized } from "../_shared/caller.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,6 +21,13 @@ const corsHeaders = {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // pg_cron only. verify_jwt is off for this function, and it had no check of
+  // its own, so any request at all made the project count its data and call
+  // out to the control plane. Harmless in what it reports, but a public
+  // trigger for outbound work is not something to leave open.
+  const caller = await identifyCaller(req);
+  if (caller.kind !== "service") return unauthorized("Forbidden");
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
