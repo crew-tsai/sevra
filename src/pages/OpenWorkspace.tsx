@@ -3,6 +3,8 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import sevraLogo from "@/assets/sevra-logo.png";
 import { CONTROL_PLANE_URL, rememberWorkspace, workspaceSignInUrl } from "@/lib/home";
+import { useMessages } from "@/i18n";
+import { authMessages } from "@/i18n/messages/auth";
 
 /**
  * Where the link in a "your workspace" email lands. Resolves it, remembers the
@@ -12,11 +14,12 @@ import { CONTROL_PLANE_URL, rememberWorkspace, workspaceSignInUrl } from "@/lib/
 export default function OpenWorkspace() {
   const [params] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
+  const m = useMessages(authMessages);
 
   useEffect(() => {
     const t = params.get("t");
     if (!t) {
-      setError("This link is incomplete. Request a new one.");
+      setError(m.linkIncomplete);
       return;
     }
     (async () => {
@@ -28,13 +31,13 @@ export default function OpenWorkspace() {
         });
         const body = await res.json().catch(() => ({}));
         if (!res.ok || typeof body?.app_url !== "string") {
-          throw new Error(body?.error ?? "This link could not be opened. Request a new one.");
+          throw new Error(res.status === 410 ? m.workspaceGone : res.status === 400 ? m.linkExpired : m.linkUnopenable);
         }
-        const w = { company: body.company_name ?? "Your workspace", appUrl: body.app_url, email: body.email };
+        const w = { company: body.company_name ?? m.yourWorkspace, appUrl: body.app_url, email: body.email };
         rememberWorkspace(w);
         window.location.replace(workspaceSignInUrl(w));
       } catch (err: any) {
-        setError(err?.message ?? "This link could not be opened. Request a new one.");
+        setError(err instanceof TypeError ? m.linkUnopenable : err?.message ?? m.linkUnopenable);
       }
     })();
   }, [params]);
@@ -47,12 +50,12 @@ export default function OpenWorkspace() {
           <>
             <p className="text-sm text-foreground">{error}</p>
             <Link to="/signin" className="text-sm text-primary hover:underline">
-              Get a new sign-in link
+              {m.getNewLink}
             </Link>
           </>
         ) : (
           <p className="text-sm text-muted-foreground inline-flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" /> Opening your workspace…
+            <Loader2 className="h-4 w-4 animate-spin" /> {m.openingWorkspace}
           </p>
         )}
       </div>

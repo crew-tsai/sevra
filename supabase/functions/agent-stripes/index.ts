@@ -131,7 +131,12 @@ serve(async (req) => {
       });
     }
 
-    const { messages } = await req.json();
+    const { messages, lang } = await req.json();
+    // The language the person chose for the interface. Answering in it is the
+    // default; someone who writes in another language gets that one instead.
+    const languageRule = lang === "es"
+      ? "LANGUAGE: Reply in Spanish (neutral, professional). If the user writes in another language, reply in that language instead."
+      : "LANGUAGE: Reply in English. If the user writes in another language, reply in that language instead.";
 
     let platformContext = "PLATFORM DATA: unavailable.";
     let companyName: string | null = null;
@@ -150,6 +155,7 @@ serve(async (req) => {
       messages: [
         { role: "system", content: buildSystemPrompt(companyName, industry) },
         { role: "system", content: platformContext },
+        { role: "system", content: languageRule },
         ...messages,
       ],
       stream: true,

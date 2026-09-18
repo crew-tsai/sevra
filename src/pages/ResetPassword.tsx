@@ -7,6 +7,9 @@ import { Label } from "@/components/ui/label";
 import sevraLogo from "@/assets/sevra-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { LanguageToggle } from "@/components/LanguageToggle";
+import { useLang, useMessages } from "@/i18n";
+import { authErrorText, authMessages } from "@/i18n/messages/auth";
 
 /**
  * Where a password-reset email lands. The link signs the person in for the
@@ -15,6 +18,8 @@ import { toast } from "sonner";
  */
 export default function ResetPassword() {
   const navigate = useNavigate();
+  const { lang } = useLang();
+  const m = useMessages(authMessages);
   const [ready, setReady] = useState<"checking" | "ok" | "invalid">("checking");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -48,13 +53,13 @@ export default function ResetPassword() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 8) return toast.error("Use at least 8 characters.");
-    if (password !== confirm) return toast.error("The two passwords don't match.");
+    if (password.length < 8) return toast.error(m.passwordTooShort);
+    if (password !== confirm) return toast.error(m.passwordsDontMatch);
     setSaving(true);
     const { error } = await supabase.auth.updateUser({ password });
     if (!error) {
       setSaving(false);
-      toast.success("Password updated");
+      toast.success(m.passwordUpdated);
       navigate("/welcome", { replace: true });
       return;
     }
@@ -74,37 +79,39 @@ export default function ResetPassword() {
       });
       setSaving(false);
       if (res.ok) {
-        toast.success("Password updated. Sign in with your new password.");
+        toast.success(m.passwordUpdatedSignIn);
         const email = ((await res.json().catch(() => ({}))) as { email?: string }).email ?? "";
         navigate(`/login${email ? `?email=${encodeURIComponent(email)}` : ""}`, { replace: true });
         return;
       }
       const body = await res.json().catch(() => ({}));
-      return toast.error((body as { msg?: string; message?: string }).msg ?? (body as { message?: string }).message ?? "Could not save the password. Request a new link.");
+      const detail = (body as { msg?: string; message?: string }).msg ?? (body as { message?: string }).message;
+      return toast.error(detail ? authErrorText(lang, detail) : m.passwordSaveFailed);
     }
     setSaving(false);
-    toast.error(error.message);
+    toast.error(authErrorText(lang, error.message));
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
+      <LanguageToggle className="absolute top-4 right-4" />
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center space-y-3">
           <img src={sevraLogo} alt="Sevra" className="h-12 sm:h-14 w-auto object-contain mx-auto" />
-          <h1 className="text-lg font-semibold text-foreground">Set a new password</h1>
+          <h1 className="text-lg font-semibold text-foreground">{m.setNewPassword}</h1>
         </div>
 
         {ready === "checking" && (
           <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" /> Checking your link…
+            <Loader2 className="h-4 w-4 animate-spin" /> {m.checkingLink}
           </p>
         )}
 
         {ready === "invalid" && (
           <div className="space-y-4 text-center">
-            <p className="text-sm text-foreground">This link is invalid or has expired.</p>
+            <p className="text-sm text-foreground">{m.linkInvalid}</p>
             <Link to="/login" className="text-sm text-primary hover:underline">
-              Request a new one
+              {m.requestNewOne}
             </Link>
           </div>
         )}
@@ -112,15 +119,15 @@ export default function ResetPassword() {
         {ready === "ok" && (
           <form onSubmit={submit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password">New password</Label>
+              <Label htmlFor="password">{m.newPassword}</Label>
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" autoFocus />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirm">Confirm new password</Label>
+              <Label htmlFor="confirm">{m.confirmPassword}</Label>
               <Input id="confirm" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" />
             </div>
             <Button type="submit" className="w-full" disabled={saving}>
-              {saving ? "Saving…" : "Save password"}
+              {saving ? m.saving : m.savePassword}
             </Button>
           </form>
         )}

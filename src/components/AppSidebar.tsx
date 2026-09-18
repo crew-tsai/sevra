@@ -14,24 +14,29 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useMessages } from "@/i18n";
+import { shellMessages } from "@/i18n/messages/shell";
+
+type Msgs = typeof shellMessages.en;
 
 const mainItems = [
-  { title: "Hub", url: "/welcome", icon: Home },
-  { title: "SEVRA · Social Intel", url: "/sevra", icon: Radio },
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Manual Incident", url: "/incidents/new", icon: Plus },
-];
+  { key: "hub", url: "/welcome", icon: Home },
+  { key: "socialIntel", url: "/sevra", icon: Radio },
+  { key: "dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { key: "manualIncident", url: "/incidents/new", icon: Plus },
+] as const satisfies ReadonlyArray<{ key: keyof Msgs; url: string; icon: unknown }>;
 
 const workflowItems = [
-  { title: "Assets", url: "/assets", icon: FileText },
-  { title: "Approvals", url: "/approvals", icon: CheckCircle },
-  { title: "Workflows", url: "/workflows", icon: Workflow },
-  { title: "Reports", url: "/reports", icon: BarChart3 },
-  { title: "Audit Log", url: "/audit-log", icon: History },
-  { title: "Admin", url: "/admin", icon: Settings },
-];
+  { key: "assets", url: "/assets", icon: FileText },
+  { key: "approvals", url: "/approvals", icon: CheckCircle },
+  { key: "workflows", url: "/workflows", icon: Workflow },
+  { key: "reports", url: "/reports", icon: BarChart3 },
+  { key: "auditLog", url: "/audit-log", icon: History },
+  { key: "admin", url: "/admin", icon: Settings },
+] as const satisfies ReadonlyArray<{ key: keyof Msgs; url: string; icon: unknown }>;
 
 export function AppSidebar() {
+  const m = useMessages(shellMessages);
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
@@ -47,16 +52,16 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-            {!collapsed && "Crisis Center"}
+            {!collapsed && m.crisisCenter}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <NavLink to={item.url} end={item.url === "/sevra"} activeClassName="bg-sidebar-accent text-foreground font-medium">
                       <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
+                      {!collapsed && <span>{m[item.key]}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -67,16 +72,16 @@ export function AppSidebar() {
 
         <SidebarGroup>
           <SidebarGroupLabel className="px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-            {!collapsed && "Workflow"}
+            {!collapsed && m.workflow}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {workflowItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <NavLink to={item.url} activeClassName="bg-sidebar-accent text-foreground font-medium">
                       <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
+                      {!collapsed && <span>{m[item.key]}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -91,7 +96,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton onClick={signOut}>
               <LogOut className="h-4 w-4" />
-              {!collapsed && <span>Sign out</span>}
+              {!collapsed && <span>{m.signOut}</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

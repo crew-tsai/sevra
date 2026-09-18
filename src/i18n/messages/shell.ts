@@ -1,0 +1,38 @@
+import { defineMessages } from "@/i18n";
+
+export const shellMessages = defineMessages({
+  en: {
+    crisisCenter: "Crisis Center",
+    workflow: "Workflow",
+    hub: "Hub",
+    socialIntel: "SEVRA · Social Intel",
+    dashboard: "Dashboard",
+    manualIncident: "Manual Incident",
+    assets: "Assets",
+    approvals: "Approvals",
+    workflows: "Workflows",
+    reports: "Reports",
+    auditLog: "Audit Log",
+    admin: "Admin",
+    signOut: "Sign out",
+    logoAlt: "Sevra logo",
+    madeBy: "a product by The Stellar Crew",
+  },
+  es: {
+    crisisCenter: "Centro de crisis",
+    workflow: "Flujo de trabajo",
+    hub: "Inicio",
+    socialIntel: "SEVRA · Inteligencia social",
+    dashboard: "Panel",
+    manualIncident: "Incidente manual",
+    assets: "Contenidos",
+    approvals: "Aprobaciones",
+    workflows: "Flujos",
+    reports: "Informes",
+    auditLog: "Registro de auditoría",
+    admin: "Administración",
+    signOut: "Cerrar sesión",
+    logoAlt: "Logo de Sevra",
+    madeBy: "un producto de The Stellar Crew",
+  },
+});

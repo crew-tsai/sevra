@@ -12,32 +12,29 @@ import { ShieldAlert, Megaphone, Activity, Sparkles, Users, Clock, Check, ArrowR
 import { DeviceMockup } from "@/components/marketing/DeviceMockup";
 import dashboardShot from "@/assets/product-dashboard.png";
 import dashboardMobileShot from "@/assets/product-dashboard-mobile.png";
-import { INDUSTRY_GROUPS } from "@/lib/industries";
+import { INDUSTRY_GROUPS, industryLabel } from "@/lib/industries";
+import { useLang, useMessages } from "@/i18n";
+import { homeMessages } from "@/i18n/messages/home";
 
-/** Marketing wording for the sector names. Anything unmapped shows as-is. */
-const SECTOR_LABEL: Record<string, string> = {
-  Health: "Healthcare",
-  Finance: "Financial Services",
-  Consumer: "Retail & Hospitality",
-  Infrastructure: "Energy, Utilities & Telecoms",
-};
-
-const leadSchema = z.object({
-  name: z.string().trim().min(1, "Name required").max(100),
-  email: z.string().trim().email("Invalid email").max(255),
-  company: z.string().trim().max(150).optional(),
-  industry: z.string().trim().max(100).optional(),
-  message: z.string().trim().max(1000).optional(),
-});
+const leadSchema = (m: { nameRequired: string; invalidEmail: string }) =>
+  z.object({
+    name: z.string().trim().min(1, m.nameRequired).max(100),
+    email: z.string().trim().email(m.invalidEmail).max(255),
+    company: z.string().trim().max(150).optional(),
+    industry: z.string().trim().max(100).optional(),
+    message: z.string().trim().max(1000).optional(),
+  });
 
 export default function Home() {
+  const { lang } = useLang();
+  const m = useMessages(homeMessages);
   const [form, setForm] = useState({ name: "", email: "", company: "", industry: "", message: "" });
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsed = leadSchema.safeParse(form);
+    const parsed = leadSchema(m).safeParse(form);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);
       return;
@@ -46,12 +43,12 @@ export default function Home() {
     const { error } = await supabase.from("leads").insert([parsed.data as { name: string; email: string; company?: string; industry?: string; message?: string }]);
     setLoading(false);
     if (error) {
-      toast.error("Could not submit. Please try again.");
+      toast.error(m.submitFailed);
       return;
     }
     setDone(true);
     setForm({ name: "", email: "", company: "", industry: "", message: "" });
-    toast.success("Thanks! We'll be in touch soon.");
+    toast.success(m.thanks);
   };
 
   return (
@@ -69,37 +66,36 @@ export default function Home() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-xs text-muted-foreground mb-6">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
-              AI-powered crisis intelligence
+              {m.eyebrow}
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight">
-              Lead the room when{" "}
+              {m.heroLead}{" "}
               <span
                 className="bg-clip-text text-transparent"
                 style={{ backgroundImage: "linear-gradient(135deg, #FF5A3C 0%, #7C4DFF 100%)" }}
               >
-                every second counts
+                {m.heroAccent}
               </span>
             </h1>
             <p className="mt-6 text-lg text-muted-foreground max-w-xl">
-              Sevra is the enterprise platform for crisis communications teams. Detect, decide and respond
-              with confidence — across transportation, healthcare, financial services, utilities and beyond.
+              {m.heroBody}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a
                 href="#contact"
                 className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:opacity-90"
               >
-                Request a demo <ArrowRight className="h-4 w-4" />
+                {m.requestDemo} <ArrowRight className="h-4 w-4" />
               </a>
               <Link
                 to="/product"
                 className="inline-flex items-center rounded-md border border-border px-5 py-3 text-sm font-medium hover:bg-secondary"
               >
-                Explore the product
+                {m.exploreProduct}
               </Link>
             </div>
             <div className="mt-10 flex flex-wrap gap-x-8 gap-y-3 text-sm text-muted-foreground">
-              {["SOC2-ready", "Real-time monitoring", "Approval workflows"].map((b) => (
+              {m.badges.map((b) => (
                 <div key={b} className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-primary" /> {b}
                 </div>
@@ -114,57 +110,57 @@ export default function Home() {
                 <div className="mx-auto h-12 w-12 rounded-full bg-primary/15 flex items-center justify-center mb-4">
                   <Check className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold">You're on the list</h3>
-                <p className="text-muted-foreground mt-2">A member of our team will reach out shortly.</p>
+                <h3 className="text-xl font-semibold">{m.onTheList}</h3>
+                <p className="text-muted-foreground mt-2">{m.reachOut}</p>
                 <Button className="mt-6" variant="secondary" onClick={() => setDone(false)}>
-                  Submit another
+                  {m.submitAnother}
                 </Button>
               </div>
             ) : (
               <form onSubmit={submit} className="space-y-4">
                 <div>
-                  <h3 className="text-xl font-semibold">Talk to our crisis team</h3>
+                  <h3 className="text-xl font-semibold">{m.formTitle}</h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Tell us about your team and we'll set up a tailored walkthrough.
+                    {m.formIntro}
                   </p>
                 </div>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Full name</Label>
+                    <Label htmlFor="name">{m.fullName}</Label>
                     <Input id="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">Work email</Label>
+                    <Label htmlFor="email">{m.workEmail}</Label>
                     <Input id="email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="company">Company</Label>
+                    <Label htmlFor="company">{m.company}</Label>
                     <Input id="company" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="industry">Industry</Label>
+                    <Label htmlFor="industry">{m.industry}</Label>
                     <select
                       id="industry"
                       value={form.industry}
                       onChange={(e) => setForm({ ...form, industry: e.target.value })}
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
-                      <option value="">Select…</option>
+                      <option value="">{m.select}</option>
                       {INDUSTRY_GROUPS.flatMap((g) => g.values).map((i) => (
-                        <option key={i} value={i}>{i}</option>
+                        <option key={i} value={i}>{industryLabel(i, lang)}</option>
                       ))}
                     </select>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="message">What are you trying to solve?</Label>
+                  <Label htmlFor="message">{m.solving}</Label>
                   <Textarea id="message" rows={3} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} />
                 </div>
                 <Button type="submit" disabled={loading} className="w-full">
-                  {loading ? "Sending…" : "Get a demo"}
+                  {loading ? m.sending : m.getDemo}
                 </Button>
                 <p className="text-xs text-muted-foreground text-center">
-                  By submitting, you agree to be contacted by Sevra. We respect your privacy.
+                  {m.consent}
                 </p>
               </form>
             )}
@@ -175,10 +171,10 @@ export default function Home() {
       {/* Industries */}
       <section className="border-t border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground text-center">Built for crisis teams across</p>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground text-center">{m.builtFor}</p>
           <div className="mt-6 flex flex-wrap justify-center gap-x-10 gap-y-3 text-muted-foreground">
             {INDUSTRY_GROUPS.filter((g) => g.group !== "Other").map((g) => (
-              <span key={g.group} className="text-sm font-medium">{SECTOR_LABEL[g.group] ?? g.group}</span>
+              <span key={g.group} className="text-sm font-medium">{m.sectors[g.group] ?? g.group}</span>
             ))}
           </div>
         </div>
@@ -187,18 +183,13 @@ export default function Home() {
       {/* Value props */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="max-w-2xl">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">A single source of truth in crisis.</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">{m.truthTitle}</h2>
           <p className="mt-4 text-muted-foreground">
-            From the first signal to public statement — Sevra orchestrates monitoring, decision-making and
-            approved communications in one place.
+            {m.truthBody}
           </p>
         </div>
         <div className="mt-12 grid md:grid-cols-3 gap-6">
-          {[
-            { icon: ShieldAlert, title: "Detect early", body: "Real-time monitoring across social, news and internal signals — surfaced and triaged automatically." },
-            { icon: Activity, title: "Decide faster", body: "Crisis level scoring (L0–L4) and AI-assisted analysis aligned with your playbooks." },
-            { icon: Megaphone, title: "Respond on-brand", body: "Generate, approve and publish statements, FAQs and social posts with a clear audit trail." },
-          ].map((f) => (
+          {[ShieldAlert, Activity, Megaphone].map((icon, i) => ({ icon, ...m.features[i] })).map((f) => (
             <Card key={f.title} className="bg-card border-border p-6">
               <div className="h-10 w-10 rounded-md bg-primary/15 flex items-center justify-center text-primary mb-4">
                 <f.icon className="h-5 w-5" />
@@ -214,14 +205,14 @@ export default function Home() {
       <section className="border-t border-border bg-secondary/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center max-w-2xl mx-auto">
-            <p className="text-xs uppercase tracking-widest text-primary">The command center</p>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-bold tracking-tight">Your crisis dashboard, at a glance.</h2>
+            <p className="text-xs uppercase tracking-widest text-primary">{m.commandCenter}</p>
+            <h2 className="mt-3 text-3xl sm:text-4xl font-bold tracking-tight">{m.dashboardTitle}</h2>
             <p className="mt-4 text-muted-foreground">
-              Active incidents, crisis levels, owners and trends — all in one real-time view your whole team can rely on.
+              {m.dashboardBody}
             </p>
           </div>
           <div className="mt-12 max-w-5xl mx-auto pb-12 sm:pb-16">
-            <DeviceMockup desktopSrc={dashboardShot} mobileSrc={dashboardMobileShot} alt="Sevra crisis dashboard" url="app.sevra.ai/dashboard" />
+            <DeviceMockup desktopSrc={dashboardShot} mobileSrc={dashboardMobileShot} alt={m.dashboardAlt} url="app.sevra.ai/dashboard" />
           </div>
         </div>
       </section>
@@ -231,11 +222,7 @@ export default function Home() {
       {/* Stats */}
       <section className="border-t border-border bg-secondary/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 grid sm:grid-cols-3 gap-8">
-          {[
-            { icon: Clock, kpi: "70%", label: "faster time-to-statement" },
-            { icon: Users, kpi: "24/7", label: "monitoring across channels" },
-            { icon: ShieldAlert, kpi: "L0–L4", label: "structured crisis levels" },
-          ].map((s) => (
+          {[Clock, Users, ShieldAlert].map((icon, i) => ({ icon, ...m.stats[i] })).map((s) => (
             <div key={s.label} className="flex items-start gap-4">
               <div className="h-10 w-10 rounded-md bg-primary/15 flex items-center justify-center text-primary shrink-0">
                 <s.icon className="h-5 w-5" />
@@ -251,15 +238,15 @@ export default function Home() {
 
       {/* CTA */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Ready when the next crisis hits?</h2>
+        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">{m.ctaTitle}</h2>
         <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
-          See Sevra in action with a guided walkthrough tailored to your industry and playbooks.
+          {m.ctaBody}
         </p>
         <a
           href="#contact"
           className="mt-8 inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:opacity-90"
         >
-          Request a demo <ArrowRight className="h-4 w-4" />
+          {m.requestDemo} <ArrowRight className="h-4 w-4" />
         </a>
       </section>
     </div>

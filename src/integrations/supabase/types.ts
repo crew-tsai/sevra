@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       bootstrap_config: {
@@ -68,12 +43,13 @@ export type Database = {
           id: string
           industry: string | null
           logo_url: string | null
-          monitor_active: boolean
-          monitor_auto_incident_threshold: number
-          monitor_last_result: Json | null
-          monitor_last_run_at: string | null
+          sending_domain: string | null
+          sending_domain_records: Json | null
+          sending_domain_status: string | null
+          simulation_enabled: boolean
           singleton: boolean
           updated_at: string
+          x_handle: string | null
         }
         Insert: {
           brand_primary?: string | null
@@ -85,12 +61,13 @@ export type Database = {
           id?: string
           industry?: string | null
           logo_url?: string | null
-          monitor_active?: boolean
-          monitor_auto_incident_threshold?: number
-          monitor_last_result?: Json | null
-          monitor_last_run_at?: string | null
+          sending_domain?: string | null
+          sending_domain_records?: Json | null
+          sending_domain_status?: string | null
+          simulation_enabled?: boolean
           singleton?: boolean
           updated_at?: string
+          x_handle?: string | null
         }
         Update: {
           brand_primary?: string | null
@@ -102,42 +79,13 @@ export type Database = {
           id?: string
           industry?: string | null
           logo_url?: string | null
-          monitor_active?: boolean
-          monitor_auto_incident_threshold?: number
-          monitor_last_result?: Json | null
-          monitor_last_run_at?: string | null
+          sending_domain?: string | null
+          sending_domain_records?: Json | null
+          sending_domain_status?: string | null
+          simulation_enabled?: boolean
           singleton?: boolean
           updated_at?: string
-        }
-        Relationships: []
-      }
-      distribution_lists: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          description: string | null
-          emails: string[]
-          id: string
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          emails?: string[]
-          id?: string
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          emails?: string[]
-          id?: string
-          name?: string
-          updated_at?: string
+          x_handle?: string | null
         }
         Relationships: []
       }
@@ -502,6 +450,7 @@ export type Database = {
           created_by: string | null
           expires_at: string
           network: string
+          redirect_uri: string | null
           state: string
         }
         Insert: {
@@ -510,6 +459,7 @@ export type Database = {
           created_by?: string | null
           expires_at?: string
           network: string
+          redirect_uri?: string | null
           state: string
         }
         Update: {
@@ -518,38 +468,10 @@ export type Database = {
           created_by?: string | null
           expires_at?: string
           network?: string
+          redirect_uri?: string | null
           state?: string
         }
         Relationships: []
-      }
-      raci_assignments: {
-        Row: {
-          asset_type: string
-          id: string
-          level: string
-          list_id: string
-        }
-        Insert: {
-          asset_type: string
-          id?: string
-          level: string
-          list_id: string
-        }
-        Update: {
-          asset_type?: string
-          id?: string
-          level?: string
-          list_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "raci_assignments_list_id_fkey"
-            columns: ["list_id"]
-            isOneToOne: false
-            referencedRelation: "distribution_lists"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       response_plan: {
         Row: {
@@ -907,83 +829,10 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
-      get_assets_by_month: {
-        Args: { p_from?: string; p_to?: string }
-        Returns: {
-          approved: number
-          month: string
-          pending: number
-          rejected: number
-          total: number
-        }[]
-      }
-      get_crisis_pressure: {
-        Args: { p_from?: string; p_to?: string }
-        Returns: Json
-      }
-      get_dashboard_summary: {
-        Args: { p_from?: string; p_to?: string }
-        Returns: Json
-      }
-      get_incidents_by_month: {
-        Args: { p_from?: string; p_to?: string }
-        Returns: {
-          critical: number
-          high: number
-          low: number
-          medium: number
-          month: string
-          total: number
-        }[]
-      }
-      get_incidents_by_source: {
-        Args: { p_from?: string; p_to?: string }
-        Returns: {
-          count: number
-          source: string
-        }[]
-      }
-      get_incidents_by_type: {
-        Args: { p_from?: string; p_to?: string }
-        Returns: {
-          count: number
-          incident_type: string
-        }[]
-      }
-      get_mention_channel_stats: {
-        Args: { p_from?: string; p_to?: string }
-        Returns: {
-          channel: string
-          count: number
-          influencer_count: number
-          negative_pct: number
-          reach: number
-        }[]
-      }
-      get_mention_risk_mix: {
-        Args: { p_from?: string; p_to?: string }
-        Returns: Json
-      }
-      get_mentions_by_month: {
-        Args: { p_from?: string; p_to?: string }
-        Returns: {
-          count: number
-          month: string
-        }[]
-      }
-      get_reach_weighted_sentiment: {
-        Args: { p_from?: string; p_to?: string }
-        Returns: Json
-      }
-      get_report_kpis: {
-        Args: { p_from?: string; p_to?: string }
-        Returns: Json
-      }
       get_social_monitor_status: {
         Args: never
         Returns: {
           active: boolean
-          last_result: Json
           last_run_at: string
           last_status: string
           schedule: string
@@ -1165,9 +1014,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["admin", "coordinador", "manager", "ejecutivo", "soporte"],

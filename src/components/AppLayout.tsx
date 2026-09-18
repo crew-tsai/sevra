@@ -3,8 +3,12 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Outlet } from "react-router-dom";
 import sevraLogo from "@/assets/sevra-logo.png";
 import AgentStripes from "@/components/marketing/AgentStripes";
+import { LanguageToggle } from "@/components/LanguageToggle";
+import { useMessages } from "@/i18n";
+import { shellMessages } from "@/i18n/messages/shell";
 
 export function AppLayout() {
+  const m = useMessages(shellMessages);
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
@@ -15,10 +19,11 @@ export function AppLayout() {
             <div className="ml-2 sm:ml-3 flex items-center min-w-0">
               <img
                 src={sevraLogo}
-                alt="Sevra logo"
+                alt={m.logoAlt}
                 className="h-8 sm:h-10 md:h-12 lg:h-14 w-auto max-w-[160px] sm:max-w-[220px] md:max-w-none object-contain"
               />
             </div>
+            <LanguageToggle className="ml-auto" />
           </header>
           <main className="flex-1 overflow-auto pb-24 sm:pb-28">
             <Outlet />

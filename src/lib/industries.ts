@@ -1,3 +1,5 @@
+import { exampleEs, FIELD_LABEL_ES, GROUP_ES, INDUSTRY_NAME_ES, SUBTYPE_ES, TYPE_LABEL_ES } from "./industries-es";
+
 // Single source of truth for how Sevra adapts to a customer's industry.
 //
 // Setting the industry in Admin → Company retunes three things: the labels on
@@ -458,17 +460,56 @@ const LEGACY_ALIASES: Record<string, string> = {
   Government: "Government & Public Sector",
 };
 
-export function profileFor(industry: string | null | undefined): IndustryProfile {
+type Lang = "en" | "es";
+
+function baseProfile(industry: string | null | undefined): IndustryProfile {
   if (!industry) return GENERIC;
   return INDUSTRIES[industry] ?? INDUSTRIES[LEGACY_ALIASES[industry]] ?? GENERIC;
 }
 
+/**
+ * The industry's profile with its on-screen labels in `lang`. Sub-type and
+ * type *values* are unchanged -- only what people read is translated.
+ * `simFlavor` stays English: it goes to the AI, not to a screen.
+ */
+export function profileFor(industry: string | null | undefined, lang: Lang = "en"): IndustryProfile {
+  const p = baseProfile(industry);
+  if (lang === "en") return p;
+  const f = (s: string) => FIELD_LABEL_ES[s] ?? s;
+  return {
+    ...p,
+    operatorLabel: f(p.operatorLabel),
+    serviceLabel: f(p.serviceLabel),
+    locationLabel: f(p.locationLabel),
+    peopleLabel: f(p.peopleLabel),
+    serviceExample: exampleEs(p.serviceExample),
+    routeExample: exampleEs(p.routeExample),
+    locationExample: exampleEs(p.locationExample),
+    typeLabels: p.typeLabels
+      ? Object.fromEntries(Object.entries(p.typeLabels).map(([k, v]) => [k, TYPE_LABEL_ES[v as string] ?? v]))
+      : undefined,
+  };
+}
+
 /** UI label for an incident type under a given industry. */
-export function typeLabel(industry: string | null | undefined, type: IncidentType): string {
-  return profileFor(industry).typeLabels?.[type] ?? DEFAULT_TYPE_LABELS[type];
+export function typeLabel(industry: string | null | undefined, type: IncidentType, lang: Lang = "en"): string {
+  const en = baseProfile(industry).typeLabels?.[type] ?? DEFAULT_TYPE_LABELS[type];
+  return lang === "es" ? TYPE_LABEL_ES[en] ?? en : en;
 }
 
 /** Human-readable form of a stored sub_type value. */
-export function humanizeSubType(value: string): string {
+export function humanizeSubType(value: string, lang: Lang = "en"): string {
+  if (lang === "es" && SUBTYPE_ES[value]) return SUBTYPE_ES[value];
   return value.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+}
+
+/** On-screen name of a stored industry value. */
+export function industryLabel(value: string | null | undefined, lang: Lang = "en"): string {
+  if (!value) return "";
+  return lang === "es" ? INDUSTRY_NAME_ES[value] ?? value : value;
+}
+
+/** On-screen name of an industry group header. */
+export function groupLabel(group: string, lang: Lang = "en"): string {
+  return lang === "es" ? GROUP_ES[group] ?? group : group;
 }

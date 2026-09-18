@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import sevraLogo from "@/assets/sevra-logo.png";
+import { LanguageToggle } from "@/components/LanguageToggle";
+import { useMessages } from "@/i18n";
+import { authMessages } from "@/i18n/messages/auth";
+import { shellMessages } from "@/i18n/messages/shell";
 import {
   CONTROL_PLANE_URL,
   forgetWorkspace,
@@ -20,6 +24,8 @@ import {
  * nobody can type an address here and learn which company uses Sevra.
  */
 export default function SignIn() {
+  const m = useMessages(authMessages);
+  const shell = useMessages(shellMessages);
   const [remembered, setRemembered] = useState<RememberedWorkspace[]>(() => rememberedWorkspaces());
   const [useOther, setUseOther] = useState(false);
   const [email, setEmail] = useState("");
@@ -37,12 +43,11 @@ export default function SignIn() {
         body: JSON.stringify({ email: email.trim() }),
       });
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error ?? "Something went wrong. Try again in a moment.");
+        throw new Error(res.status === 429 ? m.tooManyAttempts : res.status === 400 ? m.invalidEmail : m.somethingWrong);
       }
       setState("sent");
     } catch (err: any) {
-      setError(err?.message ?? "Something went wrong. Try again in a moment.");
+      setError(err instanceof TypeError ? m.somethingWrong : err?.message ?? m.somethingWrong);
       setState("idle");
     }
   };
@@ -50,14 +55,15 @@ export default function SignIn() {
   const showList = remembered.length > 0 && !useOther && state !== "sent";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
+      <LanguageToggle className="absolute top-4 right-4" />
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center space-y-3">
           <Link to="/" className="inline-flex items-center justify-center">
             <img src={sevraLogo} alt="Sevra" className="h-12 sm:h-14 w-auto object-contain" />
           </Link>
           <h1 className="text-lg font-semibold text-foreground">
-            {showList ? "Continue to your workspace" : "Sign in to Sevra"}
+            {showList ? m.continueToWorkspace : m.signInTitle}
           </h1>
         </div>
 
@@ -77,8 +83,8 @@ export default function SignIn() {
                 </a>
                 <button
                   type="button"
-                  aria-label={`Forget ${w.company} on this browser`}
-                  title="Forget on this browser"
+                  aria-label={m.forgetWorkspace(w.company)}
+                  title={m.forgetOnBrowser}
                   onClick={() => {
                     forgetWorkspace(w);
                     setRemembered(rememberedWorkspaces());
@@ -94,34 +100,31 @@ export default function SignIn() {
               onClick={() => setUseOther(true)}
               className="w-full text-xs text-muted-foreground hover:text-foreground pt-2"
             >
-              Use a different email
+              {m.useDifferentEmail}
             </button>
           </div>
         ) : state === "sent" ? (
           <div className="space-y-4 text-center">
             <Mail className="h-8 w-8 mx-auto text-primary" />
-            <p className="text-sm text-foreground">Check your inbox.</p>
-            <p className="text-sm text-muted-foreground">
-              If <span className="text-foreground">{email.trim()}</span> has access to a Sevra workspace, we've sent a
-              link to it. It can take a minute to arrive.
-            </p>
+            <p className="text-sm text-foreground">{m.checkInbox}</p>
+            <p className="text-sm text-muted-foreground">{m.workspaceSent(email.trim())}</p>
             <button
               type="button"
               onClick={() => setState("idle")}
               className="text-xs text-muted-foreground hover:text-foreground"
             >
-              Use a different email
+              {m.useDifferentEmail}
             </button>
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Work email</Label>
+              <Label htmlFor="email">{m.workEmail}</Label>
               <Input
                 id="email"
                 type="email"
                 required
-                placeholder="you@company.com"
+                placeholder={m.emailPlaceholder}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
@@ -130,10 +133,10 @@ export default function SignIn() {
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full" disabled={state === "sending"}>
-              {state === "sending" ? "Sending…" : "Email me a sign-in link"}
+              {state === "sending" ? m.sending : m.emailMeLink}
             </Button>
             <p className="text-xs text-muted-foreground text-center">
-              We'll send you a link to your company's workspace. You'll enter your password there.
+              {m.finderHint}
             </p>
             {remembered.length > 0 && (
               <button
@@ -141,13 +144,13 @@ export default function SignIn() {
                 onClick={() => setUseOther(false)}
                 className="w-full text-xs text-muted-foreground hover:text-foreground"
               >
-                Back to your saved workspaces
+                {m.backToSaved}
               </button>
             )}
           </form>
         )}
 
-        <p className="text-xs text-muted-foreground/70 text-center">a product by The Stellar Crew</p>
+        <p className="text-xs text-muted-foreground/70 text-center">{shell.madeBy}</p>
       </div>
     </div>
   );

@@ -1,32 +1,16 @@
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { ArrowRight } from "lucide-react";
+import { useMessages } from "@/i18n";
+import { aboutMessages } from "@/i18n/messages/product-about";
 
+// Names stay as they are; role and bio are translated in aboutMessages, in
+// the same order.
 const TEAM = [
-  {
-    name: "Gustavo Vargas",
-    role: "Chief Executive Officer",
-    initials: "GV",
-    bio: "Drives Sevra's vision and strategy, partnering with crisis leaders across industries.",
-  },
-  {
-    name: "Victor Herrera",
-    role: "Chief Marketing Officer",
-    initials: "VH",
-    bio: "Leads brand, growth and go-to-market — connecting Sevra with the teams who need it most.",
-  },
-  {
-    name: "Miriam Gonzalez",
-    role: "Chief Legal Officer",
-    initials: "MG",
-    bio: "Oversees legal, compliance and governance — ensuring trust, privacy and regulatory rigor.",
-  },
-  {
-    name: "Ronald Ayala",
-    role: "Chief Technology Officer",
-    initials: "RA",
-    bio: "Heads engineering, architecture and AI — building the platform that powers every response.",
-  },
+  { name: "Gustavo Vargas", initials: "GV" },
+  { name: "Victor Herrera", initials: "VH" },
+  { name: "Miriam Gonzalez", initials: "MG" },
+  { name: "Ronald Ayala", initials: "RA" },
 ];
 
 const GRADIENTS = [
@@ -37,22 +21,23 @@ const GRADIENTS = [
 ];
 
 export default function About() {
+  const t = useMessages(aboutMessages);
+  const team = TEAM.map((p, i) => ({ ...p, ...t.team[i] }));
   return (
     <div>
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-12 text-center">
-        <p className="text-xs uppercase tracking-widest text-primary">About Us</p>
-        <h1 className="mt-3 text-4xl sm:text-5xl font-bold tracking-tight">Built by people who've lived the crisis.</h1>
+        <p className="text-xs uppercase tracking-widest text-primary">{t.eyebrow}</p>
+        <h1 className="mt-3 text-4xl sm:text-5xl font-bold tracking-tight">{t.title}</h1>
         <p className="mt-5 text-muted-foreground max-w-2xl mx-auto">
-          Sevra was built by <a href="https://thestellar.ai" target="_blank" rel="noreferrer" className="text-foreground hover:text-primary underline underline-offset-2 decoration-border">The Stellar Crew</a> to
-          give crisis teams the clarity, speed and confidence they need when the world is watching. We bring
-          decades of experience across communications, technology, law and growth.
+          {t.introBefore} <a href="https://thestellar.ai" target="_blank" rel="noreferrer" className="text-foreground hover:text-primary underline underline-offset-2 decoration-border">The Stellar Crew</a>{" "}
+          {t.introAfter}
         </p>
       </section>
 
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
-        <h2 className="sr-only">Leadership team</h2>
+        <h2 className="sr-only">{t.teamHeading}</h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {TEAM.map((m, idx) => (
+          {team.map((m, idx) => (
             <Card key={m.name} className="bg-card border-border p-6 text-center">
               <div
                 className="mx-auto h-24 w-24 rounded-full flex items-center justify-center text-2xl font-bold text-white"
@@ -70,13 +55,9 @@ export default function About() {
 
       <section className="border-t border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <h2 className="sr-only">Our values</h2>
+          <h2 className="sr-only">{t.valuesHeading}</h2>
           <div className="grid md:grid-cols-3 gap-8">
-          {[
-            { title: "Clarity", body: "We turn noise into structured, actionable intelligence." },
-            { title: "Speed", body: "Every minute matters — our tools collapse hours into moments." },
-            { title: "Trust", body: "Auditability, privacy and security are non-negotiable." },
-          ].map((v) => (
+          {t.values.map((v) => (
             <div key={v.title}>
               <h3 className="text-xl font-semibold">{v.title}</h3>
               <p className="text-sm text-muted-foreground mt-2">{v.body}</p>
@@ -87,15 +68,15 @@ export default function About() {
       </section>
 
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Let's talk.</h2>
+        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">{t.ctaTitle}</h2>
         <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
-          Whether you're evaluating crisis tools or rethinking your playbooks — we'd love to hear from you.
+          {t.ctaBody}
         </p>
         <Link
           to="/#contact"
           className="mt-8 inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:opacity-90"
         >
-          Get in touch <ArrowRight className="h-4 w-4" />
+          {t.getInTouch} <ArrowRight className="h-4 w-4" />
         </Link>
       </section>
     </div>

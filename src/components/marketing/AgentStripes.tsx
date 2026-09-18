@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import { X, Send, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLang, useMessages } from "@/i18n";
+import { stripesMessages } from "@/i18n/messages/stripes";
 
 function ZebraIcon({ className }: { className?: string }) {
   return (
@@ -44,24 +46,18 @@ type Msg = { role: "user" | "assistant"; content: string };
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-stripes`;
 const PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-const SUGGESTIONS = [
-  "What are the next steps for an active safety incident?",
-  "Draft a holding statement for a service cancellation wave",
-  "How do I escalate an incident to L3 in Sevra?",
-  "Walk me through approving a press statement",
-];
-
 export default function AgentStripes() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useState<Msg[]>([
-    {
-      role: "assistant",
-      content:
-        "Hi, I'm **Agent Stripes**. I only help with your company's incidents in Sevra, and I only use information from this conversation and what you paste from your Sevra workspace — I won't guess or invent details.",
-    },
-  ]);
+  const { lang } = useLang();
+  const t = useMessages(stripesMessages);
+  // The greeting is rendered in the current language rather than stored, so
+  // switching language before the conversation starts switches it too.
+  const [conversation, setConversation] = useState<Msg[]>([]);
+  const messages: Msg[] = [{ role: "assistant", content: t.greeting }, ...conversation];
+  const setMessages = (update: (prev: Msg[]) => Msg[]) =>
+    setConversation((prev) => update([{ role: "assistant", content: t.greeting }, ...prev]).slice(1));
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -72,7 +68,7 @@ export default function AgentStripes() {
     if (!text.trim() || loading) return;
     const userMsg: Msg = { role: "user", content: text };
     const next = [...messages, userMsg];
-    setMessages(next);
+    setMessages(() => next);
     setInput("");
     setLoading(true);
 
@@ -83,15 +79,15 @@ export default function AgentStripes() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: next }),
+        body: JSON.stringify({ messages: next, lang }),
       });
 
       if (!resp.ok || !resp.body) {
         const errText = resp.status === 429
-          ? "Too many requests. Please wait a moment."
+          ? t.tooMany
           : resp.status === 402
-          ? "AI credits exhausted. Top up your workspace to continue."
-          : "Sorry, something went wrong.";
+          ? t.noCredits
+          : t.failed;
         setMessages((m) => [...m, { role: "assistant", content: errText }]);
         return;
       }
@@ -141,7 +137,7 @@ export default function AgentStripes() {
       }
     } catch (e) {
       console.error(e);
-      setMessages((m) => [...m, { role: "assistant", content: "Connection error. Please try again." }]);
+      setMessages((m) => [...m, { role: "assistant", content: t.connection }]);
     } finally {
       setLoading(false);
     }
@@ -160,15 +156,15 @@ export default function AgentStripes() {
           "hover:scale-105 transition-transform",
           open && "opacity-0 pointer-events-none",
         )}
-        aria-label="Open Agent Stripes"
+        aria-label={t.open}
       >
         <span className="relative flex h-10 w-10 items-center justify-center rounded-full bg-primary-foreground/15">
           <span className="absolute inset-0 rounded-full animate-ping bg-primary-foreground/20" />
           <ZebraIcon className="h-7 w-7 text-primary-foreground" />
         </span>
         <span className="hidden sm:block text-left leading-tight">
-          <span className="block text-sm font-semibold">Ask Agent Stripes</span>
-          <span className="block text-xs opacity-80">Your calm in the chaos — ready 24/7</span>
+          <span className="block text-sm font-semibold">{t.title}</span>
+          <span className="block text-xs opacity-80">{t.tagline}</span>
         </span>
       </button>
 
@@ -188,14 +184,14 @@ export default function AgentStripes() {
                 <ZebraIcon className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-semibold leading-none">Ask Agent Stripes</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Your calm in the chaos — ready 24/7</p>
+                <p className="text-sm font-semibold leading-none">{t.title}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t.tagline}</p>
               </div>
             </div>
             <button
               onClick={() => setOpen(false)}
               className="text-muted-foreground hover:text-foreground"
-              aria-label="Close"
+              aria-label={t.close}
             >
               <X className="h-5 w-5" />
             </button>
@@ -219,12 +215,12 @@ export default function AgentStripes() {
             ))}
             {loading && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Loader2 className="h-3 w-3 animate-spin" /> Agent Stripes is thinking…
+                <Loader2 className="h-3 w-3 animate-spin" /> {t.thinking}
               </div>
             )}
             {messages.length === 1 && !loading && (
               <div className="pt-2 space-y-1.5">
-                {SUGGESTIONS.map((s) => (
+                {t.suggestions.map((s) => (
                   <button
                     key={s}
                     onClick={() => send(s)}
@@ -244,13 +240,14 @@ export default function AgentStripes() {
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about a crisis, email, or case…"
+              placeholder={t.placeholder}
               className="flex-1 bg-muted/50 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
               disabled={loading}
             />
             <button
               type="submit"
               disabled={loading || !input.trim()}
+              aria-label={t.send}
               className="h-9 w-9 flex items-center justify-center rounded-lg bg-primary text-primary-foreground disabled:opacity-40"
             >
               <Send className="h-4 w-4" />

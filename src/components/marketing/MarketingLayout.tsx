@@ -3,16 +3,20 @@ import { signInPath } from "@/lib/home";
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import sevraLogo from "@/assets/sevra-logo-dark.png";
+import { LanguageToggle } from "@/components/LanguageToggle";
+import { useMessages } from "@/i18n";
+import { marketingLayoutMessages } from "@/i18n/messages/marketing-layout";
 
-const NAV = [
-  { to: "/", label: "Home", end: true },
-  { to: "/product", label: "Our Product" },
-  { to: "/about", label: "About Us" },
+const NAV: ReadonlyArray<{ to: string; key: "home" | "ourProduct" | "aboutUs"; end?: boolean }> = [
+  { to: "/", key: "home", end: true },
+  { to: "/product", key: "ourProduct" },
+  { to: "/about", key: "aboutUs" },
 ];
 
 export default function MarketingLayout() {
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
+  const m = useMessages(marketingLayoutMessages);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -26,7 +30,7 @@ export default function MarketingLayout() {
           <Link to="/" className="flex items-center gap-2 min-w-0">
             <img
               src={sevraLogo}
-              alt="Sevra logo — home"
+              alt={m.logoHome}
               className="h-10 sm:h-14 md:h-24 lg:h-32 w-auto"
             />
           </Link>
@@ -42,20 +46,21 @@ export default function MarketingLayout() {
                   }`
                 }
               >
-                {n.label}
+                {m[n.key]}
               </NavLink>
             ))}
           </nav>
           <div className="flex items-center gap-2">
+            <LanguageToggle />
             <Link
               to={signInPath()}
               className="inline-flex items-center justify-center rounded-md bg-primary px-3 sm:px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition"
             >
-              Log in
+              {m.logIn}
             </Link>
             <button
               type="button"
-              aria-label={open ? "Close menu" : "Open menu"}
+              aria-label={open ? m.closeMenu : m.openMenu}
               aria-expanded={open}
               onClick={() => setOpen((v) => !v)}
               className="md:hidden inline-flex items-center justify-center rounded-md border border-border h-9 w-9 text-foreground hover:bg-muted/40 transition"
@@ -80,7 +85,7 @@ export default function MarketingLayout() {
                     }`
                   }
                 >
-                  {n.label}
+                  {m[n.key]}
                 </NavLink>
               ))}
             </div>
@@ -95,9 +100,9 @@ export default function MarketingLayout() {
       <footer className="border-t border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <img src={sevraLogo} alt="Sevra logo" className="h-12 sm:h-16 md:h-24 lg:h-32 w-auto" />
+            <img src={sevraLogo} alt={m.logo} className="h-12 sm:h-16 md:h-24 lg:h-32 w-auto" />
             <span className="text-xs sm:text-sm text-muted-foreground">
-              © {new Date().getFullYear()} Sevra · a product by{" "}
+              © {new Date().getFullYear()} Sevra · {m.productBy}{" "}
               <a
                 href="https://thestellar.ai"
                 target="_blank"
@@ -109,9 +114,9 @@ export default function MarketingLayout() {
             </span>
           </div>
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
-            <Link to="/product" className="hover:text-foreground">Product</Link>
-            <Link to="/about" className="hover:text-foreground">About</Link>
-            <Link to={signInPath()} className="hover:text-foreground">Log in</Link>
+            <Link to="/product" className="hover:text-foreground">{m.product}</Link>
+            <Link to="/about" className="hover:text-foreground">{m.about}</Link>
+            <Link to={signInPath()} className="hover:text-foreground">{m.logIn}</Link>
           </div>
         </div>
       </footer>

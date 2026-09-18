@@ -6,81 +6,35 @@ import { DeviceMockup } from "@/components/marketing/DeviceMockup";
 import dashboardShot from "@/assets/product-dashboard.png";
 import dashboardMobileShot from "@/assets/product-dashboard-mobile.png";
 import sevraAiShot from "@/assets/product-sevra-ai.png";
+import { useMessages } from "@/i18n";
+import { productMessages } from "@/i18n/messages/product-about";
 
 
-const MODULES = [
-  {
-    icon: Radar,
-    title: "Signal Monitor",
-    body: "Continuous monitoring across social, news and internal feeds with smart triage and noise reduction.",
-    bullets: ["Multi-source ingestion", "Topic clustering", "Severity scoring"],
-  },
-  {
-    icon: ShieldAlert,
-    title: "Crisis Levels (L0–L4)",
-    body: "Structured framework to classify incidents and trigger the right playbook automatically.",
-    bullets: ["Configurable thresholds", "Risk score 0–100", "Playbook routing"],
-  },
-  {
-    icon: Bot,
-    title: "Sevra AI Assistant",
-    body: "AI co-pilot that drafts statements, FAQs and internal memos aligned to your brand voice.",
-    bullets: ["Press releases", "Holding statements", "Social posts & FAQs"],
-  },
-  {
-    icon: FileCheck2,
-    title: "Approvals & Workflow",
-    body: "Multi-stakeholder approval flows with full traceability — from legal to comms to leadership.",
-    bullets: ["Role-based reviewers", "Versioning", "Real-time comments"],
-  },
-  {
-    icon: Megaphone,
-    title: "Distribution",
-    body: "Publish approved messages to email, social and internal channels in one click.",
-    bullets: ["Multi-channel delivery", "Audience segmentation", "Performance tracking"],
-  },
-  {
-    icon: Activity,
-    title: "Live Dashboard",
-    body: "A real-time command center showing active incidents, crisis levels and team status.",
-    bullets: ["Priority queue", "KPIs", "Geographic view"],
-  },
-  {
-    icon: History,
-    title: "Audit Log",
-    body: "Immutable record of every change, approval and publication for compliance and post-mortems.",
-    bullets: ["Field-level history", "Actor & timestamp", "Exportable reports"],
-  },
-  {
-    icon: Layers,
-    title: "Reports & Insights",
-    body: "Post-incident reports and trend analytics to continuously improve your crisis readiness.",
-    bullets: ["Incident timelines", "Response benchmarks", "Improvement actions"],
-  },
-];
+const MODULE_ICONS = [Radar, ShieldAlert, Bot, FileCheck2, Megaphone, Activity, History, Layers];
 
 export default function Product() {
+  const t = useMessages(productMessages);
+  const modules = t.modules.map((mod, i) => ({ ...mod, icon: MODULE_ICONS[i] }));
   return (
     <div>
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-12 text-center">
-        <p className="text-xs uppercase tracking-widest text-primary">Our Product</p>
-        <h1 className="mt-3 text-4xl sm:text-5xl font-bold tracking-tight">One platform. Every phase of the crisis.</h1>
+        <p className="text-xs uppercase tracking-widest text-primary">{t.eyebrow}</p>
+        <h1 className="mt-3 text-4xl sm:text-5xl font-bold tracking-tight">{t.title}</h1>
         <p className="mt-5 text-muted-foreground max-w-2xl mx-auto">
-          Sevra brings together monitoring, decisioning, drafting, approvals and distribution — so your team
-          moves as one when it matters most.
+          {t.intro}
         </p>
       </section>
 
       {/* Dashboard screenshot */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 sm:pb-28">
-        <DeviceMockup desktopSrc={dashboardShot} mobileSrc={dashboardMobileShot} alt="Sevra crisis dashboard" url="app.sevra.ai/dashboard" />
-        <p className="mt-10 text-center text-sm text-muted-foreground">Live Dashboard — desktop & mobile, same source of truth.</p>
+        <DeviceMockup desktopSrc={dashboardShot} mobileSrc={dashboardMobileShot} alt={t.dashboardAlt} url="app.sevra.ai/dashboard" />
+        <p className="mt-10 text-center text-sm text-muted-foreground">{t.dashboardCaption}</p>
       </section>
 
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
-        <h2 className="sr-only">Platform modules</h2>
+        <h2 className="sr-only">{t.modulesHeading}</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {MODULES.map((m) => (
+          {modules.map((m) => (
             <Card key={m.title} className="bg-card border-border p-6 flex flex-col">
               <div className="h-10 w-10 rounded-md bg-primary/15 flex items-center justify-center text-primary mb-4">
                 <m.icon className="h-5 w-5" />
@@ -103,27 +57,27 @@ export default function Product() {
       <section className="border-t border-border">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center max-w-2xl mx-auto mb-12">
-            <p className="text-xs uppercase tracking-widest text-primary">Sevra AI</p>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-bold tracking-tight">Social signals, instantly classified.</h2>
+            <p className="text-xs uppercase tracking-widest text-primary">{t.aiEyebrow}</p>
+            <h2 className="mt-3 text-3xl sm:text-4xl font-bold tracking-tight">{t.aiTitle}</h2>
             <p className="mt-4 text-muted-foreground">
-              SEVRA monitors social channels 24/7, analyzes severity and auto-creates incidents — so nothing slips through.
+              {t.aiBody}
             </p>
           </div>
-          <BrowserMockup src={sevraAiShot} alt="Sevra AI social intel" url="app.sevra.ai/sevra" />
+          <BrowserMockup src={sevraAiShot} alt={t.aiAlt} url="app.sevra.ai/sevra" />
         </div>
       </section>
 
       <section className="border-t border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">See Sevra in action.</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">{t.ctaTitle}</h2>
           <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
-            Get a guided tour of the product, mapped to your team's playbooks and industry.
+            {t.ctaBody}
           </p>
           <Link
             to="/#contact"
             className="mt-8 inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:opacity-90"
           >
-            Request a demo <ArrowRight className="h-4 w-4" />
+            {t.requestDemo} <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </section>
