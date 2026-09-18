@@ -226,6 +226,7 @@ export type Database = {
           created_by: string | null
           id: string
           incident_id: string
+          language: string | null
           media_source: string | null
           media_type: string | null
           media_url: string | null
@@ -243,6 +244,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           incident_id: string
+          language?: string | null
           media_source?: string | null
           media_type?: string | null
           media_url?: string | null
@@ -260,6 +262,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           incident_id?: string
+          language?: string | null
           media_source?: string | null
           media_type?: string | null
           media_url?: string | null
@@ -349,6 +352,7 @@ export type Database = {
           sub_type: string | null
           tags: string[]
           title: string
+          translations: Json | null
           updated_at: string
         }
         Insert: {
@@ -379,6 +383,7 @@ export type Database = {
           sub_type?: string | null
           tags?: string[]
           title: string
+          translations?: Json | null
           updated_at?: string
         }
         Update: {
@@ -409,6 +414,7 @@ export type Database = {
           sub_type?: string | null
           tags?: string[]
           title?: string
+          translations?: Json | null
           updated_at?: string
         }
         Relationships: []
@@ -484,6 +490,7 @@ export type Database = {
           phase_long: Json | null
           phase_medium: Json | null
           phase_short: Json | null
+          translations: Json | null
           updated_at: string
         }
         Insert: {
@@ -496,6 +503,7 @@ export type Database = {
           phase_long?: Json | null
           phase_medium?: Json | null
           phase_short?: Json | null
+          translations?: Json | null
           updated_at?: string
         }
         Update: {
@@ -508,6 +516,7 @@ export type Database = {
           phase_long?: Json | null
           phase_medium?: Json | null
           phase_short?: Json | null
+          translations?: Json | null
           updated_at?: string
         }
         Relationships: [
@@ -648,6 +657,7 @@ export type Database = {
           reach: number | null
           shares: number | null
           status: string
+          translations: Json | null
           updated_at: string
         }
         Insert: {
@@ -676,6 +686,7 @@ export type Database = {
           reach?: number | null
           shares?: number | null
           status?: string
+          translations?: Json | null
           updated_at?: string
         }
         Update: {
@@ -704,6 +715,7 @@ export type Database = {
           reach?: number | null
           shares?: number | null
           status?: string
+          translations?: Json | null
           updated_at?: string
         }
         Relationships: [

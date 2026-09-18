@@ -4,6 +4,8 @@ import { Calendar as CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useDateLocale, useMessages } from "@/i18n";
+import { commonMessages } from "@/i18n/messages/common";
 
 export type TimeRangePreset = "today" | "this_week" | "custom";
 
@@ -47,20 +49,22 @@ export function TimeRangeFilter({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const t = useMessages(commonMessages);
+  const locale = useDateLocale();
 
   const presets: { key: Exclude<TimeRangePreset, "custom">; label: string }[] = [
-    { key: "today", label: "Today" },
-    { key: "this_week", label: "This Week" },
+    { key: "today", label: t.today },
+    { key: "this_week", label: t.thisWeek },
   ];
 
   const customLabel =
     value.preset === "custom" && value.from
-      ? `${format(value.from, "MMM d")} – ${value.to ? format(value.to, "MMM d, yyyy") : "…"}`
-      : "Custom";
+      ? `${format(value.from, "d MMM", { locale })} – ${value.to ? format(value.to, "d MMM yyyy", { locale }) : "…"}`
+      : t.custom;
 
   return (
     <div className={cn("flex items-center gap-1 flex-wrap", className)}>
-      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider mr-1">Time:</span>
+      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider mr-1">{t.time}</span>
       {presets.map((p) => {
         const active = value.preset === p.key;
         return (
@@ -102,6 +106,7 @@ export function TimeRangeFilter({
               if (r.from && r.to) setOpen(false);
             }}
             numberOfMonths={2}
+            locale={locale}
             initialFocus
             className={cn("p-3 pointer-events-auto")}
           />

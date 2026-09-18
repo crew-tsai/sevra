@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useMessages } from "@/i18n";
+import { commonMessages } from "@/i18n/messages/common";
 
 const SUPPORT_ACCESS_LOGGED_KEY = "sevra.support_access_logged.v1";
 
@@ -8,6 +10,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [authed, setAuthed] = useState<boolean | null>(null);
   const location = useLocation();
   const accessLogged = useRef(false);
+  const t = useMessages(commonMessages);
 
   // Records Sevra support staff entering the workspace so the client can audit
   // it. The RPC no-ops when the caller doesn't hold the 'soporte' role, so it
@@ -42,7 +45,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }, []);
 
   if (authed === null) {
-    return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading…</div>;
+    return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">{t.loading}</div>;
   }
   if (!authed) return <Navigate to="/login" replace state={{ from: location }} />;
   return <>{children}</>;

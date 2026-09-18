@@ -1,16 +1,19 @@
 import { cn } from "@/lib/utils";
 import type { IncidentStatus } from "@/lib/types";
 import { AlertCircle, Eye, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { useMessages } from "@/i18n";
+import { commonMessages } from "@/i18n/messages/common";
 
-const STAGES: { key: IncidentStatus; label: string; icon: typeof AlertCircle }[] = [
-  { key: "active", label: "Active", icon: AlertCircle },
-  { key: "monitoring", label: "Monitoring", icon: Eye },
-  { key: "contained", label: "Contained", icon: ShieldCheck },
-  { key: "resolved", label: "Resolved", icon: CheckCircle2 },
+const STAGES: { key: IncidentStatus; icon: typeof AlertCircle }[] = [
+  { key: "active", icon: AlertCircle },
+  { key: "monitoring", icon: Eye },
+  { key: "contained", icon: ShieldCheck },
+  { key: "resolved", icon: CheckCircle2 },
 ];
 
 export function StatusStepper({ status, className }: { status: IncidentStatus; className?: string }) {
   const currentIdx = STAGES.findIndex((s) => s.key === status);
+  const t = useMessages(commonMessages);
 
   return (
     <div className={cn("w-full", className)}>
@@ -40,7 +43,7 @@ export function StatusStepper({ status, className }: { status: IncidentStatus; c
                     !isCurrent && !isDone && "text-muted-foreground",
                   )}
                 >
-                  {stage.label}
+                  {t.status[stage.key]}
                 </span>
               </div>
               {idx < STAGES.length - 1 && (

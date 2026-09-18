@@ -11,6 +11,10 @@ import { toast } from "sonner";
 import { RiskBadge } from "@/components/RiskBadge";
 import { CrisisLevelBadge } from "@/components/CrisisLevelBadge";
 import { TimeRangeFilter, DEFAULT_TIME_RANGE, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
+import { useIntlLocale, useLang, useMessages } from "@/i18n";
+import { useTranslations } from "@/i18n/useTranslations";
+import { sevraMessages } from "@/i18n/messages/sevra";
+import { humanizeSubType, INCIDENT_TYPES, typeLabel, type IncidentType } from "@/lib/industries";
 
 // Derive an L0–L4 crisis level for a social mention from AI risk / score.
 const mentionCrisisLevel = (m: { ai_risk: string | null; ai_risk_score: number | null }): number => {
@@ -51,13 +55,14 @@ type Mention = {
   incident_id: string | null;
   created_at: string;
   updated_at: string;
+  translations: unknown;
 };
 
-const formatDateTime = (iso: string | null | undefined) => {
+const formatDateTime = (iso: string | null | undefined, locale?: string) => {
   if (!iso) return null;
   const d = new Date(iso);
   if (isNaN(d.getTime())) return null;
-  return d.toLocaleString(undefined, {
+  return d.toLocaleString(locale, {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -66,18 +71,18 @@ const formatDateTime = (iso: string | null | undefined) => {
   });
 };
 
-const formatRelative = (iso: string | null | undefined) => {
+type Ago = typeof sevraMessages.en.ago;
+const formatRelative = (iso: string | null | undefined, ago: Ago) => {
   if (!iso) return null;
   const d = new Date(iso).getTime();
   if (isNaN(d)) return null;
   const diffSec = Math.round((Date.now() - d) / 1000);
-  if (diffSec < 60) return `${diffSec}s ago`;
+  if (diffSec < 60) return ago.s(diffSec);
   const diffMin = Math.round(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffMin < 60) return ago.m(diffMin);
   const diffH = Math.round(diffMin / 60);
-  if (diffH < 24) return `${diffH}h ago`;
-  const diffD = Math.round(diffH / 24);
-  return `${diffD}d ago`;
+  if (diffH < 24) return ago.h(diffH);
+  return ago.d(Math.round(diffH / 24));
 };
 
 const CHANNEL_META: Record<string, { icon: typeof Twitter; label: string; color: string }> = {
@@ -102,6 +107,17 @@ export default function Sevra() {
   const [monitorLastRun, setMonitorLastRun] = useState<string | null>(null);
   const [monitorTogglePending, setMonitorTogglePending] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
+  const t = useMessages(sevraMessages);
+  const { lang } = useLang();
+  const intl = useIntlLocale();
+  const rel = (iso: string | null | undefined) => formatRelative(iso, t.ago);
+  const abs = (iso: string | null | undefined) => formatDateTime(iso, intl);
+  const [industry, setIndustry] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.from("company_settings").select("industry").maybeSingle().then(({ data }) => setIndustry(data?.industry ?? null));
+  }, []);
+  const incidentTypeLabel = (v: string) =>
+    (INCIDENT_TYPES as readonly string[]).includes(v) ? typeLabel(industry, v as IncidentType, lang) : v;
 
   const refreshMonitorStatus = async () => {
     const { data, error } = await supabase.functions.invoke("social-monitor-control", { body: {} });
@@ -118,11 +134,11 @@ export default function Sevra() {
         body: { action: next ? "enable" : "disable" },
       });
       if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || "Toggle failed");
+      if (!data?.success) throw new Error(data?.error || t.toggleFailed);
       setMonitorActive(!!data.active);
-      toast.success(next ? "Continuous monitoring enabled" : "Continuous monitoring paused");
+      toast.success(next ? t.monitoringEnabled : t.monitoringPaused);
     } catch (e: any) {
-      toast.error(e.message || "Failed to update monitor");
+      toast.error(e.message || t.monitorUpdateFailed);
     } finally {
       setMonitorTogglePending(false);
     }
@@ -133,15 +149,15 @@ export default function Sevra() {
     try {
       const { data, error } = await supabase.functions.invoke("social-monitor-cron", { body: {} });
       if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || "Monitor failed");
+      if (!data?.success) throw new Error(data?.error || t.monitorFailed);
       const errors = data.network_errors as Record<string, string> | undefined;
       const errorSuffix = errors
         ? " · " + Object.entries(errors).map(([network, msg]) => `${network}: ${msg}`).join(" · ")
         : "";
-      toast.success(`Monitor ran — ${data.generated ?? 0} new mentions, ${data.analyzed ?? 0} analyzed${errorSuffix}`);
+      toast.success(`${t.monitorRan(data.generated ?? 0, data.analyzed ?? 0)}${errorSuffix}`);
       refreshMonitorStatus();
     } catch (e: any) {
-      toast.error(e.message || "Failed to run monitor");
+      toast.error(e.message || t.monitorRunFailed);
     } finally {
       setMonitorRunning(false);
     }
@@ -174,18 +190,18 @@ export default function Sevra() {
     try {
       const { data, error } = await supabase.functions.invoke("sevra-analyze", { body: { mention_id: m.id } });
       if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || "Analysis failed");
-      if (data.deduped) toast.success("Linked to existing incident (duplicate detected)");
+      if (!data?.success) throw new Error(data?.error || t.analysisFailed);
+      if (data.deduped) toast.success(t.linkedExisting);
       else if (data.incident_id) {
-        toast.success("Incident auto-created — review & approve", {
+        toast.success(t.autoCreated, {
           action: {
-            label: "View & approve",
+            label: t.viewAndApprove,
             onClick: () => navigate(`/incidents/${data.incident_id}`),
           },
         });
-      } else toast.message("Mention dismissed as noise");
+      } else toast.message(t.dismissedNoise);
     } catch (e: any) {
-      toast.error(e.message || "Failed to analyze");
+      toast.error(e.message || t.analyzeFailed);
     } finally {
       setAnalyzingId(null);
     }
@@ -203,14 +219,14 @@ export default function Sevra() {
       })
       .eq("id", incidentId);
     if (error) return toast.error(error.message);
-    toast.success("Incident approved");
+    toast.success(t.incidentApproved);
     setApprovedIds((prev) => new Set(prev).add(incidentId));
   };
 
   const analyzeAllPending = async () => {
     const pending = mentions.filter((m) => m.status === "pending");
-    if (!pending.length) return toast.message("Nothing pending");
-    toast.success(`SEVRA analyzing ${pending.length} mentions...`);
+    if (!pending.length) return toast.message(t.nothingPending);
+    toast.success(t.analyzingN(pending.length));
     for (const m of pending) {
       await analyzeOne(m);
     }
@@ -237,6 +253,8 @@ export default function Sevra() {
     levelCounts[mentionCrisisLevel(m)]++;
   });
 
+  const tr = useTranslations("social_mentions", filtered);
+
   const stats = {
     noise: timeScoped.filter((m) => m.status === "dismissed").length,
     crisis_level: crisisMentions.length,
@@ -251,19 +269,19 @@ export default function Sevra() {
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <Radio className="h-5 w-5 text-primary" />
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">SEVRA · Social Intel</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">{t.title}</h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Live ingest from social channels. AI classifies, scores, and auto-creates incidents.
+            {t.intro}
           </p>
         </div>
         <div className="flex gap-2 flex-wrap w-full sm:w-auto">
           <Button variant="outline" size="sm" onClick={runMonitorNow} disabled={monitorRunning} className="flex-1 sm:flex-none">
             {monitorRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radio className="h-4 w-4" />}
-            <span className="hidden xs:inline">Run monitor now</span><span className="xs:hidden">Monitor</span>
+            <span className="hidden xs:inline">{t.runMonitorNow}</span><span className="xs:hidden">{t.monitorShort}</span>
           </Button>
           <Button size="sm" onClick={analyzeAllPending} disabled={!stats.crisis_level} className="flex-1 sm:flex-none">
-            <Sparkles className="h-4 w-4" /> Analyze all ({stats.crisis_level})
+            <Sparkles className="h-4 w-4" /> {t.analyzeAll(stats.crisis_level)}
           </Button>
         </div>
       </div>
@@ -290,44 +308,44 @@ export default function Sevra() {
           )}
           <div className="text-sm">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-foreground">Continuous monitoring</span>
+              <span className="font-semibold text-foreground">{t.continuous}</span>
               {monitorActive === null ? (
-                <Badge variant="outline" className="text-[10px]">checking…</Badge>
+                <Badge variant="outline" className="text-[10px]">{t.checking}</Badge>
               ) : monitorActive ? (
                 <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/20 text-[10px] uppercase tracking-wider">
-                  <Power className="h-3 w-3 mr-1" /> ON
+                  <Power className="h-3 w-3 mr-1" /> {t.onBadge}
                 </Badge>
               ) : (
                 <Badge variant="outline" className="text-muted-foreground text-[10px] uppercase tracking-wider">
-                  <PowerOff className="h-3 w-3 mr-1" /> OFF
+                  <PowerOff className="h-3 w-3 mr-1" /> {t.offBadge}
                 </Badge>
               )}
             </div>
             <div className="text-xs text-muted-foreground mt-0.5">
               {monitorActive
-                ? `SEVRA scans every 15 min and auto-creates incidents on high risk.`
-                : `Paused. Mentions will only be ingested when you click "Run monitor now".`}
+                ? t.scansEvery
+                : t.paused}
               {monitorLastRun && (
-                <> · Last run {formatRelative(monitorLastRun)}</>
+                <>{t.lastRun(rel(monitorLastRun) ?? "")}</>
               )}
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">{monitorActive ? "On" : "Off"}</span>
+          <span className="text-xs text-muted-foreground">{monitorActive ? t.on : t.off}</span>
           <Switch
             checked={!!monitorActive}
             onCheckedChange={toggleMonitor}
             disabled={monitorActive === null || monitorTogglePending}
-            aria-label="Toggle continuous monitoring"
+            aria-label={t.toggleMonitoring}
           />
         </div>
       </Card>
 
       <div className="grid grid-cols-2 gap-3">
         {([
-          { key: "crisis_level" as const, label: "Crisis level", value: stats.crisis_level, color: "text-primary" },
-          { key: "noise" as const, label: "Noise", value: stats.noise, color: "text-muted-foreground" },
+          { key: "crisis_level" as const, label: t.crisisLevel, value: stats.crisis_level, color: "text-primary" },
+          { key: "noise" as const, label: t.noise, value: stats.noise, color: "text-muted-foreground" },
         ]).map((s) => {
           const active = statusFilter === s.key;
           return (
@@ -341,7 +359,7 @@ export default function Sevra() {
             >
               <div className="text-xs text-muted-foreground uppercase tracking-wider">{s.label}</div>
               <div className={`text-2xl font-bold mt-1 ${s.color}`}>{s.value}</div>
-              {active && <div className="text-[10px] text-muted-foreground mt-1">click again to clear</div>}
+              {active && <div className="text-[10px] text-muted-foreground mt-1">{t.clickToClear}</div>}
             </Card>
           );
         })}
@@ -349,7 +367,7 @@ export default function Sevra() {
 
       {statusFilter === "crisis_level" && (
         <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-xs uppercase tracking-wider text-muted-foreground mr-1">Level</span>
+          <span className="text-xs uppercase tracking-wider text-muted-foreground mr-1">{t.level}</span>
           <button
             type="button"
             onClick={() => setLevelFilter("all")}
@@ -357,7 +375,7 @@ export default function Sevra() {
               levelFilter === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:bg-accent/40"
             }`}
           >
-            All ({stats.crisis_level})
+            {t.allCount(stats.crisis_level)}
           </button>
           {[0, 1, 2, 3, 4].map((lvl) => {
             const active = levelFilter === lvl;
@@ -378,7 +396,7 @@ export default function Sevra() {
 
       <Tabs value={filter} onValueChange={setFilter} className="w-full">
         <TabsList className="w-full justify-start overflow-x-auto">
-          <TabsTrigger value="all">All channels</TabsTrigger>
+          <TabsTrigger value="all">{t.allChannels}</TabsTrigger>
           <TabsTrigger value="twitter">X</TabsTrigger>
           <TabsTrigger value="instagram">Instagram</TabsTrigger>
           <TabsTrigger value="tiktok">TikTok</TabsTrigger>
@@ -387,12 +405,12 @@ export default function Sevra() {
       </Tabs>
 
       {loading ? (
-        <div className="text-center py-12 text-muted-foreground">Loading mentions…</div>
+        <div className="text-center py-12 text-muted-foreground">{t.loadingMentions}</div>
       ) : !filtered.length ? (
         <Card className="p-10 text-center">
-          <p className="text-muted-foreground mb-4">No mentions yet. Pull from social channels to start.</p>
+          <p className="text-muted-foreground mb-4">{t.empty}</p>
           <Button onClick={runMonitorNow} disabled={monitorRunning}>
-            {monitorRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Run monitor now
+            {monitorRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} {t.runMonitorNow}
           </Button>
         </Card>
       ) : (
@@ -412,47 +430,47 @@ export default function Sevra() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-foreground break-all">{m.author_name}</span>
                       <span className="text-sm text-muted-foreground break-all">@{m.author_handle}</span>
-                      {m.is_verified && <Badge variant="secondary" className="text-[10px]">verified</Badge>}
-                      {m.is_influencer && <Badge variant="secondary" className="text-[10px]">influencer</Badge>}
+                      {m.is_verified && <Badge variant="secondary" className="text-[10px]">{t.verified}</Badge>}
+                      {m.is_influencer && <Badge variant="secondary" className="text-[10px]">{t.influencer}</Badge>}
                       <span className="text-xs text-muted-foreground">· {meta.label}</span>
                       {(m.posted_at || m.created_at) && (
                         <span
                           className="text-xs text-muted-foreground"
-                          title={formatDateTime(m.posted_at ?? m.created_at) ?? undefined}
+                          title={abs(m.posted_at ?? m.created_at) ?? undefined}
                         >
-                          · posted {formatRelative(m.posted_at ?? m.created_at)}
+                          {t.posted(rel(m.posted_at ?? m.created_at) ?? "")}
                         </span>
                       )}
                     </div>
                     <p className="text-sm text-foreground mt-2 whitespace-pre-wrap break-words">{m.content}</p>
                     <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
-                      <span>♥ {m.likes?.toLocaleString()}</span>
-                      <span>↻ {m.shares?.toLocaleString()}</span>
-                      <span>👁 {m.reach?.toLocaleString()} reach</span>
+                      <span>♥ {m.likes?.toLocaleString(intl)}</span>
+                      <span>↻ {m.shares?.toLocaleString(intl)}</span>
+                      <span>👁 {t.reach((m.reach ?? 0).toLocaleString(intl))}</span>
                     </div>
 
                     {m.ai_summary && (
                       <div className="mt-3 p-3 rounded-md border border-border bg-muted/40 space-y-2">
                         <div className="flex items-center gap-2 flex-wrap">
                           <Sparkles className="h-3.5 w-3.5 text-primary" />
-                          <span className="text-xs font-semibold text-foreground">SEVRA analysis</span>
+                          <span className="text-xs font-semibold text-foreground">{t.analysis}</span>
                           {m.ai_risk && <RiskBadge level={m.ai_risk as any} />}
                           {m.status !== "dismissed" && (m.ai_risk || m.ai_risk_score != null) && (
                             <CrisisLevelBadge level={mentionCrisisLevel(m)} compact />
                           )}
-                          {m.ai_incident_type && <Badge variant="outline" className="text-[10px]">{m.ai_incident_type}</Badge>}
-                          {m.ai_sub_type && <Badge variant="outline" className="text-[10px]">{m.ai_sub_type}</Badge>}
-                          {m.ai_risk_score != null && <span className="text-xs text-muted-foreground">score {m.ai_risk_score}</span>}
+                          {m.ai_incident_type && <Badge variant="outline" className="text-[10px]">{incidentTypeLabel(m.ai_incident_type)}</Badge>}
+                          {m.ai_sub_type && <Badge variant="outline" className="text-[10px]">{humanizeSubType(m.ai_sub_type, lang)}</Badge>}
+                          {m.ai_risk_score != null && <span className="text-xs text-muted-foreground">{t.score(m.ai_risk_score)}</span>}
                           {m.updated_at && (
                             <span
                               className="text-xs text-muted-foreground sm:ml-auto"
-                              title={formatDateTime(m.updated_at) ?? undefined}
+                              title={abs(m.updated_at) ?? undefined}
                             >
-                              analyzed {formatRelative(m.updated_at)}
+                              {t.analyzed(rel(m.updated_at) ?? "")}
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground break-words">{m.ai_summary}</p>
+                        <p className="text-xs text-muted-foreground break-words">{tr.text(m, "ai_summary")}</p>
                       </div>
                     )}
                   </div>
@@ -461,44 +479,44 @@ export default function Sevra() {
                     {m.status === "pending" && !m.incident_id && (
                       <Button size="sm" onClick={() => analyzeOne(m)} disabled={isAnalyzing}>
                         {isAnalyzing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                        Analyze
+                        {t.analyze}
                       </Button>
                     )}
                     {m.status === "analyzing" && (
-                      <Badge variant="secondary"><Loader2 className="h-3 w-3 animate-spin" /> analyzing</Badge>
+                      <Badge variant="secondary"><Loader2 className="h-3 w-3 animate-spin" /> {t.analyzing}</Badge>
                     )}
                     {m.incident_id && (
                       <>
                         <Button size="sm" variant="outline" onClick={() => navigate(`/incidents/${m.incident_id}`)}>
-                          <AlertTriangle className="h-3.5 w-3.5" /> View incident
+                          <AlertTriangle className="h-3.5 w-3.5" /> {t.viewIncident}
                         </Button>
                         {m.status === "incident_created" && (
                           approvedIds.has(m.incident_id) ? (
                             <Badge className="gap-1 bg-risk-low-bg text-risk-low border-0">
-                              <CheckCircle2 className="h-3 w-3" /> approved
+                              <CheckCircle2 className="h-3 w-3" /> {t.approved}
                             </Badge>
                           ) : (
                             <Button size="sm" onClick={() => approveIncident(m.incident_id!)}>
-                              <CheckCircle2 className="h-3.5 w-3.5" /> Approve
+                              <CheckCircle2 className="h-3.5 w-3.5" /> {t.approve}
                             </Button>
                           )
                         )}
                         {incidentMentionCounts[m.incident_id] > 1 && (
                           <Badge variant="secondary" className="text-[10px]">
-                            {incidentMentionCounts[m.incident_id]} mentions on this incident
+                            {t.mentionsOnIncident(incidentMentionCounts[m.incident_id])}
                           </Badge>
                         )}
                         {m.status === "linked_to_incident" && (
-                          <Badge variant="outline" className="text-[10px]">deduped</Badge>
+                          <Badge variant="outline" className="text-[10px]">{t.deduped}</Badge>
                         )}
                       </>
                     )}
                     {m.status === "dismissed" && (
-                      <Badge variant="outline" className="gap-1"><CheckCircle2 className="h-3 w-3" /> noise</Badge>
+                      <Badge variant="outline" className="gap-1"><CheckCircle2 className="h-3 w-3" /> {t.noiseBadge}</Badge>
                     )}
                     {m.post_url && (
                       <a href={m.post_url} target="_blank" rel="noreferrer" className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
-                        source <ExternalLink className="h-3 w-3" />
+                        {t.source} <ExternalLink className="h-3 w-3" />
                       </a>
                     )}
                   </div>

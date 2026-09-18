@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import { ChevronRight, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useMessages } from "@/i18n";
+import { commonMessages } from "@/i18n/messages/common";
 
 export type Crumb = {
   label: string;
@@ -9,8 +11,9 @@ export type Crumb = {
 };
 
 export function Breadcrumbs({ items, className }: { items: Crumb[]; className?: string }) {
+  const t = useMessages(commonMessages);
   return (
-    <nav aria-label="Breadcrumb" className={cn("text-xs", className)}>
+    <nav aria-label={t.breadcrumb} className={cn("text-xs", className)}>
       <ol className="flex items-center gap-1 flex-wrap text-muted-foreground">
         {items.map((item, i) => {
           const isLast = i === items.length - 1;

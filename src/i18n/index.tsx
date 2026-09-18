@@ -77,21 +77,3 @@ export function useDateLocale(): Locale {
 export function useIntlLocale(): string {
   return useLang().lang === "es" ? "es-ES" : "en-US";
 }
-
-/**
- * Picks the current language's version of AI-written content. Records carry
- * English in their original fields and Spanish under `translations.es`; old
- * records written before translations existed simply show English.
- */
-export function pickLang<T extends Record<string, unknown>>(
-  lang: Lang,
-  record: T | null | undefined,
-  field: keyof T & string,
-): string {
-  if (!record) return "";
-  const base = (record[field] as string | null | undefined) ?? "";
-  if (lang === "en") return base;
-  const tr = (record as { translations?: { es?: Record<string, unknown> } | null }).translations?.es;
-  const v = tr?.[field];
-  return typeof v === "string" && v.trim() ? v : base;
-}

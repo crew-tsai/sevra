@@ -28,7 +28,11 @@ import {
   Lightbulb,
 } from "lucide-react";
 import { toast } from "sonner";
-import { profileFor } from "@/lib/industries";
+import { humanizeSubType, INCIDENT_TYPES, profileFor, typeLabel, type IncidentType } from "@/lib/industries";
+import { useIntlLocale, useLang, useMessages } from "@/i18n";
+import { useTranslations } from "@/i18n/useTranslations";
+import { commonMessages } from "@/i18n/messages/common";
+import { incidentDetailMessages } from "@/i18n/messages/incident-detail";
 
 type Incident = {
   id: string;
@@ -57,6 +61,7 @@ type Incident = {
   approved_by: string | null;
   created_at: string;
   updated_at: string;
+  translations: unknown;
 };
 
 type Mention = {
@@ -71,6 +76,7 @@ type Mention = {
   ai_risk: string | null;
   is_verified: boolean | null;
   is_influencer: boolean | null;
+  translations: unknown;
 };
 
 const CHANNEL_ICON: Record<string, typeof Twitter> = {
@@ -79,11 +85,11 @@ const CHANNEL_ICON: Record<string, typeof Twitter> = {
   tiktok: Music2,
 };
 
-const formatDateTime = (iso: string | null | undefined) => {
+const formatDateTime = (iso: string | null | undefined, locale?: string) => {
   if (!iso) return null;
   const d = new Date(iso);
   if (isNaN(d.getTime())) return null;
-  return d.toLocaleString(undefined, {
+  return d.toLocaleString(locale, {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -98,7 +104,12 @@ export default function IncidentDetail() {
   const location = useLocation();
   const navState = (location.state ?? null) as { from?: string; fromLabel?: string } | null;
   const backTo = navState?.from ?? null;
-  const backLabel = navState?.fromLabel ?? "Back";
+  const t = useMessages(incidentDetailMessages);
+  const common = useMessages(commonMessages);
+  const { lang } = useLang();
+  const intl = useIntlLocale();
+  const fmt = (iso: string | null | undefined) => formatDateTime(iso, intl);
+  const backLabel = navState?.fromLabel ?? t.back;
   const [incident, setIncident] = useState<Incident | null>(null);
   const [mentions, setMentions] = useState<Mention[]>([]);
   const [assetCount, setAssetCount] = useState(0);
@@ -106,7 +117,7 @@ export default function IncidentDetail() {
   const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [industry, setIndustry] = useState<string | null>(null);
-  const vocab = profileFor(industry);
+  const vocab = profileFor(industry, lang);
 
   useEffect(() => {
     void (async () => {
@@ -122,7 +133,7 @@ export default function IncidentDetail() {
       supabase.from("incidents").select("*").eq("id", id).maybeSingle(),
       supabase
         .from("social_mentions")
-        .select("id, channel, author_name, author_handle, content, post_url, posted_at, ai_summary, ai_risk, is_verified, is_influencer")
+        .select("id, channel, author_name, author_handle, content, post_url, posted_at, ai_summary, ai_risk, is_verified, is_influencer, translations")
         .eq("incident_id", id)
         .order("posted_at", { ascending: false }),
       supabase
@@ -160,19 +171,20 @@ export default function IncidentDetail() {
       setApproving(false);
       return toast.error(error.message);
     }
-    toast.success("Incident approved — generating asset package…");
+    toast.success(t.approvedGenerating);
     try {
       const { data, error: fnErr } = await supabase.functions.invoke("generate-incident-assets", {
-        body: { incident_id: incident.id },
+        // Written in the language the person is working in; see generate-incident-assets.
+        body: { incident_id: incident.id, lang },
       });
       if (fnErr) throw fnErr;
-      if (!data?.success) throw new Error(data?.error || "Failed to generate package");
-      toast.success(`${data.count} assets generated — review them in Approvals`, {
-        action: { label: "Open Approvals", onClick: () => navigate("/approvals") },
+      if (!data?.success) throw new Error(data?.error || t.packageFailed);
+      toast.success(t.assetsGenerated(data.count), {
+        action: { label: t.openApprovals, onClick: () => navigate("/approvals") },
       });
       navigate("/approvals");
     } catch (e: any) {
-      toast.error(e.message || "Asset generation failed");
+      toast.error(e.message || t.generationFailed);
       load();
     } finally {
       setApproving(false);
@@ -188,14 +200,18 @@ export default function IncidentDetail() {
       .eq("id", incident.id);
     setRejecting(false);
     if (error) return toast.error(error.message);
-    toast.success("Incident rejected");
+    toast.success(t.rejectedToast);
     load();
   };
+
+  // Hooks above the early returns, so their order never changes between renders.
+  const trInc = useTranslations("incidents", incident ? [incident] : []);
+  const trMen = useTranslations("social_mentions", mentions);
 
   if (loading) {
     return (
       <div className="p-10 flex items-center justify-center text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading incident…
+        <Loader2 className="h-4 w-4 animate-spin mr-2" /> {t.loading}
       </div>
     );
   }
@@ -203,8 +219,8 @@ export default function IncidentDetail() {
   if (!incident) {
     return (
       <div className="p-6 max-w-2xl mx-auto">
-        <p className="text-muted-foreground">Incident not found.</p>
-        <Link to="/sevra" className="text-primary text-sm mt-2 inline-block">← Back to SEVRA</Link>
+        <p className="text-muted-foreground">{t.notFound}</p>
+        <Link to="/sevra" className="text-primary text-sm mt-2 inline-block">{t.backToSevra}</Link>
       </div>
     );
   }
@@ -212,24 +228,29 @@ export default function IncidentDetail() {
   const isApproved = incident.approval_status === "approved";
   const isRejected = incident.approval_status === "rejected";
   const incidentRef = `INC-${incident.id.slice(0, 8).toUpperCase()}`;
+  const title = trInc.text(incident, "title");
+  const description = trInc.text(incident, "description");
+  const incidentTypeLabel = (INCIDENT_TYPES as readonly string[]).includes(incident.incident_type)
+    ? typeLabel(industry, incident.incident_type as IncidentType, lang)
+    : incident.incident_type;
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <Breadcrumbs
           items={[
-            { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
+            { label: t.dashboard, to: "/dashboard", icon: LayoutDashboard },
             ...(backTo
-              ? [{ label: backTo.startsWith("/approvals") ? "Approvals" : "Incidents", to: backTo }]
-              : [{ label: "Incidents", to: "/dashboard" }]),
-            { label: `${incidentRef} · ${incident.title}` },
+              ? [{ label: backTo.startsWith("/approvals") ? t.approvals : t.incidents, to: backTo }]
+              : [{ label: t.incidents, to: "/dashboard" }]),
+            { label: `${incidentRef} · ${title}` },
           ]}
         />
         <button
           onClick={() => (backTo ? navigate(backTo) : navigate(-1))}
           className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> Back to {backLabel}
+          <ArrowLeft className="h-3.5 w-3.5" /> {t.backTo(backLabel)}
         </button>
       </div>
 
@@ -243,46 +264,46 @@ export default function IncidentDetail() {
             <RiskBadge level={incident.risk} />
             <CrisisLevelBadge level={incident.crisis_level} />
             <StatusBadge status={incident.status} />
-            <Badge variant="outline" className="text-[10px]">{incident.incident_type}</Badge>
-            {incident.sub_type && <Badge variant="outline" className="text-[10px]">{incident.sub_type}</Badge>}
+            <Badge variant="outline" className="text-[10px]">{incidentTypeLabel}</Badge>
+            {incident.sub_type && <Badge variant="outline" className="text-[10px]">{humanizeSubType(incident.sub_type, lang)}</Badge>}
             {isApproved && (
               <Badge className="gap-1 bg-risk-low-bg text-risk-low border-0">
-                <CheckCircle2 className="h-3 w-3" /> approved
+                <CheckCircle2 className="h-3 w-3" /> {t.approvedBadge}
               </Badge>
             )}
             {isRejected && (
               <Badge variant="outline" className="gap-1">
-                <ShieldAlert className="h-3 w-3" /> rejected
+                <ShieldAlert className="h-3 w-3" /> {t.rejectedBadge}
               </Badge>
             )}
             {!isApproved && !isRejected && (
-              <Badge variant="secondary" className="text-[10px]">pending review</Badge>
+              <Badge variant="secondary" className="text-[10px]">{t.pendingReview}</Badge>
             )}
           </div>
-          <h1 className="text-xl font-semibold text-foreground">{incident.title}</h1>
+          <h1 className="text-xl font-semibold text-foreground">{title}</h1>
           <p className="text-xs text-muted-foreground">
-            Created {formatDateTime(incident.created_at)} · Source: {incident.source}
+            {t.created(fmt(incident.created_at) ?? "", common.source[incident.source] ?? incident.source)}
           </p>
         </div>
         <div className="flex flex-col items-end gap-2 shrink-0">
           <div className="text-right text-xs text-muted-foreground">
-            Risk score <span className="text-foreground font-bold text-base ml-1">{incident.risk_score}/100</span>
+            {t.riskScore} <span className="text-foreground font-bold text-base ml-1">{incident.risk_score}/100</span>
           </div>
           {!isApproved && (
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={reject} disabled={rejecting || approving}>
                 {rejecting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldAlert className="h-3.5 w-3.5" />}
-                Reject
+                {t.reject}
               </Button>
               <Button size="sm" onClick={approve} disabled={approving || rejecting}>
                 {approving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                Approve incident
+                {t.approve}
               </Button>
             </div>
           )}
           {isApproved && incident.approved_at && (
             <p className="text-xs text-muted-foreground">
-              Approved {formatDateTime(incident.approved_at)}
+              {t.approvedAt(fmt(incident.approved_at) ?? "")}
             </p>
           )}
         </div>
@@ -290,8 +311,8 @@ export default function IncidentDetail() {
 
       <Card className="p-4">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-foreground">Incident lifecycle</h2>
-          <span className="text-[11px] text-muted-foreground">Current stage: <span className="text-foreground font-medium capitalize">{incident.status}</span></span>
+          <h2 className="text-sm font-semibold text-foreground">{t.lifecycle}</h2>
+          <span className="text-[11px] text-muted-foreground">{t.currentStage} <span className="text-foreground font-medium">{common.status[incident.status] ?? incident.status}</span></span>
         </div>
         <StatusStepper status={incident.status} />
       </Card>
@@ -302,9 +323,9 @@ export default function IncidentDetail() {
         <div className="lg:col-span-2 space-y-6">
           {incident.description && (
             <Card className="p-4">
-              <h2 className="text-sm font-semibold text-foreground mb-2">Description</h2>
+              <h2 className="text-sm font-semibold text-foreground mb-2">{t.description}</h2>
               <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                {incident.description}
+                {description}
               </p>
             </Card>
           )}
@@ -312,13 +333,13 @@ export default function IncidentDetail() {
           <Card className="p-4 border-primary/30">
             <div className="flex items-center gap-2 mb-3">
               <Lightbulb className="h-4 w-4 text-primary" />
-              <h2 className="text-sm font-semibold text-foreground">Strategic recommendations</h2>
+              <h2 className="text-sm font-semibold text-foreground">{t.recommendations}</h2>
             </div>
             <p className="text-xs text-muted-foreground mb-3">
-              Proactive next steps tailored to this incident's profile, risk level and operational context.
+              {t.recommendationsIntro}
             </p>
             <ul className="space-y-2">
-              {buildRecommendations(incident, vocab).map((rec, idx) => (
+              {buildRecommendations(incident, vocab, t.recs, intl).map((rec, idx) => (
                 <li key={idx} className="flex items-start gap-2 text-sm text-foreground">
                   <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
                   <div>
@@ -334,11 +355,11 @@ export default function IncidentDetail() {
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="h-4 w-4 text-primary" />
               <h2 className="text-sm font-semibold text-foreground">
-                Linked social mentions ({mentions.length})
+                {t.linkedMentions(mentions.length)}
               </h2>
             </div>
             {mentions.length === 0 ? (
-              <p className="text-xs text-muted-foreground">No mentions linked to this incident.</p>
+              <p className="text-xs text-muted-foreground">{t.noMentions}</p>
             ) : (
               <div className="space-y-3">
                 {mentions.map((m) => {
@@ -349,16 +370,19 @@ export default function IncidentDetail() {
                         <Icon className="h-3.5 w-3.5 text-muted-foreground" />
                         <span className="font-semibold text-foreground">{m.author_name}</span>
                         <span className="text-muted-foreground">@{m.author_handle}</span>
-                        {m.is_verified && <Badge variant="secondary" className="text-[10px]">verified</Badge>}
-                        {m.is_influencer && <Badge variant="secondary" className="text-[10px]">influencer</Badge>}
+                        {m.is_verified && <Badge variant="secondary" className="text-[10px]">{t.verified}</Badge>}
+                        {m.is_influencer && <Badge variant="secondary" className="text-[10px]">{t.influencer}</Badge>}
                         {m.ai_risk && <RiskBadge level={m.ai_risk as any} />}
                         {m.posted_at && (
                           <span className="text-muted-foreground ml-auto">
-                            {formatDateTime(m.posted_at)}
+                            {fmt(m.posted_at)}
                           </span>
                         )}
                       </div>
                       <p className="text-sm text-foreground mt-2 whitespace-pre-wrap">{m.content}</p>
+                      {trMen.text(m, "ai_summary") && (
+                        <p className="text-xs text-muted-foreground mt-1.5 italic">{trMen.text(m, "ai_summary")}</p>
+                      )}
                       {m.post_url && (
                         <a
                           href={m.post_url}
@@ -366,7 +390,7 @@ export default function IncidentDetail() {
                           rel="noreferrer"
                           className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mt-2"
                         >
-                          source <ExternalLink className="h-3 w-3" />
+                          {t.source} <ExternalLink className="h-3 w-3" />
                         </a>
                       )}
                     </div>
@@ -380,46 +404,46 @@ export default function IncidentDetail() {
         {/* Sidebar */}
         <div className="space-y-6">
           <Card className="p-4 space-y-3">
-            <h2 className="text-sm font-semibold text-foreground">Operational details</h2>
+            <h2 className="text-sm font-semibold text-foreground">{t.operationalDetails}</h2>
             <DetailRow icon={Plane} label={vocab.operatorLabel} value={incident.airline_name} />
             <DetailRow icon={Plane} label={vocab.serviceLabel} value={incident.flight_number} />
-            <DetailRow icon={MapPin} label="Route" value={incident.route} />
+            <DetailRow icon={MapPin} label={t.route} value={incident.route} />
             <DetailRow icon={MapPin} label={vocab.locationLabel} value={incident.airport_code} />
-            <DetailRow icon={MapPin} label="Country" value={incident.country} />
+            <DetailRow icon={MapPin} label={t.country} value={incident.country} />
             <DetailRow
               icon={Users}
               label={vocab.peopleLabel}
-              value={incident.estimated_passengers_impacted?.toLocaleString() ?? null}
+              value={incident.estimated_passengers_impacted?.toLocaleString(intl) ?? null}
             />
             <DetailRow
               icon={AlertTriangle}
-              label="Injury / fatality"
-              value={incident.injury_fatality ? "Yes" : "No"}
+              label={t.injury}
+              value={incident.injury_fatality ? common.yes : common.no}
             />
             <DetailRow
               icon={ShieldAlert}
-              label="Regulator involved"
-              value={incident.regulator_involved ? "Yes" : "No"}
+              label={t.regulator}
+              value={incident.regulator_involved ? common.yes : common.no}
             />
             <DetailRow
               icon={Sparkles}
-              label="Influencer media"
-              value={incident.influencer_media_involved ? "Yes" : "No"}
+              label={t.influencerMedia}
+              value={incident.influencer_media_involved ? common.yes : common.no}
             />
-            <DetailRow icon={Users} label="Assignee" value={incident.assignee} />
+            <DetailRow icon={Users} label={t.assignee} value={incident.assignee} />
           </Card>
 
           <Card className="p-4 space-y-3">
-            <h2 className="text-sm font-semibold text-foreground">Approval</h2>
+            <h2 className="text-sm font-semibold text-foreground">{t.approval}</h2>
             <p className="text-xs text-muted-foreground">
-              Status:{" "}
+              {t.statusLabel}{" "}
               <span className="text-foreground font-medium">
-                {incident.approval_status.replace("_", " ")}
+                {t.approvalStatus[incident.approval_status] ?? incident.approval_status.replace("_", " ")}
               </span>
             </p>
             {incident.approved_at && (
               <p className="text-xs text-muted-foreground">
-                When: {formatDateTime(incident.approved_at)}
+                {t.when(fmt(incident.approved_at) ?? "")}
               </p>
             )}
           </Card>
@@ -427,10 +451,10 @@ export default function IncidentDetail() {
           <Card className="p-4 space-y-3">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <h2 className="text-sm font-semibold text-foreground inline-flex items-center gap-2">
-                <Package className="h-4 w-4 text-primary" /> Media package
+                <Package className="h-4 w-4 text-primary" /> {t.mediaPackage}
               </h2>
               {assetCount > 0 && (
-                <Badge variant="secondary" className="text-[10px]">{assetCount} assets</Badge>
+                <Badge variant="secondary" className="text-[10px]">{t.assetsCount(assetCount)}</Badge>
               )}
             </div>
             <Badge variant="outline" className="font-mono text-[10px] tracking-wider border-primary/40 text-primary">
@@ -439,11 +463,11 @@ export default function IncidentDetail() {
             {assetCount > 0 ? (
               <>
                 <p className="text-xs text-muted-foreground">
-                  Communication assets generated for this incident. Review and approve them before distribution.
+                  {t.packageReady}
                 </p>
                 <Button asChild size="sm" className="w-full">
                   <Link to={`/approvals?incident=${incident.id}`}>
-                    Open package in Approvals
+                    {t.openPackage}
                     <ExternalLink className="h-3.5 w-3.5 ml-1" />
                   </Link>
                 </Button>
@@ -451,8 +475,8 @@ export default function IncidentDetail() {
             ) : (
               <p className="text-xs text-muted-foreground">
                 {isApproved
-                  ? "Package generation in progress…"
-                  : "Approve this incident to auto-generate the communication package."}
+                  ? t.packageInProgress
+                  : t.approveToGenerate}
               </p>
             )}
           </Card>
@@ -484,68 +508,31 @@ function DetailRow({
 function buildRecommendations(
   inc: Incident,
   vocab: ReturnType<typeof profileFor>,
+  r: typeof incidentDetailMessages.en.recs,
+  intl: string,
 ): { title: string; detail: string }[] {
   const recs: { title: string; detail: string }[] = [];
-  const peopleNoun = vocab.peopleLabel.replace(/ impacted$/i, "").toLowerCase();
+  const peopleNoun = vocab.peopleLabel.replace(/ (impacted|affected|afectados|afectadas)$/i, "").toLowerCase();
   const isCrisis = (inc.crisis_level ?? 0) >= 3 || inc.risk === "critical" || inc.risk === "high";
 
   // 1. Activation level
-  recs.push(
-    isCrisis
-      ? {
-          title: "Activate CCC at full level",
-          detail: "Convene the Crisis Communications Center, assign an incident commander and open a 24/7 duty rotation across Operations, Legal, Customer Experience and Corporate Affairs.",
-        }
-      : {
-          title: "Maintain monitoring posture",
-          detail: "Keep the duty Communications Officer on standby, log developments hourly and pre-stage a holding statement in case sentiment escalates.",
-        },
-  );
+  recs.push(isCrisis ? r.activate : r.monitor);
 
   // 2. Stakeholder / regulator
-  if (inc.injury_fatality || inc.regulator_involved) {
-    recs.push({
-      title: "Notify regulators and authorities promptly",
-      detail: "Coordinate mandatory reporting with the relevant regulators and authorities within the regulatory window, and align legal counsel before any public statement.",
-    });
-  } else {
-    recs.push({
-      title: "Brief internal stakeholders first",
-      detail: "Distribute an internal memo to executives, station managers and frontline staff before external messaging to avoid contradictory narratives.",
-    });
-  }
+  recs.push(inc.injury_fatality || inc.regulator_involved ? r.regulators : r.internal);
 
   // 3. Passenger care
   if ((inc.estimated_passengers_impacted ?? 0) > 0 || inc.incident_type === "delay" || inc.incident_type === "safety") {
-    recs.push({
-      title: "Activate customer care workflow",
-      detail: `Open a dedicated multilingual support line, deploy rebooking/compensation options, and proactively contact ${inc.estimated_passengers_impacted ? inc.estimated_passengers_impacted.toLocaleString() : "all"} impacted ${peopleNoun}.`,
-    });
+    recs.push(r.care(inc.estimated_passengers_impacted ? inc.estimated_passengers_impacted.toLocaleString(intl) : null, peopleNoun));
   } else {
-    recs.push({
-      title: "Prepare customer-facing FAQ",
-      detail: "Publish a short FAQ on the help center and arm contact-center agents with approved talking points to handle inbound queries consistently.",
-    });
+    recs.push(r.faq);
   }
 
   // 4. Communication channel
-  if (inc.influencer_media_involved || inc.is_public) {
-    recs.push({
-      title: "Lead the public narrative",
-      detail: "Issue a verified holding statement on owned social channels within 60 minutes, brief tier-1 media proactively and engage credible influencers with factual context.",
-    });
-  } else {
-    recs.push({
-      title: "Stage but do not publish external comms",
-      detail: "Pre-approve a press release and social copy with Legal and keep them on standby; only release if the story breaks externally.",
-    });
-  }
+  recs.push(inc.influencer_media_involved || inc.is_public ? r.lead : r.stage);
 
   // 5. Post-incident
-  recs.push({
-    title: "Capture evidence and schedule debrief",
-    detail: "Preserve CCTV, telemetry/system logs and crew/staff reports, assign a root-cause owner and book a post-incident review within 7 days to update playbooks.",
-  });
+  recs.push(r.debrief);
 
   return recs.slice(0, 5);
 }

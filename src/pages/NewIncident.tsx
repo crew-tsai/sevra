@@ -15,21 +15,20 @@ import {
   typeLabel,
   type IncidentType,
 } from "@/lib/industries";
+import { useLang, useMessages } from "@/i18n";
+import { commonMessages } from "@/i18n/messages/common";
+import { newIncidentMessages } from "@/i18n/messages/new-incident";
 
-const SOURCES = [
-  { value: "manual", label: "Manual" },
-  { value: "social_media", label: "Social Media" },
-  { value: "news", label: "News" },
-  { value: "internal_ops", label: "Internal Ops" },
-  { value: "customer_complaint", label: "Customer Complaint" },
-  { value: "regulator", label: "Regulator" },
-];
+const SOURCES = ["manual", "social_media", "news", "internal_ops", "customer_complaint", "regulator"];
 
 export default function NewIncident() {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [industry, setIndustry] = useState<string | null>(null);
-  const vocab = profileFor(industry);
+  const { lang } = useLang();
+  const t = useMessages(newIncidentMessages);
+  const common = useMessages(commonMessages);
+  const vocab = profileFor(industry, lang);
 
   useEffect(() => {
     void (async () => {
@@ -69,7 +68,7 @@ export default function NewIncident() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !incidentType) {
-      toast.error("Title and Incident Type are required.");
+      toast.error(t.required);
       return;
     }
 
@@ -115,9 +114,9 @@ export default function NewIncident() {
 
     setSubmitting(false);
     if (error) {
-      toast.error("Failed to create incident: " + error.message);
+      toast.error(t.createFailed(error.message));
     } else {
-      toast.success("Incident created successfully.");
+      toast.success(t.created);
       navigate("/dashboard");
     }
   };
@@ -125,55 +124,55 @@ export default function NewIncident() {
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-8">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">Report New Incident</h1>
-        <p className="text-sm text-muted-foreground mt-1">Provide details to begin the crisis response workflow</p>
+        <h1 className="text-xl font-semibold text-foreground">{t.title}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{t.intro}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Section 1: Basic Info */}
         <section className="space-y-4">
-          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Basic Information</h2>
+          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{t.basicInfo}</h2>
           <div className="space-y-2">
-            <Label htmlFor="title">Incident Title *</Label>
-            <Input id="title" placeholder="Brief description of the incident" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} />
+            <Label htmlFor="title">{t.incidentTitle}</Label>
+            <Input id="title" placeholder={t.titlePlaceholder} value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Incident Type *</Label>
+              <Label>{t.incidentType}</Label>
               <Select value={incidentType} onValueChange={(v) => { setIncidentType(v); setSubType(""); }}>
-                <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t.selectType} /></SelectTrigger>
                 <SelectContent>
                   {INCIDENT_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>{typeLabel(industry, t)}</SelectItem>
+                    <SelectItem key={t} value={t}>{typeLabel(industry, t, lang)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Sub-type</Label>
+              <Label>{t.subType}</Label>
               <Select value={subType} onValueChange={setSubType} disabled={!incidentType}>
-                <SelectTrigger><SelectValue placeholder={incidentType ? "Select sub-type" : "Select type first"} /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={incidentType ? t.selectSubType : t.selectTypeFirst} /></SelectTrigger>
                 <SelectContent>
                   {subTypes.map((s) => (
-                    <SelectItem key={s} value={s}>{humanizeSubType(s)}</SelectItem>
+                    <SelectItem key={s} value={s}>{humanizeSubType(s, lang)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea id="description" placeholder="What happened, impact scope, immediate actions taken..." rows={4} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} />
+            <Label htmlFor="description">{t.description}</Label>
+            <Textarea id="description" placeholder={t.descriptionPlaceholder} rows={4} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} />
           </div>
         </section>
 
         {/* Section 2: Service details */}
         <section className="space-y-4">
-          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Service details</h2>
+          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{t.serviceDetails}</h2>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="airline">{vocab.operatorLabel}</Label>
-              <Input id="airline" placeholder={`e.g. ${vocab.operatorLabel}`} value={airlineName} onChange={(e) => setAirlineName(e.target.value)} maxLength={100} />
+              <Input id="airline" placeholder={t.eg(vocab.operatorLabel)} value={airlineName} onChange={(e) => setAirlineName(e.target.value)} maxLength={100} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="flight">{vocab.serviceLabel}</Label>
@@ -182,7 +181,7 @@ export default function NewIncident() {
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="route">Route</Label>
+              <Label htmlFor="route">{t.route}</Label>
               <Input id="route" placeholder={vocab.routeExample} value={route} onChange={(e) => setRoute(e.target.value)} maxLength={20} />
             </div>
             <div className="space-y-2">
@@ -190,49 +189,49 @@ export default function NewIncident() {
               <Input id="airport" placeholder={vocab.locationExample} value={airportCode} onChange={(e) => setAirportCode(e.target.value)} maxLength={4} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="country">Country</Label>
-              <Input id="country" placeholder="e.g. Spain" value={country} onChange={(e) => setCountry(e.target.value)} maxLength={60} />
+              <Label htmlFor="country">{t.country}</Label>
+              <Input id="country" placeholder={t.countryPlaceholder} value={country} onChange={(e) => setCountry(e.target.value)} maxLength={60} />
             </div>
           </div>
         </section>
 
         {/* Section 3: Risk Context */}
         <section className="space-y-4">
-          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Risk Context</h2>
+          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{t.riskContext}</h2>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-center justify-between rounded-md border border-border p-3">
-              <Label htmlFor="injury" className="cursor-pointer">Injury / fatality mentioned?</Label>
+              <Label htmlFor="injury" className="cursor-pointer">{t.injury}</Label>
               <Switch id="injury" checked={injuryFatality} onCheckedChange={setInjuryFatality} />
             </div>
             <div className="flex items-center justify-between rounded-md border border-border p-3">
-              <Label htmlFor="regulator" className="cursor-pointer">Regulator involved?</Label>
+              <Label htmlFor="regulator" className="cursor-pointer">{t.regulator}</Label>
               <Switch id="regulator" checked={regulatorInvolved} onCheckedChange={setRegulatorInvolved} />
             </div>
             <div className="flex items-center justify-between rounded-md border border-border p-3">
-              <Label htmlFor="public" className="cursor-pointer">Is this public already?</Label>
+              <Label htmlFor="public" className="cursor-pointer">{t.isPublic}</Label>
               <Switch id="public" checked={isPublic} onCheckedChange={setIsPublic} />
             </div>
             <div className="flex items-center justify-between rounded-md border border-border p-3">
-              <Label htmlFor="influencer" className="cursor-pointer">Influencer / media involved?</Label>
+              <Label htmlFor="influencer" className="cursor-pointer">{t.influencer}</Label>
               <Switch id="influencer" checked={influencerMedia} onCheckedChange={setInfluencerMedia} />
             </div>
           </div>
           <div className="space-y-2 max-w-xs">
-            <Label htmlFor="passengers">Estimated {vocab.peopleLabel}</Label>
+            <Label htmlFor="passengers">{t.estimated(vocab.peopleLabel)}</Label>
             <Input id="passengers" type="number" min={0} placeholder="0" value={estimatedPassengers} onChange={(e) => setEstimatedPassengers(e.target.value)} />
           </div>
         </section>
 
         {/* Section 4: Source */}
         <section className="space-y-4">
-          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Source</h2>
+          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{t.source}</h2>
           <div className="space-y-2 max-w-xs">
-            <Label>How was this discovered?</Label>
+            <Label>{t.howDiscovered}</Label>
             <Select value={source} onValueChange={setSource}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {SOURCES.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  <SelectItem key={s} value={s}>{common.source[s]}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -240,8 +239,8 @@ export default function NewIncident() {
         </section>
 
         <div className="flex gap-3 pt-2">
-          <Button type="submit" disabled={submitting}>{submitting ? "Creating..." : "Create Incident"}</Button>
-          <Button type="button" variant="outline" onClick={() => navigate("/dashboard")}>Cancel</Button>
+          <Button type="submit" disabled={submitting}>{submitting ? t.creating : t.create}</Button>
+          <Button type="button" variant="outline" onClick={() => navigate("/dashboard")}>{common.cancel}</Button>
         </div>
       </form>
     </div>

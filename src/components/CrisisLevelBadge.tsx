@@ -1,11 +1,13 @@
 import { cn } from "@/lib/utils";
+import { useMessages } from "@/i18n";
+import { commonMessages } from "@/i18n/messages/common";
 
-const META: Record<number, { label: string; short: string; className: string }> = {
-  0: { label: "L0 · Routine", short: "L0", className: "bg-risk-low-bg text-risk-low" },
-  1: { label: "L1 · Localized", short: "L1", className: "bg-risk-low-bg text-risk-low" },
-  2: { label: "L2 · Significant", short: "L2", className: "bg-risk-medium-bg text-risk-medium" },
-  3: { label: "L3 · Major", short: "L3", className: "bg-risk-high-bg text-risk-high" },
-  4: { label: "L4 · Catastrophic", short: "L4", className: "bg-risk-critical-bg text-risk-critical" },
+const META: Record<number, { short: string; className: string }> = {
+  0: { short: "L0", className: "bg-risk-low-bg text-risk-low" },
+  1: { short: "L1", className: "bg-risk-low-bg text-risk-low" },
+  2: { short: "L2", className: "bg-risk-medium-bg text-risk-medium" },
+  3: { short: "L3", className: "bg-risk-high-bg text-risk-high" },
+  4: { short: "L4", className: "bg-risk-critical-bg text-risk-critical" },
 };
 
 export function CrisisLevelBadge({
@@ -17,8 +19,9 @@ export function CrisisLevelBadge({
   compact?: boolean;
   className?: string;
 }) {
+  const t = useMessages(commonMessages);
   if (level === null || level === undefined || !(level in META)) return null;
-  const m = META[level];
+  const m = { ...META[level], label: t.level[level] };
   return (
     <span
       className={cn(

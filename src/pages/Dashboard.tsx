@@ -39,6 +39,10 @@ import {
   Zap,
 } from "lucide-react";
 import type { RiskLevel } from "@/lib/types";
+import { useDateLocale, useMessages } from "@/i18n";
+import { useTranslations } from "@/i18n/useTranslations";
+import { commonMessages } from "@/i18n/messages/common";
+import { dashboardMessages } from "@/i18n/messages/dashboard";
 
 type Incident = {
   id: string;
@@ -53,6 +57,7 @@ type Incident = {
   crisis_level: number | null;
   created_at: string;
   updated_at: string;
+  translations: unknown;
 };
 
 type Mention = {
@@ -73,6 +78,7 @@ type Mention = {
   post_url: string | null;
   posted_at: string | null;
   created_at: string;
+  translations: unknown;
 };
 
 const RISK_RANK: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
@@ -99,6 +105,10 @@ export default function Dashboard() {
   const [allMentions, setAllMentions] = useState<Mention[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
+  const t = useMessages(dashboardMessages);
+  const common = useMessages(commonMessages);
+  const locale = useDateLocale();
+  const ago = (iso: string) => formatDistanceToNow(new Date(iso), { addSuffix: true, locale });
 
   useEffect(() => {
     const load = async () => {
@@ -106,12 +116,12 @@ export default function Dashboard() {
       const [incRes, menRes] = await Promise.all([
         supabase
           .from("incidents")
-          .select("id, title, risk, status, source, assignee, airline_name, flight_number, risk_score, crisis_level, created_at, updated_at")
+          .select("id, title, risk, status, source, assignee, airline_name, flight_number, risk_score, crisis_level, created_at, updated_at, translations")
           .order("created_at", { ascending: false })
           .limit(300),
         supabase
           .from("social_mentions")
-          .select("id, content, channel, author_handle, author_name, author_avatar_url, is_influencer, is_verified, reach, likes, shares, ai_risk, ai_summary, incident_id, post_url, posted_at, created_at")
+          .select("id, content, channel, author_handle, author_name, author_avatar_url, is_influencer, is_verified, reach, likes, shares, ai_risk, ai_summary, incident_id, post_url, posted_at, created_at, translations")
           .order("created_at", { ascending: false })
           .limit(500),
       ]);
@@ -166,10 +176,10 @@ export default function Dashboard() {
   const statusTotal = Math.max(1, incidents.length);
 
   const statusBar = [
-    { key: "active", label: "Active", count: statusCounts.active, icon: AlertTriangle, color: "bg-risk-critical", textColor: "text-risk-critical", bg: "bg-risk-critical-bg" },
-    { key: "monitoring", label: "Monitoring", count: statusCounts.monitoring, icon: Activity, color: "bg-risk-high", textColor: "text-risk-high", bg: "bg-risk-high-bg" },
-    { key: "contained", label: "Contained", count: statusCounts.contained, icon: Shield, color: "bg-risk-medium", textColor: "text-risk-medium", bg: "bg-risk-medium-bg" },
-    { key: "resolved", label: "Resolved", count: statusCounts.resolved, icon: CheckCircle, color: "bg-risk-low", textColor: "text-risk-low", bg: "bg-risk-low-bg" },
+    { key: "active", label: common.status.active, count: statusCounts.active, icon: AlertTriangle, color: "bg-risk-critical", textColor: "text-risk-critical", bg: "bg-risk-critical-bg" },
+    { key: "monitoring", label: common.status.monitoring, count: statusCounts.monitoring, icon: Activity, color: "bg-risk-high", textColor: "text-risk-high", bg: "bg-risk-high-bg" },
+    { key: "contained", label: common.status.contained, count: statusCounts.contained, icon: Shield, color: "bg-risk-medium", textColor: "text-risk-medium", bg: "bg-risk-medium-bg" },
+    { key: "resolved", label: common.status.resolved, count: statusCounts.resolved, icon: CheckCircle, color: "bg-risk-low", textColor: "text-risk-low", bg: "bg-risk-low-bg" },
   ];
 
   // 3. Social mentions — rich decision view
@@ -303,6 +313,10 @@ export default function Dashboard() {
   }, [issuesPage, issuesPageCount]);
   const pagedIssues = allIssues.slice(issuesPage * PAGE_SIZE, issuesPage * PAGE_SIZE + PAGE_SIZE);
 
+  // Only what is on screen is translated, not the whole 300-row history.
+  const trInc = useTranslations("incidents", [...topCritical, ...pagedIssues]);
+  const trMen = useTranslations("social_mentions", topUrgent);
+
   // 5. Sentiment analysis — language-based, crisis-calibrated
   // Classifies the TONE of the post text (not engagement, not risk-as-sentiment).
   // High-risk posts are forced negative — a crash post with likes is still negative.
@@ -316,6 +330,13 @@ export default function Dashboard() {
     "negligent", "negligence", "unsafe", "danger", "dangerous", "outrage", "outrageous",
     "appalling", "ridiculous", "unacceptable", "complaint", "complain", "ruined",
     "stranded", "delayed", "missed", "lost", "stolen", "rude", "disrespect",
+    // Spanish: posts are classified by their own language, not the interface's.
+    "enfadado", "furioso", "horrible", "terrible", "pésimo", "peor", "odio", "asco",
+    "vergüenza", "escándalo", "fallo", "roto", "accidente", "muerto", "muerte", "herido",
+    "demanda", "denuncia", "fraude", "estafa", "mentira", "mentiroso", "reembolso",
+    "boicot", "cancelado", "nunca más", "incompetente", "negligencia", "peligroso",
+    "indignante", "inaceptable", "queja", "abandonados", "retrasado", "perdido", "robado",
+    "grosero", "falta de respeto",
   ];
   const POS_TERMS = [
     "love", "loved", "amazing", "excellent", "great", "fantastic", "wonderful",
@@ -323,6 +344,9 @@ export default function Dashboard() {
     "impressed", "impressive", "recommend", "highly recommend", "best", "smooth",
     "helpful", "kind", "professional", "friendly", "appreciate", "appreciated",
     "well done", "bravo", "above and beyond", "exceptional",
+    "me encanta", "encanta", "increíble", "excelente", "genial", "fantástico", "maravilloso",
+    "gracias", "perfecto", "impresionante", "recomiendo", "lo mejor", "amable", "profesional",
+    "agradezco", "bien hecho", "excepcional",
   ];
   const classifySentiment = (m: Mention): "negative" | "neutral" | "positive" => {
     if (m.ai_risk === "critical" || m.ai_risk === "high") return "negative";
@@ -362,16 +386,16 @@ export default function Dashboard() {
       {/* Header */}
       <header className="flex items-start justify-between gap-4 flex-wrap">
         <div className="space-y-1">
-          <p className="text-xs text-muted-foreground">Crisis dashboard</p>
-          <h1 className="text-2xl font-semibold tracking-tight">Real-time risk posture</h1>
+          <p className="text-xs text-muted-foreground">{t.eyebrow}</p>
+          <h1 className="text-2xl font-semibold tracking-tight">{t.title}</h1>
         </div>
         <TimeRangeFilter value={timeRange} onChange={setTimeRange} />
       </header>
 
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="issues-log">Incidents log</TabsTrigger>
+          <TabsTrigger value="overview">{t.overview}</TabsTrigger>
+          <TabsTrigger value="issues-log">{t.incidentsLog}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6 mt-0">
@@ -380,13 +404,13 @@ export default function Dashboard() {
         <div className="flex items-center gap-2">
           <AlertTriangle className="h-3.5 w-3.5 text-risk-high" />
           <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Critical · top 3
+            {t.criticalTop3}
           </h2>
         </div>
         {loading ? (
-          <Card className="p-3 text-xs text-muted-foreground">Loading…</Card>
+          <Card className="p-3 text-xs text-muted-foreground">{common.loading}</Card>
         ) : topCritical.length === 0 ? (
-          <Card className="p-3 text-xs text-muted-foreground">Nothing critical right now. You're all clear.</Card>
+          <Card className="p-3 text-xs text-muted-foreground">{t.allClear}</Card>
         ) : (
           <div className="grid gap-2">
             {topCritical.map((i) => (
@@ -396,14 +420,14 @@ export default function Dashboard() {
                     <div className="flex items-center gap-2 min-w-0 flex-wrap">
                       <CrisisLevelBadge level={i.crisis_level} compact />
                       <RiskBadge level={(i.risk as RiskLevel) ?? "medium"} />
-                      <Badge variant="outline" className="text-[10px] capitalize">
-                        {i.status}
+                      <Badge variant="outline" className="text-[10px]">
+                        {common.status[i.status] ?? i.status}
                       </Badge>
-                      <p className="text-sm font-medium truncate">{i.title}</p>
+                      <p className="text-sm font-medium truncate">{trInc.text(i, "title")}</p>
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      Updated {formatDistanceToNow(new Date(i.updated_at), { addSuffix: true })}
-                      {i.assignee ? ` · ${i.assignee}` : " · Unassigned"}
+                      {t.updated(ago(i.updated_at))}
+                      {` · ${i.assignee ?? t.unassigned}`}
                     </p>
                   </div>
                   <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
@@ -419,10 +443,10 @@ export default function Dashboard() {
       <section className="space-y-2">
         <div className="flex items-center justify-between">
           <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Social mentions
+            {t.socialMentions}
           </h2>
           <Link to="/sevra" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
-            Open Social Intel <ArrowRight className="h-3 w-3" />
+            {t.openSocialIntel} <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
         <Card className="p-4 space-y-4">
@@ -430,7 +454,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             <div className="rounded-md bg-primary/10 px-3 py-2">
               <div className="flex items-center justify-between">
-                <p className="text-[10px] uppercase tracking-wider text-primary">Mentions</p>
+                <p className="text-[10px] uppercase tracking-wider text-primary">{t.mentions}</p>
                 {velocity.last > 0 || velocity.prev > 0 ? (
                   <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium ${velocity.delta > 0 ? "text-risk-critical" : velocity.delta < 0 ? "text-risk-low" : "text-muted-foreground"}`}>
                     {velocity.delta > 0 ? <TrendingUp className="h-3 w-3" /> : velocity.delta < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
@@ -439,24 +463,24 @@ export default function Dashboard() {
                 ) : null}
               </div>
               <p className="text-xl font-semibold text-primary">{mentionsTotal}</p>
-              <p className="text-[10px] text-muted-foreground">{velocity.last} in last hr</p>
+              <p className="text-[10px] text-muted-foreground">{t.inLastHour(velocity.last)}</p>
             </div>
             <div className="rounded-md bg-muted px-3 py-2">
               <div className="flex items-center gap-1">
                 <Eye className="h-3 w-3 text-muted-foreground" />
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Reach</p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t.reach}</p>
               </div>
               <p className="text-xl font-semibold text-foreground">{formatNum(totalReach)}</p>
-              <p className="text-[10px] text-muted-foreground">{formatNum(totalEngagement)} engagement</p>
+              <p className="text-[10px] text-muted-foreground">{t.engagement(formatNum(totalEngagement))}</p>
             </div>
             <div className="rounded-md bg-risk-high-bg px-3 py-2">
               <div className="flex items-center gap-1">
                 <Users className="h-3 w-3 text-risk-high" />
-                <p className="text-[10px] uppercase tracking-wider text-risk-high">Influencers</p>
+                <p className="text-[10px] uppercase tracking-wider text-risk-high">{t.influencers}</p>
               </div>
               <p className="text-xl font-semibold text-risk-high">{influencerCount}</p>
               <p className="text-[10px] text-muted-foreground inline-flex items-center gap-0.5">
-                <BadgeCheck className="h-3 w-3" /> {verifiedCount} verified
+                <BadgeCheck className="h-3 w-3" /> {t.verified(verifiedCount)}
               </p>
             </div>
           </div>
@@ -464,18 +488,18 @@ export default function Dashboard() {
           {/* Risk distribution bar */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <p className="text-[11px] text-muted-foreground">Mention risk mix</p>
+              <p className="text-[11px] text-muted-foreground">{t.riskMix}</p>
               <p className="text-[10px] text-muted-foreground">
-                {mentionRiskCounts.critical} crit · {mentionRiskCounts.high} high · {mentionRiskCounts.medium} med · {mentionRiskCounts.low} low
+                {t.riskMixCounts(mentionRiskCounts.critical, mentionRiskCounts.high, mentionRiskCounts.medium, mentionRiskCounts.low)}
               </p>
             </div>
             <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
               {mentionsTotal > 0 && (
                 <>
-                  <div className="bg-risk-critical" style={{ width: `${(mentionRiskCounts.critical / mentionsTotal) * 100}%` }} title={`Critical ${mentionRiskCounts.critical}`} />
-                  <div className="bg-risk-high" style={{ width: `${(mentionRiskCounts.high / mentionsTotal) * 100}%` }} title={`High ${mentionRiskCounts.high}`} />
-                  <div className="bg-risk-medium" style={{ width: `${(mentionRiskCounts.medium / mentionsTotal) * 100}%` }} title={`Medium ${mentionRiskCounts.medium}`} />
-                  <div className="bg-risk-low" style={{ width: `${(mentionRiskCounts.low / mentionsTotal) * 100}%` }} title={`Low ${mentionRiskCounts.low}`} />
+                  <div className="bg-risk-critical" style={{ width: `${(mentionRiskCounts.critical / mentionsTotal) * 100}%` }} title={`${common.risk.critical} ${mentionRiskCounts.critical}`} />
+                  <div className="bg-risk-high" style={{ width: `${(mentionRiskCounts.high / mentionsTotal) * 100}%` }} title={`${common.risk.high} ${mentionRiskCounts.high}`} />
+                  <div className="bg-risk-medium" style={{ width: `${(mentionRiskCounts.medium / mentionsTotal) * 100}%` }} title={`${common.risk.medium} ${mentionRiskCounts.medium}`} />
+                  <div className="bg-risk-low" style={{ width: `${(mentionRiskCounts.low / mentionsTotal) * 100}%` }} title={`${common.risk.low} ${mentionRiskCounts.low}`} />
                 </>
               )}
             </div>
@@ -485,9 +509,9 @@ export default function Dashboard() {
           <div className="grid gap-4 lg:grid-cols-2">
             {/* Channel breakdown */}
             <div className="space-y-2">
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">By channel</p>
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{t.byChannel}</p>
               {channelStats.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No mentions in range.</p>
+                <p className="text-xs text-muted-foreground">{t.noMentionsInRange}</p>
               ) : (
                 <div className="space-y-2">
                   {channelStats.slice(0, 6).map((c) => {
@@ -506,10 +530,10 @@ export default function Dashboard() {
                         </div>
                         <div className="mt-1 flex items-center gap-3 text-[10px] text-muted-foreground">
                           <span className="inline-flex items-center gap-1">
-                            <Eye className="h-3 w-3" /> {formatNum(c.reach)} reach
+                            <Eye className="h-3 w-3" /> {t.reachShort(formatNum(c.reach))}
                           </span>
                           <span className="inline-flex items-center gap-1">
-                            <Users className="h-3 w-3" /> {c.influencers} inf
+                            <Users className="h-3 w-3" /> {t.influencersShort(c.influencers)}
                           </span>
                         </div>
                       </div>
@@ -523,11 +547,11 @@ export default function Dashboard() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider inline-flex items-center gap-1">
-                  <Zap className="h-3 w-3" /> Needs your attention
+                  <Zap className="h-3 w-3" /> {t.needsAttention}
                 </p>
               </div>
               {topUrgent.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No urgent mentions.</p>
+                <p className="text-xs text-muted-foreground">{t.noUrgent}</p>
               ) : (
                 <div className="space-y-1.5">
                   {topUrgent.map((m) => {
@@ -540,18 +564,18 @@ export default function Dashboard() {
                           <Icon className={`h-3.5 w-3.5 shrink-0 ${meta.color}`} />
                           <RiskBadge level={risk} />
                           <span className="text-xs font-medium truncate">
-                            {m.author_name ?? m.author_handle ?? "Unknown"}
+                            {m.author_name ?? m.author_handle ?? common.unknown}
                           </span>
                           {m.is_verified && <BadgeCheck className="h-3 w-3 text-primary shrink-0" />}
                           {m.is_influencer && (
-                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">influencer</Badge>
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">{t.influencer}</Badge>
                           )}
                           <span className="ml-auto text-[10px] text-muted-foreground shrink-0">
-                            {formatDistanceToNow(new Date(m.posted_at ?? m.created_at), { addSuffix: true })}
+                            {ago(m.posted_at ?? m.created_at)}
                           </span>
                         </div>
                         <p className="text-[11px] text-foreground/90 mt-1 line-clamp-2">
-                          {m.ai_summary ?? m.content}
+                          {trMen.text(m, "ai_summary") || m.content}
                         </p>
                         <div className="mt-1.5 flex items-center gap-3 text-[10px] text-muted-foreground">
                           <span className="inline-flex items-center gap-0.5"><Eye className="h-3 w-3" />{formatNum(m.reach ?? 0)}</span>
@@ -560,16 +584,16 @@ export default function Dashboard() {
                           <div className="ml-auto flex items-center gap-2">
                             {m.incident_id ? (
                               <Link to={`/incidents/${m.incident_id}`} className="text-primary hover:underline inline-flex items-center gap-0.5">
-                                Open issue <ArrowRight className="h-3 w-3" />
+                                {t.openIssue} <ArrowRight className="h-3 w-3" />
                               </Link>
                             ) : (
                               <Link to="/sevra" className="text-primary hover:underline inline-flex items-center gap-0.5">
-                                Triage <ArrowRight className="h-3 w-3" />
+                                {t.triage} <ArrowRight className="h-3 w-3" />
                               </Link>
                             )}
                             {m.post_url && (
                               <a href={m.post_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-foreground inline-flex items-center gap-0.5">
-                                Source <ExternalLink className="h-3 w-3" />
+                                {t.source} <ExternalLink className="h-3 w-3" />
                               </a>
                             )}
                           </div>
@@ -587,48 +611,48 @@ export default function Dashboard() {
       {/* 5. Sentiment analysis */}
       <section className="space-y-2">
         <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Sentiment analysis
+          {t.sentiment}
         </h2>
         <Card className="p-4 space-y-3">
           <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
-            <div className="bg-risk-critical" style={{ width: `${sentiment.negPct}%` }} title={`Negative ${sentiment.negPct}%`} />
-            <div className="bg-risk-medium" style={{ width: `${sentiment.neuPct}%` }} title={`Neutral ${sentiment.neuPct}%`} />
-            <div className="bg-risk-low" style={{ width: `${sentiment.posPct}%` }} title={`Positive ${sentiment.posPct}%`} />
+            <div className="bg-risk-critical" style={{ width: `${sentiment.negPct}%` }} title={`${t.negative} ${sentiment.negPct}%`} />
+            <div className="bg-risk-medium" style={{ width: `${sentiment.neuPct}%` }} title={`${t.neutral} ${sentiment.neuPct}%`} />
+            <div className="bg-risk-low" style={{ width: `${sentiment.posPct}%` }} title={`${t.positive} ${sentiment.posPct}%`} />
           </div>
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-md bg-risk-critical-bg px-3 py-2">
               <div className="flex items-center gap-1.5">
                 <Frown className="h-3.5 w-3.5 text-risk-critical" />
-                <span className="text-[11px] font-medium text-risk-critical">Negative</span>
+                <span className="text-[11px] font-medium text-risk-critical">{t.negative}</span>
               </div>
               <p className="text-xl font-semibold text-risk-critical mt-0.5">{sentiment.negPct}%</p>
-              <p className="text-[10px] text-muted-foreground">{sentiment.negative} mentions</p>
+              <p className="text-[10px] text-muted-foreground">{t.mentionsCount(sentiment.negative)}</p>
             </div>
             <div className="rounded-md bg-risk-medium-bg px-3 py-2">
               <div className="flex items-center gap-1.5">
                 <Meh className="h-3.5 w-3.5 text-risk-medium" />
-                <span className="text-[11px] font-medium text-risk-medium">Neutral</span>
+                <span className="text-[11px] font-medium text-risk-medium">{t.neutral}</span>
               </div>
               <p className="text-xl font-semibold text-risk-medium mt-0.5">{sentiment.neuPct}%</p>
-              <p className="text-[10px] text-muted-foreground">{sentiment.neutral} mentions</p>
+              <p className="text-[10px] text-muted-foreground">{t.mentionsCount(sentiment.neutral)}</p>
             </div>
             <div className="rounded-md bg-risk-low-bg px-3 py-2">
               <div className="flex items-center gap-1.5">
                 <Smile className="h-3.5 w-3.5 text-risk-low" />
-                <span className="text-[11px] font-medium text-risk-low">Positive</span>
+                <span className="text-[11px] font-medium text-risk-low">{t.positive}</span>
               </div>
               <p className="text-xl font-semibold text-risk-low mt-0.5">{sentiment.posPct}%</p>
-              <p className="text-[10px] text-muted-foreground">{sentiment.positive} mentions</p>
+              <p className="text-[10px] text-muted-foreground">{t.mentionsCount(sentiment.positive)}</p>
             </div>
           </div>
           <div className="space-y-1 pt-1 border-t border-border/60">
             <p className="text-[10px] text-muted-foreground">
-              Reach-weighted across {sentiment.total} mentions ({formatNum(sentiment.totalReach)} impressions).
+              {t.reachWeighted(sentiment.total, formatNum(sentiment.totalReach))}
             </p>
             <p className="text-[10px] text-muted-foreground/80 leading-relaxed">
-              <span className="text-risk-critical font-medium">Negative</span> = negative-tone language (angry, crash, lawsuit, refund…) or crisis-grade risk ·{" "}
-              <span className="text-risk-medium font-medium">Neutral</span> = factual, informational, or mixed tone ·{" "}
-              <span className="text-risk-low font-medium">Positive</span> = supportive language (love, thank you, recommend…) with no negative markers.
+              <span className="text-risk-critical font-medium">{t.negative}</span> {t.negDef} ·{" "}
+              <span className="text-risk-medium font-medium">{t.neutral}</span> {t.neuDef} ·{" "}
+              <span className="text-risk-low font-medium">{t.positive}</span> {t.posDef}
             </p>
           </div>
         </Card>
@@ -639,7 +663,7 @@ export default function Dashboard() {
       {/* Incidents status */}
       <section className="space-y-2">
         <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Incidents status
+          {t.incidentsStatus}
         </h2>
         <Card className="p-4 space-y-3">
           {/* segmented bar */}
@@ -683,7 +707,7 @@ export default function Dashboard() {
       <section className="space-y-2">
         <div className="flex items-center justify-between">
           <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            All incidents {!loading && allIssues.length > 0 && (
+            {t.allIncidents} {!loading && allIssues.length > 0 && (
               <span className="ml-1 text-muted-foreground/70 normal-case tracking-normal">({allIssues.length})</span>
             )}
           </h2>
@@ -693,18 +717,18 @@ export default function Dashboard() {
               onClick={() => setStatusFilter("all")}
               className="text-xs text-primary hover:underline"
             >
-              Clear status filter
+              {t.clearStatusFilter}
             </button>
           )}
 
         </div>
         <div className="flex items-center gap-1 flex-wrap">
           {([
-            { key: "all", label: "All", count: sortedIssues.length, active: "bg-foreground text-background", idle: "bg-muted text-muted-foreground hover:bg-accent" },
-            { key: "critical", label: "Critical", count: riskCounts.critical, active: "bg-risk-critical text-white", idle: "bg-risk-critical-bg text-risk-critical hover:opacity-80" },
-            { key: "high", label: "High", count: riskCounts.high, active: "bg-risk-high text-white", idle: "bg-risk-high-bg text-risk-high hover:opacity-80" },
-            { key: "medium", label: "Medium", count: riskCounts.medium, active: "bg-risk-medium text-white", idle: "bg-risk-medium-bg text-risk-medium hover:opacity-80" },
-            { key: "low", label: "Low", count: riskCounts.low, active: "bg-risk-low text-white", idle: "bg-risk-low-bg text-risk-low hover:opacity-80" },
+            { key: "all", label: common.all, count: sortedIssues.length, active: "bg-foreground text-background", idle: "bg-muted text-muted-foreground hover:bg-accent" },
+            { key: "critical", label: common.risk.critical, count: riskCounts.critical, active: "bg-risk-critical text-white", idle: "bg-risk-critical-bg text-risk-critical hover:opacity-80" },
+            { key: "high", label: common.risk.high, count: riskCounts.high, active: "bg-risk-high text-white", idle: "bg-risk-high-bg text-risk-high hover:opacity-80" },
+            { key: "medium", label: common.risk.medium, count: riskCounts.medium, active: "bg-risk-medium text-white", idle: "bg-risk-medium-bg text-risk-medium hover:opacity-80" },
+            { key: "low", label: common.risk.low, count: riskCounts.low, active: "bg-risk-low text-white", idle: "bg-risk-low-bg text-risk-low hover:opacity-80" },
           ] as const).map((t) => {
             const isActive = riskFilter === t.key;
             return (
@@ -722,9 +746,9 @@ export default function Dashboard() {
         </div>
         <Card className="divide-y divide-border">
           {loading ? (
-            <div className="p-6 text-center text-sm text-muted-foreground">Loading…</div>
+            <div className="p-6 text-center text-sm text-muted-foreground">{common.loading}</div>
           ) : allIssues.length === 0 ? (
-            <div className="p-6 text-center text-sm text-muted-foreground">No issues in range.</div>
+            <div className="p-6 text-center text-sm text-muted-foreground">{t.noIssues}</div>
           ) : (
             pagedIssues.map((i) => (
               <Link
@@ -735,10 +759,10 @@ export default function Dashboard() {
                 <CrisisLevelBadge level={i.crisis_level} compact />
                 <RiskBadge level={(i.risk as RiskLevel) ?? "medium"} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate">{i.title}</p>
+                  <p className="text-sm truncate">{trInc.text(i, "title")}</p>
                   <p className="text-[11px] text-muted-foreground">
-                    {i.assignee ?? "Unassigned"} ·{" "}
-                    {formatDistanceToNow(new Date(i.updated_at), { addSuffix: true })}
+                    {i.assignee ?? t.unassigned} ·{" "}
+                    {ago(i.updated_at)}
                   </p>
                 </div>
                 <StatusBadge status={i.status as any} />
@@ -750,7 +774,7 @@ export default function Dashboard() {
         {!loading && allIssues.length > PAGE_SIZE && (
           <div className="flex items-center justify-between pt-1">
             <p className="text-[11px] text-muted-foreground">
-              Showing {issuesPage * PAGE_SIZE + 1}–{Math.min(allIssues.length, (issuesPage + 1) * PAGE_SIZE)} of {allIssues.length}
+              {t.showing(issuesPage * PAGE_SIZE + 1, Math.min(allIssues.length, (issuesPage + 1) * PAGE_SIZE), allIssues.length)}
             </p>
             <div className="flex items-center gap-1">
               <button
@@ -759,10 +783,10 @@ export default function Dashboard() {
                 disabled={issuesPage === 0}
                 className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-foreground hover:bg-accent/40 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <ArrowRight className="h-3 w-3 rotate-180" /> Prev
+                <ArrowRight className="h-3 w-3 rotate-180" /> {t.prev}
               </button>
               <span className="text-[11px] text-muted-foreground px-2">
-                Page {issuesPage + 1} / {issuesPageCount}
+                {t.page(issuesPage + 1, issuesPageCount)}
               </span>
               <button
                 type="button"
@@ -770,7 +794,7 @@ export default function Dashboard() {
                 disabled={issuesPage >= issuesPageCount - 1}
                 className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-foreground hover:bg-accent/40 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Next <ArrowRight className="h-3 w-3" />
+                {t.next} <ArrowRight className="h-3 w-3" />
               </button>
             </div>
           </div>
