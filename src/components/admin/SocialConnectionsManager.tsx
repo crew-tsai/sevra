@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import {
   Twitter,
   Instagram,
@@ -69,6 +70,14 @@ function emptyCredentials(): Record<Network, CredentialStatus> {
 }
 
 export default function SocialConnectionsManager() {
+  // The network named in ?connected=… by the OAuth callback — set only on the
+  // return trip from the consent screen, so the check appears once, in the
+  // moment the person still remembers what they clicked.
+  const justConnected = useMemo(() => {
+    const v = new URLSearchParams(window.location.search).get("connected");
+    return v && NETWORK_ORDER.includes(v as Network) ? (v as Network) : null;
+  }, []);
+  const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
   const [connections, setConnections] = useState<Record<string, SocialConnection>>({});
   const [credentials, setCredentials] = useState<Record<Network, CredentialStatus>>(emptyCredentials());
   const [loading, setLoading] = useState(true);
@@ -196,6 +205,7 @@ export default function SocialConnectionsManager() {
           const conn = connections[network];
           const cred = credentials[network];
           const isConnected = conn?.status === "connected";
+          const needsCheck = isConnected && justConnected === network && !confirmed.has(network);
           const isPending = pending === network;
           const isSavingCreds = savingCreds === network;
           // Only demand credentials when there is genuinely no way to connect.
@@ -304,7 +314,12 @@ export default function SocialConnectionsManager() {
                 )}
 
                 {isConnected && (
-                  <div className="flex items-center gap-2 rounded-md border bg-muted/30 p-2">
+                  <div
+                    className={cn(
+                      "flex items-center gap-2 rounded-md border p-2",
+                      needsCheck ? "border-primary bg-primary/5" : "bg-muted/30",
+                    )}
+                  >
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={conn.avatar_url ?? undefined} />
                       <AvatarFallback className="text-xs">
@@ -313,12 +328,44 @@ export default function SocialConnectionsManager() {
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm truncate">{conn.account_label ?? "Connected account"}</p>
-                      {conn.connected_at && (
+                      {needsCheck ? (
+                        // Whatever account the browser was signed into is the one that
+                        // got authorised. Somebody signed into a personal account rather
+                        // than the company's authorises the wrong one without noticing —
+                        // it happened on this very deployment and went unspotted for
+                        // weeks. Ask while they still remember clicking Authorize.
                         <p className="text-[11px] text-muted-foreground">
-                          Connected {new Date(conn.connected_at).toLocaleDateString()}
+                          Is this the right account for {meta.label}?
                         </p>
+                      ) : (
+                        conn.connected_at && (
+                          <p className="text-[11px] text-muted-foreground">
+                            Connected {new Date(conn.connected_at).toLocaleDateString()}
+                          </p>
+                        )
                       )}
                     </div>
+                    {needsCheck && (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs"
+                          onClick={() => setConfirmed((prev) => new Set(prev).add(network))}
+                        >
+                          Yes
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          disabled={isPending}
+                          onClick={() => disconnect(network)}
+                        >
+                          Use another
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
 
