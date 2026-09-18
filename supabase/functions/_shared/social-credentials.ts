@@ -70,14 +70,27 @@ export async function resolveCredentials(
     .eq("network", network)
     .maybeSingle();
 
+  const platform = platformCredentials(network);
+
   if (data?.client_id?.trim() && data?.client_secret?.trim()) {
+    // A stored row whose client id matches the platform app is not a client's
+    // own app -- it is a copy of Sevra's, left behind from a manual setup. Its
+    // secret goes stale the moment Sevra rotates one, and because a client's
+    // own credentials outrank the platform's, that dead secret silently
+    // outranks the working one. The failure surfaces only when someone clicks
+    // Connect, as "Missing valid authorization header" from the provider.
+    //
+    // Same id means same app, so there is nothing to prefer: fall through.
+    if (platform && data.client_id.trim() === platform.clientId) {
+      return platform;
+    }
     return {
       clientId: data.client_id.trim(),
       clientSecret: data.client_secret.trim(),
       source: "client",
     };
   }
-  return platformCredentials(network);
+  return platform;
 }
 
 /**
