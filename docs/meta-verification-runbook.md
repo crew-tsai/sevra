@@ -1,8 +1,21 @@
 # Meta Business Verification & App Review — runbook
 
-**Goal:** one Meta app owned by Sevra, approved for Advanced Access, so every client
-connects Facebook and Instagram with a single click and never touches a developer
-portal. Exactly what was achieved for X.
+**Goal:** one Meta app, owned by **The Stellar Crew**, approved for Advanced Access, so
+every client connects Facebook and Instagram with a single click and never touches a
+developer portal. Exactly what was achieved for X.
+
+> **Who is being verified: The Stellar Crew, not Sevra.**
+>
+> Meta verifies a **legal entity**. Sevra is a product owned by The Stellar Crew, not a
+> company, so it has no certificate of incorporation, no bank account and no utility
+> bill in its name — and a verification submitted as "Sevra" fails on the first check.
+>
+> - **Business portfolio and every document:** The Stellar Crew, exactly as registered
+> - **Meta app name:** `Sevra` — this is what clients read on the consent screen, and it
+>   should stay the product name
+>
+> These being different is normal and expected; Meta is designed for it. What it will
+> not tolerate is the *documents* disagreeing with the *portfolio*.
 
 **Who does this:** someone with the company's legal documents and admin rights on the
 Meta business portfolio. It is paperwork, not engineering — no part of it is blocked on
@@ -31,13 +44,15 @@ Advanced Access is what makes one-click work for other people's Pages.
 
 Collect these. Mismatches are the single largest cause of rejection.
 
-- [ ] **Legal business name**, exactly as registered — accents, punctuation, `Ltd`/`S.A. de C.V.`
+- [ ] **Legal business name** — **The Stellar Crew's** registered name, exactly: accents,
+      punctuation, `Ltd` / `S.A. de C.V.` and all. Not "Sevra"
 - [ ] **Registered address**
 - [ ] **Business phone number** — must be reachable; Meta may call or text
 - [ ] **Business email on the company domain** (`@thestellar.ai`, not Gmail)
 - [ ] **Website** — must be live and describe the business
 
-Then two or three supporting documents, all showing the **same** name and address:
+Then two or three supporting documents, all in **The Stellar Crew's** name and showing
+the **same** address:
 
 | Document | Notes |
 |---|---|
@@ -62,8 +77,9 @@ Meta, not the reverse.
 
 ## Stage 1 — Business portfolio
 
-1. **business.facebook.com** → create or open the business portfolio
-2. **Settings → Business Info** — fill in every field to match the documents exactly
+1. **business.facebook.com** → create or open **The Stellar Crew's** business portfolio
+2. **Settings → Business Info** — fill in every field with The Stellar Crew's legal
+   details, matching the documents exactly. The product name does not appear here.
 3. Confirm you have **admin / full control**
 4. Check the constraints:
    - [ ] Portfolio is at least **30 days** old (some flows require 3 months)
@@ -96,7 +112,9 @@ from the next rejection.
 At **developers.facebook.com** → your app:
 
 1. **Link the app to the verified business portfolio** — App Settings → Basic →
-   *Business Account*. Advanced Access is impossible without this.
+   *Business Account* → The Stellar Crew. This is the join between the product and the
+   verified entity, and Advanced Access is impossible without it. The app keeps the name
+   **Sevra**; only the owning business is The Stellar Crew.
 2. **Privacy Policy URL** and **Terms of Service URL** — required, must be live
 3. **App icon**, category, contact email
 4. **Valid OAuth Redirect URI** — this exact value, and nothing else is needed:
@@ -214,6 +232,7 @@ a handful. But it means Meta's timeline need not block the first customers.
 | Symptom | Cause | Fix |
 |---|---|---|
 | Verification rejected, no detail | Name or address mismatch | Copy character-for-character from the legal document |
+| Documents "do not match the business" | Portfolio named after the product | The portfolio is **The Stellar Crew**; only the app is named Sevra |
 | Document rejected | Type not accepted in your country, or older than 12 months | Check the country list in the flow |
 | Cannot start verification | Portfolio too new, or too many full-control admins | Wait out the tenure; reduce to three admins |
 | `pages_manage_posts` rejected | Screencast showed only reading | Re-record showing a post being published |
@@ -224,8 +243,8 @@ a handful. But it means Meta's timeline need not block the first customers.
 
 ## Status
 
-- [ ] Business portfolio created — **start the tenure clock**
-- [ ] Documents collected, names matched
+- [ ] Business portfolio created **in The Stellar Crew's legal name** — **start the tenure clock**
+- [ ] Documents collected, all in The Stellar Crew's name, address identical across all
 - [ ] Business Verification submitted
 - [ ] Business Verification approved
 - [ ] App linked to verified portfolio; privacy policy, ToS, relay URI set
