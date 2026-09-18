@@ -22,7 +22,8 @@ ${INCIDENT_TYPES.map((t) => `- ${t}: ${vocab.subTypes[t].join(", ")}`).join("\n"
 Risk levels: critical, high, medium, low. risk_score 0-100.
 Set should_create_incident=false only for clear noise (jokes, unrelated, spam). Otherwise true.
 Extract any ${vocab.serviceLabel.toLowerCase()} (e.g. ${vocab.serviceExample}), route (e.g. ${vocab.routeExample}), ${vocab.locationLabel.toLowerCase()}, country, ${vocab.operatorLabel.toLowerCase()} name, ${vocab.peopleLabel.toLowerCase()} you can infer.
-Title: short ENGLISH headline (max 80 chars). Summary: 1-2 ENGLISH sentences.`;
+Title: short ENGLISH headline (max 80 chars). Summary: 1-2 ENGLISH sentences.
+Also give title_es and summary_es: the same headline and summary in neutral, professional Spanish — a translation of the English, not a different text.`;
 }
 
 // Check if a recent incident already exists that matches this mention's signature.
@@ -129,6 +130,8 @@ Deno.serve(async (req) => {
                 should_create_incident: { type: "boolean" },
                 title: { type: "string", description: "English headline, max 80 chars" },
                 summary: { type: "string", description: "1-2 sentence English summary" },
+                title_es: { type: "string", description: "The same headline in Spanish, max 80 chars" },
+                summary_es: { type: "string", description: "The same summary in Spanish" },
                 incident_type: {
                   type: "string",
                   enum: ["safety", "delay", "customer_treatment", "outage", "misinformation"],
@@ -145,7 +148,7 @@ Deno.serve(async (req) => {
                 injury_fatality: { type: "boolean" },
                 regulator_involved: { type: "boolean" },
               },
-              required: ["should_create_incident", "title", "summary", "incident_type", "sub_type", "risk", "risk_score"],
+              required: ["should_create_incident", "title", "summary", "title_es", "summary_es", "incident_type", "sub_type", "risk", "risk_score"],
             },
           },
         },
@@ -200,6 +203,16 @@ Deno.serve(async (req) => {
             incident_type: analysis.incident_type,
             sub_type: analysis.sub_type,
             description: `${analysis.summary}\n\n— Detected from ${mention.channel} @${mention.author_handle}\n${mention.post_url ?? ""}`,
+            // Spanish written in the same call as the English, so switching
+            // language never waits on a translation.
+            translations: analysis.title_es || analysis.summary_es
+              ? {
+                  es: {
+                    title: analysis.title_es ?? analysis.title,
+                    description: `${analysis.summary_es ?? analysis.summary}\n\n— Detectado en ${mention.channel} @${mention.author_handle}\n${mention.post_url ?? ""}`,
+                  },
+                }
+              : null,
             airline_name: analysis.airline_name ?? null,
             flight_number: analysis.flight_number ?? null,
             route: analysis.route ?? null,
@@ -234,6 +247,7 @@ Deno.serve(async (req) => {
         ai_risk: analysis.risk,
         ai_risk_score: Math.round(analysis.risk_score),
         ai_summary: analysis.summary,
+        translations: analysis.summary_es ? { es: { ai_summary: analysis.summary_es } } : null,
         ai_should_create_incident: analysis.should_create_incident,
         ai_extracted: analysis,
         incident_id: incidentId,

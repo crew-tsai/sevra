@@ -20,7 +20,7 @@
 //   3. Alongside the rest of the AI surface it now reads the workspace's own
 //      industry so the plan is written for the operator it belongs to.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import Anthropic from "npm:@anthropic-ai/sdk";
+import { chatCompletion, MODELS } from "../_shared/ai.ts";
 import { profileFor } from "../_shared/industries.ts";
 
 const corsHeaders = {
@@ -28,16 +28,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MODEL = "claude-sonnet-4-6";
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!anthropicKey) throw new Error("ANTHROPIC_API_KEY is not configured");
 
     // Authenticate before reading anything. The gateway accepts the public anon
     // key as a valid JWT, so it proves nothing about who is calling; only this
@@ -97,42 +93,63 @@ LINKED SOCIAL MENTIONS (${mentions?.length ?? 0}):
 ${(mentions ?? []).map((m: any) => `- [${m.channel}] @${m.author_handle}: ${m.content}`).join("\n")}
 `.trim();
 
-    const anthropic = new Anthropic({ apiKey: anthropicKey });
-    const msg = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 2048,
-      system:
-        `You are SEVRA, a crisis-communications strategist for ${company}, a ` +
+    // The shared AI provider, like every other AI feature. This one called
+    // Anthropic directly, and new workspaces are not given that key -- so
+    // generating a plan failed on every client provisioned since.
+    const aiResp = await chatCompletion({
+      model: MODELS.reasoning,
+      messages: [
+        {
+          role: "system",
+          content:
+            `You are SEVRA, a crisis-communications strategist for ${company}, a ` +
         `${profile.simFlavor} operator. Generate a structured, actionable response plan ` +
         `with concrete tasks for each phase. Name the departments, regulatory or ` +
         `oversight bodies, and communication channels that are actually relevant to this ` +
         `industry and to the countries involved. Do not invent regulators; if the ` +
-        `relevant body is unclear, describe it by role instead.`,
+        `relevant body is unclear, describe it by role instead. Write every action in ` +
+        `English, and give the same plan in neutral, professional Spanish in the es_ ` +
+        `fields — a translation, item for item, in the same order.`,
+        },
+        { role: "user", content: `Generate a full response plan for the following incident:\n\n${context}` },
+      ],
       tools: [
         {
-          name: "emit_response_plan",
-          description: "Return a 4-phase response plan as arrays of action strings.",
-          input_schema: {
+          type: "function",
+          function: {
+            name: "emit_response_plan",
+            description: "Return a 4-phase response plan as arrays of action strings.",
+            parameters: {
             type: "object",
             properties: {
               phase_immediate: { type: "array", items: { type: "string" }, description: "Actions in the first 0-4 hours" },
               phase_short: { type: "array", items: { type: "string" }, description: "Actions in the first 4-24 hours" },
               phase_medium: { type: "array", items: { type: "string" }, description: "Actions over 1-7 days" },
               phase_long: { type: "array", items: { type: "string" }, description: "Actions over 1-4 weeks" },
+              es_phase_immediate: { type: "array", items: { type: "string" }, description: "phase_immediate in Spanish" },
+              es_phase_short: { type: "array", items: { type: "string" }, description: "phase_short in Spanish" },
+              es_phase_medium: { type: "array", items: { type: "string" }, description: "phase_medium in Spanish" },
+              es_phase_long: { type: "array", items: { type: "string" }, description: "phase_long in Spanish" },
             },
-            required: ["phase_immediate", "phase_short", "phase_medium", "phase_long"],
+            required: [
+              "phase_immediate", "phase_short", "phase_medium", "phase_long",
+              "es_phase_immediate", "es_phase_short", "es_phase_medium", "es_phase_long",
+            ],
+          },
           },
         },
       ],
-      tool_choice: { type: "tool", name: "emit_response_plan" },
-      messages: [
-        { role: "user", content: `Generate a full response plan for the following incident:\n\n${context}` },
-      ],
+      tool_choice: { type: "function", function: { name: "emit_response_plan" } },
     });
-
-    const toolUse = msg.content.find((b: any) => b.type === "tool_use");
-    if (!toolUse || toolUse.type !== "tool_use") throw new Error("AI did not return a plan");
-    const plan = toolUse.input as Record<string, string[]>;
+    if (!aiResp.ok) {
+      const t = await aiResp.text();
+      if (aiResp.status === 429) throw new Error("Rate limit exceeded. Try again shortly.");
+      throw new Error(`AI error ${aiResp.status}: ${t.slice(0, 200)}`);
+    }
+    const aiJson = await aiResp.json();
+    const toolCall = aiJson.choices?.[0]?.message?.tool_calls?.[0];
+    if (!toolCall) throw new Error("AI did not return a plan");
+    const plan = JSON.parse(toolCall.function.arguments) as Record<string, string[]>;
 
     const { error: upsertErr } = await admin.from("response_plan").upsert(
       {
@@ -141,6 +158,16 @@ ${(mentions ?? []).map((m: any) => `- [${m.channel}] @${m.author_handle}: ${m.co
         phase_short: plan.phase_short,
         phase_medium: plan.phase_medium,
         phase_long: plan.phase_long,
+        translations: plan.es_phase_immediate
+          ? {
+              es: {
+                phase_immediate: plan.es_phase_immediate,
+                phase_short: plan.es_phase_short,
+                phase_medium: plan.es_phase_medium,
+                phase_long: plan.es_phase_long,
+              },
+            }
+          : null,
         generated_by: "ai",
         created_by: userId,
       },

@@ -28,7 +28,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { incident_id, asset_key } = await req.json();
+    const { incident_id, asset_key, lang: rawLang } = await req.json();
+    // Communications are published as written, so they are produced in one
+    // language -- the one the person asked for -- rather than in both.
+    const lang: "en" | "es" = rawLang === "es" ? "es" : "en";
     if (!incident_id || typeof incident_id !== "string") {
       return new Response(JSON.stringify({ error: "incident_id required" }), {
         status: 400,
@@ -97,7 +100,7 @@ ${(mentions ?? []).map((m: any) => `- [${m.channel}] @${m.author_handle}: ${m.co
         {
           role: "system",
           content:
-            `You are SEVRA, a crisis-communication writer for ${companyName ?? "the company"}${industry ? ` (${industry})` : ""}. Produce a complete, ready-to-publish communication package. Be factual, empathetic, and avoid speculation. Match each asset's tone & length brief exactly. Output only via the tool call.`,
+            `You are SEVRA, a crisis-communication writer for ${companyName ?? "the company"}${industry ? ` (${industry})` : ""}. Produce a complete, ready-to-publish communication package. Be factual, empathetic, and avoid speculation. Match each asset's tone & length brief exactly. ${lang === "es" ? "Write every asset — title and content — in neutral, professional Spanish, whatever the language of the incident details." : "Write every asset — title and content — in English, whatever the language of the incident details."} Output only via the tool call.`,
         },
         {
           role: "user",
@@ -178,6 +181,7 @@ ${(mentions ?? []).map((m: any) => `- [${m.channel}] @${m.author_handle}: ${m.co
         channel: spec?.channel ?? null,
         title: g.title || spec?.title || g.key,
         content: g.content,
+        language: lang,
         approval_status: "pending",
         created_by: userId,
       };
