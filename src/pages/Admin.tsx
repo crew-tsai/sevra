@@ -50,6 +50,7 @@ export default function Admin() {
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState("");
   const [industry, setIndustry] = useState("");
+  const [xHandle, setXHandle] = useState("");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [brandPrimary, setBrandPrimary] = useState("#3B82F6");
   const [brandSecondary, setBrandSecondary] = useState("#0F172A");
@@ -146,6 +147,7 @@ export default function Admin() {
       setSettingsId(data.id);
       setCompanyName(data.company_name ?? "");
       setIndustry(data.industry ?? "");
+      setXHandle(data.x_handle ?? "");
       setLogoUrl(data.logo_url ?? null);
       setBrandPrimary(data.brand_primary ?? "#3B82F6");
       setBrandSecondary(data.brand_secondary ?? "#0F172A");
@@ -204,6 +206,7 @@ export default function Admin() {
     const payload = {
       company_name: companyName.trim() || null,
       industry: industry || null,
+      x_handle: xHandle.trim().replace(/^@/, "") || null,
       logo_url: logoUrl,
       brand_primary: brandPrimary,
       brand_secondary: brandSecondary,
@@ -352,6 +355,20 @@ export default function Admin() {
                     and briefs the AI that classifies mentions and drafts communications.
                   </p>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>X (Twitter) handle</Label>
+                <Input
+                  value={xHandle}
+                  onChange={(e) => setXHandle(e.target.value)}
+                  placeholder="@yourcompany"
+                  maxLength={40}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Monitoring starts as soon as this is set — you don't need to connect an
+                  account. Connecting is only required to publish from Sevra.
+                </p>
               </div>
 
               <div className="space-y-2">

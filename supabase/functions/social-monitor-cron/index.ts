@@ -96,6 +96,22 @@ async function generateSimulatedMentions(companyName: string | null, industry: s
 }
 
 // deno-lint-ignore no-explicit-any
+/**
+ * Pull real X mentions.
+ *
+ * What to search for and what to search *with* are independent, and conflating
+ * them is why a client saw nothing until they connected an account. X's search
+ * endpoint accepts an app-only bearer token — it authorises nothing on anyone's
+ * behalf and reads only public posts — so monitoring never needed the client's
+ * consent. It was gated on a connection purely because the handle came off it.
+ *
+ * Terms: the connected account's handle if there is one, otherwise the handle
+ * typed in Admin, plus the company name either way.
+ *
+ * Credential: the connected user's token when available, since it keeps the
+ * existing behaviour intact and carries that account's own context; the
+ * app-only bearer otherwise.
+ */
 async function pullRealX(admin: any, companyName: string | null): Promise<{ rows: MentionRow[]; error?: string }> {
   const { data: connection } = await admin
     .from("social_connections")
@@ -103,31 +119,68 @@ async function pullRealX(admin: any, companyName: string | null): Promise<{ rows
     .eq("network", "x")
     .eq("status", "connected")
     .maybeSingle();
-  if (!connection) return { rows: [] };
 
   try {
-    const { data: tokenRow } = await admin
-      .from("social_connection_tokens")
-      .select("access_token, refresh_token")
-      .eq("connection_id", connection.id)
+    const { data: settings } = await admin
+      .from("company_settings")
+      .select("x_handle")
       .maybeSingle();
-    if (!tokenRow?.access_token) return { rows: [], error: "X connected but no stored access token — try reconnecting." };
 
-    let accessToken = tokenRow.access_token;
-    const expiresAt = connection.token_expires_at ? new Date(connection.token_expires_at).getTime() : null;
-    if (expiresAt !== null && expiresAt - Date.now() < 60_000 && tokenRow.refresh_token) {
-      // Must be the same app the token was minted under, so this goes through
-      // the shared resolver rather than reading the table directly.
-      const creds = await resolveCredentials(admin, "x");
-      if (creds) {
-        accessToken = await refreshXToken(admin, connection.id, creds.clientId, creds.clientSecret, tokenRow.refresh_token);
+    const handle = String(connection?.account_label ?? settings?.x_handle ?? "")
+      .replace(/^@/, "")
+      .trim();
+    // A bare company name matches any post containing that word. "Lessence"
+    // pulled ten French posts about petrol prices — the classifier dismissed
+    // every one, but each still cost a search call and an AI classification to
+    // learn nothing.
+    //
+    // Tying the company name to the handle keeps the broad half of the search
+    // — posts that name the company without tagging it, which in a crisis is
+    // usually the larger half — while requiring the post to be about this
+    // company rather than to contain a common word. With no handle, the name
+    // alone is all there is, so it stands by itself.
+    const nameTerm = companyName ? `"${companyName}"` : null;
+    const handleTerm = handle ? `@${handle}` : null;
+    const query = handleTerm && nameTerm
+      ? `(${handleTerm} OR (${nameTerm} ${handleTerm})) -is:retweet`
+      : `(${handleTerm ?? nameTerm}) -is:retweet`;
+
+    // Nothing to look for is not a failure — it is a workspace that has not
+    // said who it is yet, and saying so on every tick would be noise.
+    if (!handleTerm && !nameTerm) return { rows: [] };
+
+    let accessToken: string | null = null;
+
+    if (connection) {
+      const { data: tokenRow } = await admin
+        .from("social_connection_tokens")
+        .select("access_token, refresh_token")
+        .eq("connection_id", connection.id)
+        .maybeSingle();
+      accessToken = tokenRow?.access_token ?? null;
+
+      const expiresAt = connection.token_expires_at ? new Date(connection.token_expires_at).getTime() : null;
+      if (accessToken && expiresAt !== null && expiresAt - Date.now() < 60_000 && tokenRow?.refresh_token) {
+        // Must be the same app the token was minted under, so this goes through
+        // the shared resolver rather than reading the table directly.
+        const creds = await resolveCredentials(admin, "x");
+        if (creds) {
+          accessToken = await refreshXToken(admin, connection.id, creds.clientId, creds.clientSecret, tokenRow.refresh_token);
+        }
       }
     }
 
-    const handle = (connection.account_label ?? "").replace(/^@/, "");
-    const queryParts = [handle ? `@${handle}` : null, companyName ? `"${companyName}"` : null].filter(Boolean);
-    if (!queryParts.length) return { rows: [], error: "No handle or company name to search for." };
-    const query = `(${queryParts.join(" OR ")}) -is:retweet`;
+    // Sevra's own app-only token. Reads public posts, acts for nobody.
+    if (!accessToken) accessToken = Deno.env.get("PLATFORM_X_BEARER_TOKEN")?.trim() || null;
+
+    if (!accessToken) {
+      return {
+        rows: [],
+        error: connection
+          ? "X connected but no stored access token — try reconnecting."
+          : "X monitoring needs either a connected account or Sevra's app-only token.",
+      };
+    }
 
     const params = new URLSearchParams({
       query,
