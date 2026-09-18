@@ -164,6 +164,13 @@ theirs yet: mail still sends, it just isn't branded to them.
 The client's Google Workspace (or whatever hosts their human mailboxes) is unaffected —
 only DKIM/SPF records on the sending **subdomain** are involved, never the root domain's MX.
 
+### Meta: verification and App Review
+
+Facebook and Instagram stay on the client's-own-app path until Sevra's Meta app passes
+Business Verification and App Review. That is paperwork, not engineering — the code is
+written and waits on two secrets. Step-by-step:
+[`docs/meta-verification-runbook.md`](docs/meta-verification-runbook.md).
+
 ### One redirect URI for every client
 
 Meta and X require every OAuth redirect URI to be registered on the developer app in
