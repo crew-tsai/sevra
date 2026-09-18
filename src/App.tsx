@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RouteMeta } from "@/components/RouteMeta";
 import Login from "@/pages/Login";
 import SignIn from "@/pages/SignIn";
+import ResetPassword from "@/pages/ResetPassword";
 import OpenWorkspace from "@/pages/OpenWorkspace";
 import { isHome } from "@/lib/home";
 import Dashboard from "@/pages/Dashboard";
@@ -41,6 +42,7 @@ const App = () => (
         <RouteMeta />
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           {/* The public site finds your workspace; a client workspace has no
               marketing pages of its own and opens on its sign-in. */}
           <Route path="/signin" element={isHome() ? <SignIn /> : <Navigate to="/login" replace />} />
