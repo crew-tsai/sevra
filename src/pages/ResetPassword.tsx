@@ -19,14 +19,21 @@ export default function ResetPassword() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [saving, setSaving] = useState(false);
+  // The sign-in the link produced, kept here as well as in browser storage.
+  // Some browsers refuse or clear site storage (private windows, strict
+  // cookie blocking), and then the page would know it was signed in but
+  // saving would fail with "Auth session missing".
+  const [linkToken, setLinkToken] = useState<string | null>(null);
 
   useEffect(() => {
     // The client reads the recovery token from the URL on load, which can land
     // just before or just after this runs, so check both ways.
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.access_token) setLinkToken(session.access_token);
       if (event === "PASSWORD_RECOVERY" || session) setReady("ok");
     });
     supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.access_token) setLinkToken(data.session.access_token);
       if (data.session) setReady("ok");
     });
     // An expired or already-used link arrives with an error instead of a token.
@@ -45,10 +52,38 @@ export default function ResetPassword() {
     if (password !== confirm) return toast.error("The two passwords don't match.");
     setSaving(true);
     const { error } = await supabase.auth.updateUser({ password });
+    if (!error) {
+      setSaving(false);
+      toast.success("Password updated");
+      navigate("/welcome", { replace: true });
+      return;
+    }
+
+    // The browser lost the stored sign-in. Save with the token from the link
+    // directly, then send them to sign in -- the app itself cannot stay signed
+    // in without that storage anyway.
+    if (/session missing/i.test(error.message) && linkToken) {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/auth/v1/user`, {
+        method: "PUT",
+        headers: {
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${linkToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ password }),
+      });
+      setSaving(false);
+      if (res.ok) {
+        toast.success("Password updated. Sign in with your new password.");
+        const email = ((await res.json().catch(() => ({}))) as { email?: string }).email ?? "";
+        navigate(`/login${email ? `?email=${encodeURIComponent(email)}` : ""}`, { replace: true });
+        return;
+      }
+      const body = await res.json().catch(() => ({}));
+      return toast.error((body as { msg?: string; message?: string }).msg ?? (body as { message?: string }).message ?? "Could not save the password. Request a new link.");
+    }
     setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success("Password updated");
-    navigate("/welcome", { replace: true });
+    toast.error(error.message);
   };
 
   return (
