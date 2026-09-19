@@ -423,6 +423,21 @@ Deno.serve(async (req) => {
       }
     }
 
+    // What Social Intel shows as "last run". Written on every run, cron or
+    // manual, so it cannot drift from what actually happened.
+    const { error: runErr } = await admin
+      .from("company_settings")
+      .update({
+        monitor_last_run_at: new Date().toISOString(),
+        monitor_last_result: {
+          generated: insertedIds.length,
+          analyzed,
+          ...(Object.keys(networkErrors).length ? { network_errors: networkErrors } : {}),
+        },
+      })
+      .not("id", "is", null);
+    if (runErr) console.error("social-monitor-cron: recording last run failed", runErr.message);
+
     return new Response(
       JSON.stringify({
         success: true,
