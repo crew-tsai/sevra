@@ -6,7 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const ATTRS = new Set(["placeholder", "title", "alt", "aria-label", "label", "description"]);
-const CALLS = new Set(["toast", "toast.error", "toast.success", "toast.info", "toast.warning", "toast.message", "setError", "confirm", "alert"]);
+const CALLS = new Set(["toast", "toast({", "toast.error", "toast.success", "toast.info", "toast.warning", "toast.message", "setError", "confirm", "alert"]);
 const SKIP = [/\/components\/ui\//, /\/i18n\//, /\/integrations\//, /industries(-es)?\.ts$/];
 // Names that read the same in every language.
 const BRANDS = /\b(Sevra|SEVRA|The Stellar Crew|Agent Stripes|Stellar|X|TikTok|Instagram|Facebook|LinkedIn|Reddit|Resend|Google)\b/g;
@@ -32,6 +32,20 @@ for (const file of files) {
     if (ts.isJsxText(node) && looksLikeWords(node.text)) report(node, node.text);
     if (ts.isJsxAttribute(node) && ATTRS.has(node.name.getText()) && node.initializer && ts.isStringLiteral(node.initializer) && looksLikeWords(node.initializer.text)) {
       report(node, `${node.name.getText()}="${node.initializer.text}"`);
+    }
+    // Strings chosen inside JSX: {cond ? "Active" : "Disabled"}, {x ?? "Unknown"}.
+    if ((ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) && looksLikeWords(node.text) && /[A-Z ]/.test(node.text)) {
+      let p = node.parent;
+      const viaChoice = p && (ts.isConditionalExpression(p) || (ts.isBinaryExpression(p) && ["??", "||", "&&"].includes(p.operatorToken.getText())) || ts.isParenthesizedExpression(p));
+      while (p && (ts.isConditionalExpression(p) || ts.isBinaryExpression(p) || ts.isParenthesizedExpression(p))) p = p.parent;
+      if (viaChoice && p && ts.isJsxExpression(p) && !(p.parent && ts.isJsxAttribute(p.parent) && !ATTRS.has(p.parent.name.getText()))) {
+        report(node, `"${node.text}"`);
+      }
+    }
+    // Text in object fields that are rendered: { label: "Incident" }.
+    if (ts.isPropertyAssignment(node) && ["label", "title", "description", "body", "detail", "placeholder", "name"].includes(node.name.getText()) &&
+        ts.isStringLiteral(node.initializer) && looksLikeWords(node.initializer.text) && /[A-Z]/.test(node.initializer.text[0]) && file.endsWith(".tsx")) {
+      report(node, `${node.name.getText()}: "${node.initializer.text}"`);
     }
     if (ts.isCallExpression(node) && CALLS.has(node.expression.getText())) {
       const a = node.arguments[0];

@@ -7,6 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
+import { useMessages } from "@/i18n";
+import { commonMessages } from "@/i18n/messages/common";
+import { workflowsMessages } from "@/i18n/messages/workflows";
 import {
   AlertTriangle,
   Tag,
@@ -99,6 +102,9 @@ export default function Workflows() {
   const [workflows, setWorkflows] = useState<Workflow[]>(SEED);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Workflow | null>(null);
+  const t = useMessages(workflowsMessages);
+  const common = useMessages(commonMessages);
+  const L = (v: string) => t.values[v] ?? v;
 
   const emptyDraft = (): Workflow => ({
     id: `wf-${Date.now()}`,
@@ -123,21 +129,21 @@ export default function Workflows() {
   };
   const remove = (id: string) => {
     setWorkflows((ws) => ws.filter((w) => w.id !== id));
-    toast({ title: "Workflow deleted" });
+    toast({ title: t.deleted });
   };
   const toggle = (id: string) => {
     setWorkflows((ws) => ws.map((w) => (w.id === id ? { ...w, enabled: !w.enabled } : w)));
   };
   const save = () => {
     if (!draft.name.trim()) {
-      toast({ title: "Name required", variant: "destructive" });
+      toast({ title: t.nameRequired, variant: "destructive" });
       return;
     }
     setWorkflows((ws) => {
       const exists = ws.some((w) => w.id === draft.id);
       return exists ? ws.map((w) => (w.id === draft.id ? draft : w)) : [...ws, draft];
     });
-    toast({ title: editing ? "Workflow updated" : "Workflow created" });
+    toast({ title: editing ? t.updated : t.created });
     setOpen(false);
   };
 
@@ -154,13 +160,13 @@ export default function Workflows() {
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Workflows</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t.title}</h1>
           <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-            Admin-only. Define how incidents are routed through your playbook: classification → criteria → actions → next status.
+            {t.intro}
           </p>
         </div>
         <Button onClick={startNew}>
-          <Plus className="h-4 w-4 mr-2" /> New workflow
+          <Plus className="h-4 w-4 mr-2" /> {t.newWorkflow}
         </Button>
       </div>
 
@@ -168,11 +174,11 @@ export default function Workflows() {
       <Card className="p-4 bg-card border-border">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
           {[
-            { icon: AlertTriangle, label: "Incident" },
-            { icon: Tag, label: "Classification" },
-            { icon: Filter, label: "Criteria" },
-            { icon: Zap, label: "Actions" },
-            { icon: CircleDot, label: "Next status" },
+            { icon: AlertTriangle, label: t.legend.incident },
+            { icon: Tag, label: t.legend.classification },
+            { icon: Filter, label: t.legend.criteria },
+            { icon: Zap, label: t.legend.actions },
+            { icon: CircleDot, label: t.legend.nextStatus },
           ].map((s) => (
             <div key={s.label} className="flex items-center gap-2">
               <div className="h-7 w-7 rounded-md bg-primary/15 flex items-center justify-center text-primary">
@@ -187,7 +193,7 @@ export default function Workflows() {
       {/* Workflows list */}
       <div className="space-y-4">
         {workflows.length === 0 && (
-          <Card className="p-10 text-center text-muted-foreground">No workflows yet. Create your first one.</Card>
+          <Card className="p-10 text-center text-muted-foreground">{t.empty}</Card>
         )}
         {workflows.map((w) => (
           <Card key={w.id} className="p-5 bg-card border-border">
@@ -197,20 +203,20 @@ export default function Workflows() {
                   <Bot className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-base font-semibold truncate">{w.name}</h3>
+                  <h3 className="text-base font-semibold truncate">{L(w.name)}</h3>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant={w.enabled ? "default" : "secondary"} className="text-[10px]">
-                      {w.enabled ? "Active" : "Disabled"}
+                      {w.enabled ? t.active : t.disabled}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
-                      {w.classification.type} · {w.classification.level}
+                      {L(w.classification.type)} · {w.classification.level}
                     </span>
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="ghost" size="sm" onClick={() => toggle(w.id)}>
-                  {w.enabled ? "Disable" : "Enable"}
+                  {w.enabled ? t.disable : t.enable}
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => startEdit(w)}>
                   <Pencil className="h-4 w-4" />
@@ -223,22 +229,22 @@ export default function Workflows() {
 
             <div className="grid md:grid-cols-4 gap-3 mt-4">
               <div className="rounded-md border border-border p-3">
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-2">Classification</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-2">{t.legend.classification}</div>
                 <div className="flex flex-wrap gap-1.5">
-                  <Pill><Tag className="h-3 w-3" /> {w.classification.type}</Pill>
+                  <Pill><Tag className="h-3 w-3" /> {L(w.classification.type)}</Pill>
                   <Pill><ShieldAlert className="h-3 w-3" /> ≥ {w.classification.level}</Pill>
                 </div>
               </div>
               <div className="rounded-md border border-border p-3">
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-2">Criteria</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-2">{t.legend.criteria}</div>
                 <div className="flex flex-wrap gap-1.5">
                   {w.criteria.map((c, i) => (
-                    <Pill key={i}><Filter className="h-3 w-3" /> {c.field} {c.op} {c.value}</Pill>
+                    <Pill key={i}><Filter className="h-3 w-3" /> {L(c.field)} {L(c.op)} {L(c.value)}</Pill>
                   ))}
                 </div>
               </div>
               <div className="rounded-md border border-border p-3">
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-2">Actions</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-2">{t.legend.actions}</div>
                 <div className="flex flex-wrap gap-1.5">
                   {w.actions.map((a, i) => {
                     const Icon =
@@ -246,13 +252,13 @@ export default function Workflows() {
                       a.type.startsWith("Notify") ? Users :
                       a.type.startsWith("Open approval") ? CheckCircle2 :
                       a.type.startsWith("Publish") ? Megaphone : Mail;
-                    return <Pill key={i}><Icon className="h-3 w-3" /> {a.type}{a.detail ? `: ${a.detail}` : ""}</Pill>;
+                    return <Pill key={i}><Icon className="h-3 w-3" /> {L(a.type)}{a.detail ? `: ${L(a.detail)}` : ""}</Pill>;
                   })}
                 </div>
               </div>
               <div className="rounded-md border border-border p-3">
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-2">Next status</div>
-                <Pill><CircleDot className="h-3 w-3" /> {w.nextStatus}</Pill>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-2">{t.legend.nextStatus}</div>
+                <Pill><CircleDot className="h-3 w-3" /> {L(w.nextStatus)}</Pill>
               </div>
             </div>
           </Card>
@@ -263,38 +269,38 @@ export default function Workflows() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editing ? "Edit workflow" : "New workflow"}</DialogTitle>
+            <DialogTitle>{editing ? t.editWorkflow : t.newWorkflow}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-5">
             <div>
-              <Label>Name</Label>
+              <Label>{t.name}</Label>
               <Input
                 value={draft.name}
                 onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                placeholder="e.g. Auto-escalate L3+ safety events"
+                placeholder={t.namePlaceholder}
                 className="mt-1.5"
               />
             </div>
 
             {/* Classification */}
             <div className="rounded-md border border-border p-4">
-              <div className="text-xs uppercase tracking-wider text-muted-foreground/70 mb-3">Classification</div>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground/70 mb-3">{t.legend.classification}</div>
               <div className="grid sm:grid-cols-3 gap-3">
                 <div>
-                  <Label className="text-xs">Type</Label>
+                  <Label className="text-xs">{t.type}</Label>
                   <Select
                     value={draft.classification.type}
                     onValueChange={(v) => setDraft({ ...draft, classification: { ...draft.classification, type: v } })}
                   >
                     <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {CLASSIFICATION_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                      {CLASSIFICATION_TYPES.map((v) => <SelectItem key={v} value={v}>{L(v)}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-xs">Sub-type</Label>
+                  <Label className="text-xs">{t.subType}</Label>
                   <Input
                     value={draft.classification.subtype}
                     onChange={(e) => setDraft({ ...draft, classification: { ...draft.classification, subtype: e.target.value } })}
@@ -302,7 +308,7 @@ export default function Workflows() {
                   />
                 </div>
                 <div>
-                  <Label className="text-xs">Min crisis level</Label>
+                  <Label className="text-xs">{t.minLevel}</Label>
                   <Select
                     value={draft.classification.level}
                     onValueChange={(v) => setDraft({ ...draft, classification: { ...draft.classification, level: v } })}
@@ -319,9 +325,9 @@ export default function Workflows() {
             {/* Criteria */}
             <div className="rounded-md border border-border p-4">
               <div className="flex items-center justify-between mb-3">
-                <div className="text-xs uppercase tracking-wider text-muted-foreground/70">Criteria</div>
+                <div className="text-xs uppercase tracking-wider text-muted-foreground/70">{t.legend.criteria}</div>
                 <Button variant="ghost" size="sm" onClick={addCriterion}>
-                  <Plus className="h-3 w-3 mr-1" /> Add
+                  <Plus className="h-3 w-3 mr-1" /> {t.add}
                 </Button>
               </div>
               <div className="space-y-2">
@@ -332,7 +338,7 @@ export default function Workflows() {
                     }}>
                       <SelectTrigger className="col-span-5"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {CRITERIA_FIELDS.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                        {CRITERIA_FIELDS.map((f) => <SelectItem key={f} value={f}>{L(f)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <Select value={c.op} onValueChange={(v) => {
@@ -340,13 +346,13 @@ export default function Workflows() {
                     }}>
                       <SelectTrigger className="col-span-2"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {CRITERIA_OPS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                        {CRITERIA_OPS.map((o) => <SelectItem key={o} value={o}>{L(o)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <Input
                       className="col-span-4"
                       value={c.value}
-                      placeholder="value"
+                      placeholder={t.valuePlaceholder}
                       onChange={(e) => {
                         const next = [...draft.criteria]; next[i] = { ...c, value: e.target.value }; setDraft({ ...draft, criteria: next });
                       }}
@@ -362,9 +368,9 @@ export default function Workflows() {
             {/* Actions */}
             <div className="rounded-md border border-border p-4">
               <div className="flex items-center justify-between mb-3">
-                <div className="text-xs uppercase tracking-wider text-muted-foreground/70">Actions</div>
+                <div className="text-xs uppercase tracking-wider text-muted-foreground/70">{t.legend.actions}</div>
                 <Button variant="ghost" size="sm" onClick={addAction}>
-                  <Plus className="h-3 w-3 mr-1" /> Add
+                  <Plus className="h-3 w-3 mr-1" /> {t.add}
                 </Button>
               </div>
               <div className="space-y-2">
@@ -375,13 +381,13 @@ export default function Workflows() {
                     }}>
                       <SelectTrigger className="col-span-5"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {ACTION_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                        {ACTION_TYPES.map((v) => <SelectItem key={v} value={v}>{L(v)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <Input
                       className="col-span-6"
                       value={a.detail}
-                      placeholder="detail (optional)"
+                      placeholder={t.detailPlaceholder}
                       onChange={(e) => {
                         const next = [...draft.actions]; next[i] = { ...a, detail: e.target.value }; setDraft({ ...draft, actions: next });
                       }}
@@ -396,19 +402,19 @@ export default function Workflows() {
 
             {/* Next status */}
             <div>
-              <Label>Move incident to</Label>
+              <Label>{t.moveTo}</Label>
               <Select value={draft.nextStatus} onValueChange={(v) => setDraft({ ...draft, nextStatus: v })}>
                 <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  {STATUSES.map((v) => <SelectItem key={v} value={v}>{L(v)}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={save}>{editing ? "Save changes" : "Create workflow"}</Button>
+            <Button variant="ghost" onClick={() => setOpen(false)}>{common.cancel}</Button>
+            <Button onClick={save}>{editing ? t.saveChanges : t.createWorkflow}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

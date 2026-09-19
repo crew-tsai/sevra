@@ -20,6 +20,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useIntlLocale, useLang, useMessages } from "@/i18n";
+import { useTranslations } from "@/i18n/useTranslations";
+import { commonMessages } from "@/i18n/messages/common";
+import { approvalsMessages } from "@/i18n/messages/approvals";
 
 type Asset = {
   id: string;
@@ -34,6 +38,7 @@ type Asset = {
   media_url: string | null;
   media_type: string | null;
   media_source: string | null;
+  language: string | null;
 };
 
 type IncidentLite = {
@@ -41,14 +46,15 @@ type IncidentLite = {
   title: string;
   risk: string;
   crisis_level: number | null;
+  translations: unknown;
 };
 
-const CRISIS_LEVEL_META: Record<number, { label: string; className: string }> = {
-  0: { label: "L0 · Routine", className: "bg-risk-low-bg text-risk-low" },
-  1: { label: "L1 · Localized", className: "bg-risk-low-bg text-risk-low" },
-  2: { label: "L2 · Significant", className: "bg-risk-medium-bg text-risk-medium" },
-  3: { label: "L3 · Major", className: "bg-risk-high-bg text-risk-high" },
-  4: { label: "L4 · Catastrophic", className: "bg-risk-critical-bg text-risk-critical" },
+const CRISIS_LEVEL_META: Record<number, { className: string }> = {
+  0: { className: "bg-risk-low-bg text-risk-low" },
+  1: { className: "bg-risk-low-bg text-risk-low" },
+  2: { className: "bg-risk-medium-bg text-risk-medium" },
+  3: { className: "bg-risk-high-bg text-risk-high" },
+  4: { className: "bg-risk-critical-bg text-risk-critical" },
 };
 
 const TYPE_ICON: Record<string, typeof FileText> = {
@@ -64,25 +70,26 @@ const TYPE_ICON: Record<string, typeof FileText> = {
 
 type TabKey = "press" | "internal" | "social" | "scripts" | "qna" | "customers";
 
-const TAB_DEFS: Array<{ key: TabKey; label: string; icon: typeof FileText; types: string[] }> = [
-  { key: "press", label: "Press", icon: Megaphone, types: ["press_release", "holding_statement"] },
-  { key: "internal", label: "Internal Releases", icon: Users, types: ["internal_memo"] },
-  { key: "social", label: "Social", icon: MessageSquare, types: ["post_x", "post_instagram", "post_facebook"] },
-  { key: "scripts", label: "Scripts", icon: Film, types: ["tiktok_script"] },
-  { key: "qna", label: "Q&As", icon: HelpCircle, types: ["faq_media", "faq_employees", "faq_authorities", "faq_partners"] },
-  { key: "customers", label: "Customers", icon: Headphones, types: ["customer_faq"] },
+// Labels live in approvalsMessages, keyed by `key` / `type`.
+const TAB_DEFS: Array<{ key: TabKey; icon: typeof FileText; types: string[] }> = [
+  { key: "press", icon: Megaphone, types: ["press_release", "holding_statement"] },
+  { key: "internal", icon: Users, types: ["internal_memo"] },
+  { key: "social", icon: MessageSquare, types: ["post_x", "post_instagram", "post_facebook"] },
+  { key: "scripts", icon: Film, types: ["tiktok_script"] },
+  { key: "qna", icon: HelpCircle, types: ["faq_media", "faq_employees", "faq_authorities", "faq_partners"] },
+  { key: "customers", icon: Headphones, types: ["customer_faq"] },
 ];
 
-const QNA_AUDIENCES: Array<{ type: string; label: string; icon: typeof FileText }> = [
-  { type: "faq_media", label: "Media", icon: Newspaper },
-  { type: "faq_employees", label: "Employees", icon: Users },
-  { type: "faq_authorities", label: "Authorities", icon: Building2 },
-  { type: "faq_partners", label: "Partners", icon: Briefcase },
+const QNA_AUDIENCES: Array<{ type: string; icon: typeof FileText }> = [
+  { type: "faq_media", icon: Newspaper },
+  { type: "faq_employees", icon: Users },
+  { type: "faq_authorities", icon: Building2 },
+  { type: "faq_partners", icon: Briefcase },
 ];
 
 function tabFor(assetType: string): TabKey | "other" {
-  for (const t of TAB_DEFS) {
-    if (t.types.includes(assetType)) return t.key;
+  for (const def of TAB_DEFS) {
+    if (def.types.includes(assetType)) return def.key;
   }
   return "other";
 }
@@ -115,6 +122,11 @@ export default function Approvals() {
   const [promptDraft, setPromptDraft] = useState<Record<string, string>>({});
   const [industry, setIndustry] = useState<string | null>(null);
   const mediaInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const t = useMessages(approvalsMessages);
+  const common = useMessages(commonMessages);
+  const { lang } = useLang();
+  const intl = useIntlLocale();
+  const when = (iso: string) => new Date(iso).toLocaleString(intl);
 
   useEffect(() => {
     let cancelled = false;
@@ -161,7 +173,7 @@ export default function Approvals() {
     if (ids.length) {
       const { data: incData } = await supabase
         .from("incidents")
-        .select("id, title, risk, crisis_level")
+        .select("id, title, risk, crisis_level, translations")
         .in("id", ids);
       const map: Record<string, IncidentLite> = {};
       (incData ?? []).forEach((i: any) => (map[i.id] = i));
@@ -198,8 +210,8 @@ export default function Approvals() {
     if (!el) return;
     el.scrollIntoView({ behavior: "smooth", block: "start" });
     setHighlightId(focusIncidentId);
-    const t = window.setTimeout(() => setHighlightId(null), 2000);
-    return () => window.clearTimeout(t);
+    const timer = window.setTimeout(() => setHighlightId(null), 2000);
+    return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusIncidentId, tab, loading]);
 
@@ -220,9 +232,7 @@ export default function Approvals() {
       .eq("id", id);
     setBusyId(null);
     if (error) return toast.error(error.message);
-    const label =
-      status === "user_approved" ? "marked ready for admin" : status === "approved" ? "approved" : "rejected";
-    toast.success(`Asset ${label}`);
+    toast.success(t.statusToast[status]);
 
     // Only after the final admin approval prompt for distribution
     if (status === "approved") {
@@ -233,7 +243,7 @@ export default function Approvals() {
 
   const copy = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast.success("Copied to clipboard");
+    toast.success(t.copied);
   };
 
   const shareOnWhatsApp = (item: Asset) => {
@@ -244,13 +254,14 @@ export default function Approvals() {
   const regenerateAsset = async (asset: Asset) => {
     setRegeneratingId(asset.id);
     const { data, error } = await supabase.functions.invoke("generate-incident-assets", {
-      body: { incident_id: asset.incident_id, asset_key: asset.asset_type },
+      // Regenerated in the language it was written in, not the viewer's.
+      body: { incident_id: asset.incident_id, asset_key: asset.asset_type, lang: asset.language ?? lang },
     });
     setRegeneratingId(null);
     if (error || !data?.success) {
-      return toast.error(error?.message ?? "Failed to regenerate asset");
+      return toast.error(error?.message ?? t.regenerateFailed);
     }
-    toast.success(`${asset.title} regenerated`);
+    toast.success(t.regenerated(asset.title));
     setTab("pending");
   };
 
@@ -267,7 +278,7 @@ export default function Approvals() {
     const isVideo = asset.asset_type === "tiktok_script";
     const maxMb = isVideo ? 100 : 10;
     if (file.size > maxMb * 1024 * 1024) {
-      return toast.error(`File too large (max ${maxMb}MB)`);
+      return toast.error(t.fileTooLarge(maxMb));
     }
     setMediaBusyId(asset.id);
     const ext = file.name.split(".").pop() || (isVideo ? "mp4" : "jpg");
@@ -284,21 +295,21 @@ export default function Approvals() {
       .eq("id", asset.id);
     setMediaBusyId(null);
     if (error) return toast.error(error.message);
-    toast.success("Media attached");
+    toast.success(t.mediaAttached);
   };
 
   const generateAssetImage = async (asset: Asset) => {
     const prompt = (promptDraft[asset.id] ?? suggestedImagePrompt(asset)).trim();
-    if (!prompt) return toast.error("Enter a prompt first");
+    if (!prompt) return toast.error(t.enterPrompt);
     setMediaBusyId(asset.id);
     const { data, error } = await supabase.functions.invoke("generate-asset-image", {
       body: { asset_id: asset.id, prompt },
     });
     setMediaBusyId(null);
     if (error || !data?.success) {
-      return toast.error(data?.error ?? error?.message ?? "Failed to generate image");
+      return toast.error(data?.error ?? error?.message ?? t.imageFailed);
     }
-    toast.success("Image generated");
+    toast.success(t.imageGenerated);
     setShowPromptFor((s) => {
       const next = new Set(s);
       next.delete(asset.id);
@@ -318,7 +329,7 @@ export default function Approvals() {
     const title = editTitle.trim();
     const content = editContent.trim();
     if (!title || !content) {
-      return toast.error("Title and content are required");
+      return toast.error(t.titleContentRequired);
     }
     setSavingEdit(true);
     const updates: {
@@ -339,19 +350,19 @@ export default function Approvals() {
       .eq("id", editAsset.id);
     setSavingEdit(false);
     if (error) return toast.error(error.message);
-    toast.success("Asset updated");
+    toast.success(t.assetUpdated);
     if (editResetToPending) setTab("pending");
     setEditAsset(null);
   };
 
-  const stripVersionSuffix = (t: string) => t.replace(/\s+·\s+v\d+$/i, "").trim();
+  const stripVersionSuffix = (s: string) => s.replace(/\s+·\s+v\d+$/i, "").trim();
 
   const saveAsNewVersion = async () => {
     if (!editAsset) return;
     const title = editTitle.trim();
     const content = editContent.trim();
     if (!title || !content) {
-      return toast.error("Title and content are required");
+      return toast.error(t.titleContentRequired);
     }
     setSavingNewVersion(true);
     const baseTitle = stripVersionSuffix(title);
@@ -369,12 +380,13 @@ export default function Approvals() {
       channel: editAsset.channel,
       title: versionedTitle,
       content,
+      language: editAsset.language,
       approval_status: "pending",
       created_by: userData.user?.id ?? null,
     });
     setSavingNewVersion(false);
     if (error) return toast.error(error.message);
-    toast.success(`Saved as ${versionedTitle}`);
+    toast.success(t.savedAs(versionedTitle));
     setTab("pending");
     setEditAsset(null);
   };
@@ -400,6 +412,8 @@ export default function Approvals() {
   };
 
   const focusIncident = focusIncidentId ? incidents[focusIncidentId] : null;
+  const tr = useTranslations("incidents", Object.keys(grouped).map((id) => incidents[id]).concat(focusIncident ? [focusIncident] : []));
+  const incTitle = (inc: IncidentLite | null | undefined) => (inc ? tr.text(inc, "title") : "");
   const focusRef = focusIncidentId ? `INC-${focusIncidentId.slice(0, 8).toUpperCase()}` : null;
   const focusPkgRef = focusIncidentId ? `PKG-${focusIncidentId.slice(0, 8).toUpperCase()}` : null;
 
@@ -441,27 +455,32 @@ export default function Approvals() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm font-semibold text-foreground truncate">{item.title}</span>
+              {item.language && (
+                <span title={common.writtenIn[item.language]} className="rounded border border-border px-1 text-[10px] font-medium uppercase text-muted-foreground">
+                  {item.language}
+                </span>
+              )}
               {item.channel && (
                 <Badge variant="secondary" className="text-[10px]">{item.channel}</Badge>
               )}
               {isUserApproved && (
-                <Badge className="text-[10px] border-0 bg-risk-medium-bg text-risk-medium">awaiting admin</Badge>
+                <Badge className="text-[10px] border-0 bg-risk-medium-bg text-risk-medium">{t.awaitingAdmin}</Badge>
               )}
               {isApproved && (
-                <Badge className="text-[10px] border-0 bg-risk-low-bg text-risk-low">approved</Badge>
+                <Badge className="text-[10px] border-0 bg-risk-low-bg text-risk-low">{t.approvedBadge}</Badge>
               )}
               {isRejected && (
-                <Badge className="text-[10px] border-0 bg-risk-critical-bg text-risk-critical">rejected</Badge>
+                <Badge className="text-[10px] border-0 bg-risk-critical-bg text-risk-critical">{t.rejectedBadge}</Badge>
               )}
             </div>
             {!isExpanded ? (
               <p className="text-xs text-muted-foreground truncate mt-0.5">
-                <span className="text-muted-foreground/70">{new Date(item.created_at).toLocaleString()}</span>
+                <span className="text-muted-foreground/70">{when(item.created_at)}</span>
                 {" · "}{preview}
               </p>
             ) : (
               <p className="text-[11px] text-muted-foreground/70 mt-0.5">
-                Created {new Date(item.created_at).toLocaleString()}
+                {t.created(when(item.created_at))}
               </p>
             )}
           </div>
@@ -473,7 +492,7 @@ export default function Approvals() {
                 disabled={isBusy}
               >
                 {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                Approve & send to admin
+                {t.approveAndSend}
               </Button>
             </div>
           )}
@@ -486,17 +505,17 @@ export default function Approvals() {
                 onClick={() => updateStatus(item.id, "rejected")}
                 disabled={isBusy}
               >
-                <XCircle className="h-3.5 w-3.5" /> Reject
+                <XCircle className="h-3.5 w-3.5" /> {t.reject}
               </Button>
               <Button size="sm" onClick={() => updateStatus(item.id, "approved")} disabled={isBusy}>
                 {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                Final approve
+                {t.finalApprove}
               </Button>
             </div>
           )}
           {isUserApproved && !isAdmin && (
             <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-muted-foreground shrink-0">
-              <Lock className="h-3 w-3" /> Awaiting admin
+              <Lock className="h-3 w-3" /> {t.awaitingAdminShort}
             </span>
           )}
           <ChevronDown
@@ -521,7 +540,7 @@ export default function Approvals() {
                   ) : (
                     <ImageIcon className="h-3.5 w-3.5" />
                   )}
-                  {item.asset_type === "tiktok_script" ? "Video" : "Image"}
+                  {item.asset_type === "tiktok_script" ? t.video : t.image}
                 </div>
 
                 {item.media_url ? (
@@ -542,7 +561,7 @@ export default function Approvals() {
                       ) : (
                         <Upload className="h-3.5 w-3.5" />
                       )}
-                      Replace
+                      {t.replace}
                     </Button>
                   </div>
                 ) : (
@@ -559,7 +578,7 @@ export default function Approvals() {
                         ) : (
                           <Upload className="h-3.5 w-3.5" />
                         )}
-                        Upload {item.asset_type === "tiktok_script" ? "video" : "image"}
+                        {item.asset_type === "tiktok_script" ? t.uploadVideo : t.uploadImage}
                       </Button>
                       {item.asset_type === "post_instagram" && (
                         <Button
@@ -573,7 +592,7 @@ export default function Approvals() {
                             })
                           }
                         >
-                          <Sparkles className="h-3.5 w-3.5" /> Generate with AI
+                          <Sparkles className="h-3.5 w-3.5" /> {t.generateWithAI}
                         </Button>
                       )}
                     </div>
@@ -595,7 +614,7 @@ export default function Approvals() {
                           ) : (
                             <Sparkles className="h-3.5 w-3.5" />
                           )}
-                          Generate
+                          {t.generate}
                         </Button>
                       </div>
                     )}
@@ -618,57 +637,57 @@ export default function Approvals() {
 
             <div className="flex items-center gap-2 mt-3 flex-wrap">
               <Button size="sm" variant="outline" onClick={() => copy(item.content)}>
-                <Copy className="h-3.5 w-3.5" /> Copy
+                <Copy className="h-3.5 w-3.5" /> {t.copy}
               </Button>
               <Button size="sm" variant="outline" onClick={() => openEdit(item)}>
-                <Pencil className="h-3.5 w-3.5" /> Edit
+                <Pencil className="h-3.5 w-3.5" /> {t.edit}
               </Button>
               {isPending && (
                 <Button size="sm" onClick={() => updateStatus(item.id, "user_approved")} disabled={isBusy}>
                   {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                  Approve & send to admin
+                  {t.approveAndSend}
                 </Button>
               )}
               {isUserApproved && isAdmin && (
                 <>
                   <Button size="sm" onClick={() => updateStatus(item.id, "approved")} disabled={isBusy}>
                     {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                    Final approve
+                    {t.finalApprove}
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => updateStatus(item.id, "rejected")} disabled={isBusy}>
-                    <XCircle className="h-3.5 w-3.5" /> Reject
+                    <XCircle className="h-3.5 w-3.5" /> {t.reject}
                   </Button>
                 </>
               )}
               {isUserApproved && !isAdmin && (
                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                  <Lock className="h-3 w-3" /> Awaiting admin approval
+                  <Lock className="h-3 w-3" /> {t.awaitingAdminApproval}
                 </span>
               )}
               {isApproved && isEmailAsset(item.asset_type) && (
                 <>
                   <Button size="sm" onClick={() => setEmailDialogAsset(item)}>
-                    <Mail className="h-3.5 w-3.5" /> Send email
+                    <Mail className="h-3.5 w-3.5" /> {t.sendEmail}
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => shareOnWhatsApp(item)}>
-                    <MessageCircle className="h-3.5 w-3.5" /> Share on WhatsApp
+                    <MessageCircle className="h-3.5 w-3.5" /> {t.shareWhatsApp}
                   </Button>
                 </>
               )}
               {isApproved && isSocialAsset(item.asset_type) && (
                 <>
                   <Button size="sm" onClick={() => setSocialDialogAsset(item)}>
-                    <Send className="h-3.5 w-3.5" /> Publish to {socialNetworkLabel(item.asset_type)}
+                    <Send className="h-3.5 w-3.5" /> {t.publishTo(socialNetworkLabel(item.asset_type))}
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => shareOnWhatsApp(item)}>
-                    <MessageCircle className="h-3.5 w-3.5" /> Share on WhatsApp
+                    <MessageCircle className="h-3.5 w-3.5" /> {t.shareWhatsApp}
                   </Button>
                 </>
               )}
               {(isPending || isUserApproved || isRejected) && (
                 <Button size="sm" variant="outline" onClick={() => regenerateAsset(item)} disabled={isRegenerating}>
                   {isRegenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                  Regenerate
+                  {t.regenerate}
                 </Button>
               )}
             </div>
@@ -691,13 +710,13 @@ export default function Approvals() {
         items={
           focusIncidentId
             ? [
-                { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
-                { label: `${focusRef} · ${focusIncident?.title ?? "Incident"}`, to: `/incidents/${focusIncidentId}` },
-                { label: `${focusPkgRef} · Media package` },
+                { label: t.dashboard, to: "/dashboard", icon: LayoutDashboard },
+                { label: `${focusRef} · ${incTitle(focusIncident) || t.incident}`, to: `/incidents/${focusIncidentId}` },
+                { label: `${focusPkgRef} · ${t.mediaPackage}` },
               ]
             : [
-                { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
-                { label: "Approvals" },
+                { label: t.dashboard, to: "/dashboard", icon: LayoutDashboard },
+                { label: t.approvals },
               ]
         }
       />
@@ -706,24 +725,24 @@ export default function Approvals() {
         <h1 className="text-xl font-semibold text-foreground inline-flex items-center gap-2 flex-wrap">
           {focusIncidentId ? (
             <>
-              <span>Media package</span>
+              <span>{t.mediaPackage}</span>
               <Badge variant="outline" className="font-mono text-[10px] tracking-wider border-primary/40 text-primary">
                 {focusPkgRef}
               </Badge>
             </>
           ) : (
-            "Approval workflow"
+            t.workflowTitle
           )}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           {focusIncidentId ? (
             <>
-              Assets generated for{" "}
+              {t.assetsGeneratedFor}{" "}
               <span className="font-mono text-foreground">{focusRef}</span>
-              {focusIncident?.title ? <> · {focusIncident.title}</> : null}.
+              {focusIncident ? <> · {incTitle(focusIncident)}</> : null}.
             </>
           ) : (
-            "Review and approve communication assets before distribution."
+            t.workflowIntro
           )}
         </p>
       </div>
@@ -733,19 +752,19 @@ export default function Approvals() {
       {focusIncidentId && (
         <div className="flex items-center gap-2 flex-wrap rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
           <Filter className="h-3.5 w-3.5 text-primary" />
-          <span className="text-muted-foreground">Filtered to:</span>
+          <span className="text-muted-foreground">{t.filteredTo}</span>
           <Badge variant="outline" className="font-mono text-[10px] tracking-wider border-primary/40 text-primary">
             {focusRef}
           </Badge>
           <span className="text-foreground font-medium truncate max-w-[280px]">
-            {focusIncident?.title ?? focusIncidentId.slice(0, 8)}
+            {incTitle(focusIncident) || focusIncidentId.slice(0, 8)}
           </span>
           <Link
             to={`/incidents/${focusIncidentId}`}
-            state={{ from: `/approvals?incident=${focusIncidentId}`, fromLabel: "Media package" }}
+            state={{ from: `/approvals?incident=${focusIncidentId}`, fromLabel: t.mediaPackage }}
             className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
           >
-            view incident <ExternalLink className="h-3 w-3" />
+            {t.viewIncidentLower} <ExternalLink className="h-3 w-3" />
           </Link>
           <Button
             size="sm"
@@ -753,25 +772,25 @@ export default function Approvals() {
             className="h-6 px-2 ml-auto text-xs"
             onClick={clearIncidentFilter}
           >
-            <X className="h-3 w-3" /> Show all
+            <X className="h-3 w-3" /> {t.showAll}
           </Button>
         </div>
       )}
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
         <TabsList>
-          <TabsTrigger value="pending">Pending ({counts.pending})</TabsTrigger>
-          <TabsTrigger value="user_approved">Awaiting admin ({counts.user_approved})</TabsTrigger>
-          <TabsTrigger value="approved">Approved ({counts.approved})</TabsTrigger>
-          <TabsTrigger value="rejected">Rejected ({counts.rejected})</TabsTrigger>
+          <TabsTrigger value="pending">{t.tabPending(counts.pending)}</TabsTrigger>
+          <TabsTrigger value="user_approved">{t.tabAwaiting(counts.user_approved)}</TabsTrigger>
+          <TabsTrigger value="approved">{t.tabApproved(counts.approved)}</TabsTrigger>
+          <TabsTrigger value="rejected">{t.tabRejected(counts.rejected)}</TabsTrigger>
         </TabsList>
       </Tabs>
 
       {loading ? (
-        <div className="text-center py-10 text-muted-foreground">Loading…</div>
+        <div className="text-center py-10 text-muted-foreground">{common.loading}</div>
       ) : !filtered.length ? (
         <Card className="p-10 text-center text-sm text-muted-foreground">
-          No assets in this state. Approve an incident from SEVRA to generate a package.
+          {t.empty}
         </Card>
       ) : (
         <div className="space-y-8">
@@ -790,27 +809,27 @@ export default function Approvals() {
                   <Badge variant="outline" className="font-mono text-[10px] tracking-wider border-primary/40 text-primary">
                     PKG-{incidentId.slice(0, 8).toUpperCase()}
                   </Badge>
-                  <span className="text-[10px] text-muted-foreground">for</span>
+                  <span className="text-[10px] text-muted-foreground">{t.for}</span>
                   <Badge variant="outline" className="font-mono text-[10px] tracking-wider">
                     INC-{incidentId.slice(0, 8).toUpperCase()}
                   </Badge>
                   <h2 className="text-sm font-semibold text-foreground">
-                    {inc?.title ?? "Incident"}
+                    {incTitle(inc) || t.incident}
                   </h2>
                   {typeof inc?.crisis_level === "number" && CRISIS_LEVEL_META[inc.crisis_level] && (
                     <Badge className={`text-[10px] border-0 ${CRISIS_LEVEL_META[inc.crisis_level].className}`}>
-                      {CRISIS_LEVEL_META[inc.crisis_level].label}
+                      {common.level[inc.crisis_level]}
                     </Badge>
                   )}
                   {inc?.risk && (
-                    <Badge variant="outline" className="text-[10px] uppercase">{inc.risk}</Badge>
+                    <Badge variant="outline" className="text-[10px] uppercase">{common.risk[inc.risk] ?? inc.risk}</Badge>
                   )}
                   <Link
                     to={`/incidents/${incidentId}`}
-                    state={{ from: `/approvals?incident=${incidentId}`, fromLabel: "Media package" }}
+                    state={{ from: `/approvals?incident=${incidentId}`, fromLabel: t.mediaPackage }}
                     className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 ml-auto"
                   >
-                    View incident <ExternalLink className="h-3 w-3" />
+                    {t.viewIncident} <ExternalLink className="h-3 w-3" />
                   </Link>
                 </div>
                 {(() => {
@@ -819,18 +838,18 @@ export default function Approvals() {
                     (acc[k] ??= []).push(a);
                     return acc;
                   }, {});
-                  const firstWithItems = TAB_DEFS.find((t) => byTab[t.key]?.length)?.key ?? TAB_DEFS[0].key;
+                  const firstWithItems = TAB_DEFS.find((def) => byTab[def.key]?.length)?.key ?? TAB_DEFS[0].key;
                   return (
                     <Tabs defaultValue={firstWithItems} className="w-full">
                       <div className="-mx-1 overflow-x-auto sm:mx-0 sm:overflow-visible">
                         <TabsList className="flex w-max sm:w-full flex-nowrap sm:flex-wrap h-auto justify-start gap-1 bg-muted/40 px-1">
-                          {TAB_DEFS.map((t) => {
-                            const TIcon = t.icon;
-                            const count = byTab[t.key]?.length ?? 0;
+                          {TAB_DEFS.map((def) => {
+                            const TIcon = def.icon;
+                            const count = byTab[def.key]?.length ?? 0;
                             return (
-                              <TabsTrigger key={t.key} value={t.key} className="gap-1.5 shrink-0 data-[state=active]:bg-background">
+                              <TabsTrigger key={def.key} value={def.key} className="gap-1.5 shrink-0 data-[state=active]:bg-background">
                                 <TIcon className="h-3.5 w-3.5" />
-                                <span>{t.label}</span>
+                                <span>{t.tabs[def.key]}</span>
                                 <span className="text-[10px] text-muted-foreground">({count})</span>
                               </TabsTrigger>
                             );
@@ -838,15 +857,15 @@ export default function Approvals() {
                         </TabsList>
                       </div>
 
-                      {TAB_DEFS.map((t) => {
-                        const tabItems = byTab[t.key] ?? [];
+                      {TAB_DEFS.map((def) => {
+                        const tabItems = byTab[def.key] ?? [];
                         return (
-                          <TabsContent key={t.key} value={t.key} className="mt-3">
+                          <TabsContent key={def.key} value={def.key} className="mt-3">
                             {tabItems.length === 0 ? (
                               <Card className="p-6 text-center text-xs text-muted-foreground border-dashed">
-                                No {t.label.toLowerCase()} assets for this incident yet.
+                                {t.noneOfType(t.tabs[def.key])}
                               </Card>
-                            ) : t.key === "qna" ? (
+                            ) : def.key === "qna" ? (
                               <div className="space-y-4">
                                 {QNA_AUDIENCES.map((aud) => {
                                   const audItems = tabItems.filter((i) => i.asset_type === aud.type);
@@ -856,7 +875,7 @@ export default function Approvals() {
                                     <div key={aud.type} className="space-y-2">
                                       <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                         <AIcon className="h-3.5 w-3.5" />
-                                        <span>{aud.label}</span>
+                                        <span>{t.audiences[aud.type]}</span>
                                         <span className="text-muted-foreground/60 normal-case font-normal">({audItems.length})</span>
                                       </div>
                                       <div className="space-y-3">{audItems.map(renderAssetRow)}</div>
@@ -894,10 +913,10 @@ export default function Approvals() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-risk-low" /> Asset approved
+              <CheckCircle2 className="h-5 w-5 text-risk-low" /> {t.assetApproved}
             </DialogTitle>
             <DialogDescription>
-              How would you like to distribute <span className="font-medium text-foreground">{postApproveAsset?.title}</span>?
+              {t.howDistribute} <span className="font-medium text-foreground">{postApproveAsset?.title}</span>?
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2">
@@ -908,7 +927,7 @@ export default function Approvals() {
                   setPostApproveAsset(null);
                 }}
               >
-                <Mail className="h-4 w-4" /> Send by email
+                <Mail className="h-4 w-4" /> {t.sendByEmail}
               </Button>
             )}
             {postApproveAsset && isSocialAsset(postApproveAsset.asset_type) && (
@@ -918,7 +937,7 @@ export default function Approvals() {
                   setPostApproveAsset(null);
                 }}
               >
-                <Send className="h-4 w-4" /> Publish to {socialNetworkLabel(postApproveAsset.asset_type)}
+                <Send className="h-4 w-4" /> {t.publishTo(socialNetworkLabel(postApproveAsset.asset_type))}
               </Button>
             )}
             <Button
@@ -928,12 +947,12 @@ export default function Approvals() {
                 setPostApproveAsset(null);
               }}
             >
-              <MessageCircle className="h-4 w-4" /> Share on WhatsApp
+              <MessageCircle className="h-4 w-4" /> {t.shareWhatsApp}
             </Button>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setPostApproveAsset(null)}>
-              Skip for now
+              {t.skip}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -943,14 +962,14 @@ export default function Approvals() {
       <Dialog open={!!editAsset} onOpenChange={(v) => !v && setEditAsset(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Update asset</DialogTitle>
+            <DialogTitle>{t.updateAsset}</DialogTitle>
             <DialogDescription>
-              Edit the title and content. Saving creates a new version of this asset.
+              {t.updateIntro}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-asset-title">Title</Label>
+              <Label htmlFor="edit-asset-title">{t.title}</Label>
               <Input
                 id="edit-asset-title"
                 value={editTitle}
@@ -958,7 +977,7 @@ export default function Approvals() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-asset-content">Content</Label>
+              <Label htmlFor="edit-asset-content">{t.content}</Label>
               <Textarea
                 id="edit-asset-content"
                 value={editContent}
@@ -974,23 +993,22 @@ export default function Approvals() {
                   onCheckedChange={(v) => setEditResetToPending(v === true)}
                 />
                 <Label htmlFor="edit-reset-pending" className="text-xs font-normal leading-relaxed cursor-pointer">
-                  Send back to pending for re-approval before redeploying. Recommended when content changes
-                  meaningfully (e.g. updated facts in a press release).
+                  {t.resetToPending}
                 </Label>
               </div>
             )}
           </div>
           <DialogFooter className="gap-2 sm:gap-2">
             <Button variant="outline" onClick={() => setEditAsset(null)} disabled={savingEdit || savingNewVersion}>
-              Cancel
+              {common.cancel}
             </Button>
             <Button variant="outline" onClick={saveEdit} disabled={savingEdit || savingNewVersion}>
               {savingEdit ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-              Save changes
+              {t.saveChanges}
             </Button>
             <Button onClick={saveAsNewVersion} disabled={savingEdit || savingNewVersion}>
               {savingNewVersion ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-              Save as new version
+              {t.saveNewVersion}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, MessageSquareText, Send, Trash2, Lock, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { useLang, useMessages } from "@/i18n";
+import { commonMessages } from "@/i18n/messages/common";
+import { distributionMessages } from "@/i18n/messages/distribution";
 import { z } from "zod";
 
 type Comment = {
@@ -15,13 +18,14 @@ type Comment = {
   created_at: string;
 };
 
-const commentSchema = z.object({
-  body: z
-    .string()
-    .trim()
-    .nonempty({ message: "Comment cannot be empty" })
-    .max(2000, { message: "Comment must be under 2000 characters" }),
-});
+const commentSchema = (m: { commentEmpty: string; commentTooLong: string }) =>
+  z.object({
+    body: z
+      .string()
+      .trim()
+      .nonempty({ message: m.commentEmpty })
+      .max(2000, { message: m.commentTooLong }),
+  });
 
 export function AssetComments({
   assetId,
@@ -40,6 +44,8 @@ export function AssetComments({
   const [loading, setLoading] = useState(true);
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const t = useMessages(distributionMessages);
+  const { lang } = useLang();
 
   const load = async () => {
     setLoading(true);
@@ -70,7 +76,7 @@ export function AssetComments({
   }, [assetId]);
 
   const submit = async () => {
-    const parsed = commentSchema.safeParse({ body });
+    const parsed = commentSchema(t).safeParse({ body });
     if (!parsed.success) {
       return toast.error(parsed.error.issues[0].message);
     }
@@ -78,7 +84,7 @@ export function AssetComments({
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) {
       setSubmitting(false);
-      return toast.error("You must be signed in");
+      return toast.error(t.mustSignIn);
     }
     const { error } = await supabase.from("incident_asset_comments").insert({
       asset_id: assetId,
@@ -100,34 +106,34 @@ export function AssetComments({
     <div className="mt-4 rounded-md border border-accent/20 bg-accent/[0.04] p-3 space-y-3 border-l-4 border-l-accent/40">
       <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
         <MessageSquareText className="h-3.5 w-3.5" />
-        Admin comments
+        {t.adminComments}
         <span className="text-muted-foreground/60 normal-case font-normal tracking-normal">
           ({comments.length})
         </span>
       </div>
 
       {loading ? (
-        <div className="text-xs text-muted-foreground">Loading comments…</div>
+        <div className="text-xs text-muted-foreground">{t.loadingComments}</div>
       ) : comments.length === 0 ? (
-        <div className="text-xs text-muted-foreground italic">No comments yet.</div>
+        <div className="text-xs text-muted-foreground italic">{t.noComments}</div>
       ) : (
         <ul className="space-y-2">
           {comments.map((c) => (
             <li key={c.id} className="rounded-md border border-border bg-background p-2.5 text-sm">
               <div className="flex items-center justify-between gap-2 mb-1">
                 <span className="text-xs font-medium text-foreground truncate">
-                  {c.author_email ?? "Admin"}
+                  {c.author_email ?? t.admin}
                 </span>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] text-muted-foreground">
-                    {new Date(c.created_at).toLocaleString()}
+                    {new Date(c.created_at).toLocaleString(lang === "es" ? "es-ES" : "en-US")}
                   </span>
                   {isAdmin && (
                     <button
                       type="button"
                       onClick={() => remove(c.id)}
                       className="text-muted-foreground hover:text-risk-critical"
-                      aria-label="Delete comment"
+                      aria-label={t.deleteComment}
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
@@ -145,14 +151,14 @@ export function AssetComments({
           <Textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            placeholder="Leave a comment for the team…"
+            placeholder={t.commentPlaceholder}
             className="min-h-[70px] text-sm"
             maxLength={2000}
           />
           <div className="flex justify-end items-center gap-2 flex-wrap">
             <Button size="sm" variant="outline" onClick={submit} disabled={submitting || !body.trim()}>
               {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-              Post comment
+              {t.postComment}
             </Button>
             {canApprove && onReject && (
               <Button
@@ -161,12 +167,12 @@ export function AssetComments({
                 className="text-risk-critical hover:text-risk-critical hover:bg-risk-critical-bg"
                 onClick={onReject}
               >
-                <XCircle className="h-3.5 w-3.5" /> Reject
+                <XCircle className="h-3.5 w-3.5" /> {t.reject}
               </Button>
             )}
             {canApprove && onApprove && (
               <Button size="sm" onClick={onApprove}>
-                <CheckCircle2 className="h-3.5 w-3.5" /> Approve
+                <CheckCircle2 className="h-3.5 w-3.5" /> {t.approve}
               </Button>
             )}
           </div>
@@ -174,7 +180,7 @@ export function AssetComments({
       ) : (
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <Lock className="h-3 w-3" />
-          Only admins can post comments.
+          {t.onlyAdmins}
         </div>
       )}
     </div>

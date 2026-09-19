@@ -99,7 +99,7 @@ const DEFAULT_NAMED_LISTS: EmailList[] = [
   {
     id: "regulators",
     name: "Regulators & Authorities",
-    description: "Aviation authorities, government contacts",
+    description: "Regulators, government contacts",
     emails: [],
   },
   {
@@ -273,4 +273,24 @@ export function socialNetworkKey(assetType: string): "x" | "facebook" | null {
     default:
       return null;
   }
+}
+
+// The starter lists' Spanish names. A list someone has renamed keeps the name
+// they gave it; only an untouched default is shown translated.
+const DEFAULT_LIST_ES: Record<string, { name: string; description: string }> = {
+  exec: { name: "Equipo directivo", description: "Dirección y responsables de decisión en la crisis" },
+  press: { name: "Prensa y medios", description: "Periodistas, agencias de comunicación y medios" },
+  ops: { name: "Operaciones y primera línea", description: "Personal de operaciones y de atención al cliente" },
+  regulators: { name: "Reguladores y autoridades", description: "Reguladores y contactos gubernamentales" },
+  "internal-all": { name: "Toda la plantilla", description: "Distribución interna a toda la empresa" },
+};
+
+export function listDisplay(list: EmailList, lang: "en" | "es"): { name: string; description?: string } {
+  const def = DEFAULT_NAMED_LISTS.find((d) => d.id === list.id);
+  const es = DEFAULT_LIST_ES[list.id];
+  if (lang !== "es" || !def || !es) return { name: list.name, description: list.description };
+  return {
+    name: list.name === def.name ? es.name : list.name,
+    description: list.description === def.description || list.description === "Aviation authorities, government contacts" ? es.description : list.description,
+  };
 }

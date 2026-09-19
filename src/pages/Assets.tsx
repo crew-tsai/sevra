@@ -9,6 +9,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RiskBadge } from "@/components/RiskBadge";
 import { Button } from "@/components/ui/button";
+import { useMessages } from "@/i18n";
+import { useTranslations } from "@/i18n/useTranslations";
+import { commonMessages } from "@/i18n/messages/common";
+import { assetsMessages } from "@/i18n/messages/assets";
 
 
 const EXTERNAL_ASSET_TYPES = new Set(["press_release", "post_x", "post_instagram", "post_facebook", "tiktok_script"]);
@@ -27,6 +31,7 @@ type Asset = {
   content: string;
   approval_status: string;
   created_at: string;
+  language: string | null;
 };
 
 type Incident = {
@@ -35,6 +40,7 @@ type Incident = {
   risk: string;
   status: string;
   created_at: string;
+  translations: unknown;
 };
 
 const TYPE_ICON: Record<string, typeof FileText> = {
@@ -61,6 +67,8 @@ export default function Assets() {
   const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const t = useMessages(assetsMessages);
+  const common = useMessages(commonMessages);
 
   useEffect(() => {
     const load = async () => {
@@ -68,12 +76,12 @@ export default function Assets() {
       const [{ data: assetsData, error: aErr }, { data: incData, error: iErr }] = await Promise.all([
         supabase
           .from("incident_assets")
-          .select("id, incident_id, asset_type, channel, title, content, approval_status, created_at")
+          .select("id, incident_id, asset_type, channel, title, content, approval_status, created_at, language")
           .order("created_at", { ascending: false })
           .limit(500),
         supabase
           .from("incidents")
-          .select("id, title, risk, status, created_at")
+          .select("id, title, risk, status, created_at, translations")
           .order("created_at", { ascending: false })
           .limit(500),
       ]);
@@ -116,6 +124,9 @@ export default function Assets() {
     });
   }, [allAssets, incidents, timeRange, typeFilter]);
 
+  const tr = useTranslations("incidents", grouped.map(([id]) => incidents[id]));
+  const typeName = (k: string) => common.assetType[k] ?? k.replace(/_/g, " ");
+
   const toggle = (id: string) => {
     setOpenIds((prev) => {
       const next = new Set(prev);
@@ -133,8 +144,8 @@ export default function Assets() {
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Generated Statements</h1>
-          <p className="text-sm text-muted-foreground mt-1">AI-drafted communications grouped by incident</p>
+          <h1 className="text-xl font-semibold text-foreground">{t.title}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t.intro}</p>
         </div>
         <div className="flex items-center gap-2">
           {grouped.length > 0 && (
@@ -142,18 +153,18 @@ export default function Assets() {
               onClick={toggleAll}
               className="text-xs text-muted-foreground hover:text-foreground border border-border rounded-md px-3 py-1.5"
             >
-              {openIds.size === grouped.length ? "Collapse all" : "Expand all"}
+              {openIds.size === grouped.length ? t.collapseAll : t.expandAll}
             </button>
           )}
           <Select value={typeFilter} onValueChange={setTypeFilter}>
             <SelectTrigger className="h-8 w-[180px] text-xs">
-              <SelectValue placeholder="All types" />
+              <SelectValue placeholder={t.allTypes} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All types</SelectItem>
+              <SelectItem value="all">{t.allTypes}</SelectItem>
               {availableTypes.map((t) => (
-                <SelectItem key={t} value={t} className="capitalize">
-                  {t.replace(/_/g, " ")}
+                <SelectItem key={t} value={t}>
+                  {typeName(t)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -163,9 +174,9 @@ export default function Assets() {
       </div>
 
       {loading ? (
-        <div className="rounded-lg border border-border bg-card p-10 text-center text-sm text-muted-foreground">Loading…</div>
+        <div className="rounded-lg border border-border bg-card p-10 text-center text-sm text-muted-foreground">{common.loading}</div>
       ) : !grouped.length ? (
-        <div className="rounded-lg border border-border bg-card p-10 text-center text-sm text-muted-foreground">No assets in this range.</div>
+        <div className="rounded-lg border border-border bg-card p-10 text-center text-sm text-muted-foreground">{t.empty}</div>
       ) : (
         <div className="space-y-3">
           {grouped.map(([incidentId, assets]) => {
@@ -188,17 +199,17 @@ export default function Assets() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="text-sm font-semibold text-foreground truncate">
-                              {incident?.title ?? "Unknown incident"}
+                              {incident ? tr.text(incident, "title") : t.unknownIncident}
                             </h3>
                             {incident?.risk && <RiskBadge level={incident.risk as never} />}
                           </div>
                           <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                             <span className="font-mono">PKG-{incidentId.slice(0, 8).toUpperCase()}</span>
                             <span>•</span>
-                            <span>{assets.length} asset{assets.length === 1 ? "" : "s"}</span>
-                            {counts.pending && <><span>•</span><span className="text-risk-medium">{counts.pending} pending</span></>}
-                            {counts.approved && <><span>•</span><span className="text-risk-low">{counts.approved} approved</span></>}
-                            {counts.rejected && <><span>•</span><span className="text-risk-critical">{counts.rejected} rejected</span></>}
+                            <span>{t.assetCount(assets.length)}</span>
+                            {counts.pending && <><span>•</span><span className="text-risk-medium">{t.pendingCount(counts.pending)}</span></>}
+                            {counts.approved && <><span>•</span><span className="text-risk-low">{t.approvedCount(counts.approved)}</span></>}
+                            {counts.rejected && <><span>•</span><span className="text-risk-critical">{t.rejectedCount(counts.rejected)}</span></>}
                           </div>
                         </div>
                       </div>
@@ -207,7 +218,7 @@ export default function Assets() {
                         onClick={(e) => e.stopPropagation()}
                         className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 shrink-0"
                       >
-                        Incident <ExternalLink className="h-3 w-3" />
+                        {t.incident} <ExternalLink className="h-3 w-3" />
                       </Link>
                     </div>
                   </CollapsibleTrigger>
@@ -220,17 +231,22 @@ export default function Assets() {
                             <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
                               <div className="flex items-center gap-2 min-w-0">
                                 <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                                <span className="text-xs font-medium text-muted-foreground capitalize">{a.asset_type.replace(/_/g, " ")}</span>
+                                <span className="text-xs font-medium text-muted-foreground">{typeName(a.asset_type)}</span>
+                                {a.language && (
+                                  <span title={common.writtenIn[a.language]} className="rounded border border-border px-1 text-[10px] font-medium uppercase text-muted-foreground">
+                                    {a.language}
+                                  </span>
+                                )}
                               </div>
                               <div className="flex items-center gap-2">
-                                <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize", STATUS_STYLES[a.approval_status] ?? "bg-muted text-muted-foreground")}>
-                                  {a.approval_status}
+                                <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium", STATUS_STYLES[a.approval_status] ?? "bg-muted text-muted-foreground")}>
+                                  {common.approval[a.approval_status] ?? a.approval_status}
                                 </span>
                                 <Link
                                   to={`/approvals?incident=${a.incident_id}`}
                                   className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
                                 >
-                                  Open <ExternalLink className="h-3 w-3" />
+                                  {t.open} <ExternalLink className="h-3 w-3" />
                                 </Link>
                               </div>
                             </div>
@@ -243,7 +259,7 @@ export default function Assets() {
                                   variant="outline"
                                   onClick={() => shareOnWhatsApp(a.title, a.content)}
                                 >
-                                  <MessageCircle className="h-3.5 w-3.5" /> Share on WhatsApp
+                                  <MessageCircle className="h-3.5 w-3.5" /> {t.shareWhatsApp}
                                 </Button>
                               </div>
                             )}

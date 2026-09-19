@@ -13,18 +13,20 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  ASSET_TYPE_LABELS,
-  RACI_LABELS,
   RaciLevel,
   EmailList,
   getListFor,
   getRecommendedLists,
   isValidEmail,
+  listDisplay,
   loadDistributionLists,
   saveDistributionLists,
 } from "@/lib/distribution";
 import { Loader2, Mail, Plus, Send, Sparkles, Users, X } from "lucide-react";
 import { toast } from "sonner";
+import { useLang, useMessages } from "@/i18n";
+import { commonMessages } from "@/i18n/messages/common";
+import { distributionMessages } from "@/i18n/messages/distribution";
 
 const LEVEL_BADGE: Record<RaciLevel, string> = {
   responsible: "bg-primary/15 text-primary border-primary/30",
@@ -50,11 +52,11 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
   const [newEmail, setNewEmail] = useState("");
   const [persistToList, setPersistToList] = useState(false);
   const [sending, setSending] = useState(false);
+  const t = useMessages(distributionMessages);
+  const common = useMessages(commonMessages);
+  const { lang } = useLang();
 
-  const typeLabel = useMemo(
-    () => (asset ? ASSET_TYPE_LABELS[asset.asset_type] ?? asset.asset_type : ""),
-    [asset],
-  );
+  const typeLabel = asset ? common.assetType[asset.asset_type] ?? asset.asset_type : "";
 
   const recommended = useMemo(
     () => (asset ? getRecommendedLists(asset.asset_type) : []),
@@ -81,7 +83,7 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
 
   const addListEmails = (list: EmailList) => {
     if (!list.emails.length) {
-      toast.info(`"${list.name}" has no contacts yet`);
+      toast.info(t.noContacts(listDisplay(list, lang).name));
       return;
     }
     setRecipients((prev) => {
@@ -89,18 +91,18 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
       list.emails.forEach((e) => merged.add(e));
       return Array.from(merged);
     });
-    toast.success(`Added ${list.emails.length} from ${list.name}`);
+    toast.success(t.addedFrom(list.emails.length, listDisplay(list, lang).name));
   };
 
   const addEmail = () => {
     const trimmed = newEmail.trim().toLowerCase();
     if (!trimmed) return;
     if (!isValidEmail(trimmed)) {
-      toast.error("Invalid email address");
+      toast.error(t.invalidEmail);
       return;
     }
     if (recipients.includes(trimmed)) {
-      toast.info("Already in the list");
+      toast.info(t.alreadyListed);
       return;
     }
     setRecipients((r) => [...r, trimmed]);
@@ -113,7 +115,7 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
 
   const handleSend = async () => {
     if (!recipients.length) {
-      toast.error("Add at least one recipient");
+      toast.error(t.addRecipient);
       return;
     }
     setSending(true);
@@ -153,12 +155,12 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
 
     setSending(false);
     if (success && !failed) {
-      toast.success(`Email sent to ${success} recipient${success === 1 ? "" : "s"}`);
+      toast.success(t.sentTo(success));
       onOpenChange(false);
     } else if (success && failed) {
-      toast.warning(`Sent ${success}, failed ${failed}`);
+      toast.warning(t.partial(success, failed));
     } else {
-      toast.error("Failed to send email. Check recipients and try again.");
+      toast.error(t.sendFailed);
     }
   };
 
@@ -168,7 +170,7 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5 text-primary" />
-            Send {typeLabel.toLowerCase()}
+            {t.sendType(typeLabel)}
           </DialogTitle>
           <DialogDescription className="space-y-1">
             <span className="block">{asset.title}</span>
@@ -187,7 +189,7 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
             <div className="rounded-md border border-primary/20 bg-primary/5 p-3 space-y-2">
               <div className="flex items-center gap-2 text-xs font-medium text-primary">
                 <Sparkles className="h-3.5 w-3.5" />
-                Recommended lists for {typeLabel.toLowerCase()}
+                {t.recommendedFor(typeLabel)}
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {recommended.map(({ list, level }) => (
@@ -196,30 +198,30 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
                     type="button"
                     onClick={() => addListEmails(list)}
                     className={`group inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs hover:scale-[1.02] transition ${LEVEL_BADGE[level]}`}
-                    title={`Add ${list.emails.length} contacts from ${list.name}`}
+                    title={t.addFromList(list.emails.length, listDisplay(list, lang).name)}
                   >
                     <Users className="h-3 w-3" />
-                    <span className="font-medium">{list.name}</span>
+                    <span className="font-medium">{listDisplay(list, lang).name}</span>
                     <span className="opacity-70">({list.emails.length})</span>
                     <span className="ml-1 text-[9px] uppercase tracking-wider opacity-80">
-                      {RACI_LABELS[level]}
+                      {t.raci[level]}
                     </span>
                     <Plus className="h-3 w-3 opacity-60 group-hover:opacity-100" />
                   </button>
                 ))}
               </div>
               <p className="text-[10px] text-muted-foreground">
-                Based on your responsibility matrix. Edit lists & matrix in Admin.
+                {t.basedOnMatrix}
               </p>
             </div>
           )}
 
           <div>
-            <Label className="text-xs">Recipients</Label>
+            <Label className="text-xs">{t.recipients}</Label>
             <div className="flex flex-wrap gap-1.5 mt-2 min-h-[36px] p-2 rounded-md border bg-muted/30">
               {recipients.length === 0 ? (
                 <span className="text-xs text-muted-foreground self-center">
-                  No recipients yet — add emails below
+                  {t.noRecipients}
                 </span>
               ) : (
                 recipients.map((email) => (
@@ -229,7 +231,7 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
                       type="button"
                       onClick={() => removeEmail(email)}
                       className="hover:bg-muted-foreground/20 rounded-sm p-0.5"
-                      aria-label={`Remove ${email}`}
+                      aria-label={t.remove(email)}
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -242,7 +244,7 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
           <div className="flex gap-2">
             <Input
               type="email"
-              placeholder="add@email.com"
+              placeholder={t.emailPlaceholder}
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
               onKeyDown={(e) => {
@@ -254,7 +256,7 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
               className="text-sm"
             />
             <Button type="button" variant="outline" onClick={addEmail}>
-              <Plus className="h-4 w-4" /> Add
+              <Plus className="h-4 w-4" /> {t.add}
             </Button>
           </div>
 
@@ -265,13 +267,13 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
               onChange={(e) => setPersistToList(e.target.checked)}
               className="rounded border-border"
             />
-            Save these recipients as the default list for {typeLabel.toLowerCase()}
+            {t.saveAsDefault(typeLabel)}
           </label>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>
-            Cancel
+            {common.cancel}
           </Button>
           <Button onClick={handleSend} disabled={sending || !recipients.length}>
             {sending ? (
@@ -279,7 +281,7 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
             ) : (
               <Send className="h-4 w-4" />
             )}
-            Send to {recipients.length} recipient{recipients.length === 1 ? "" : "s"}
+            {t.sendTo(recipients.length)}
           </Button>
         </DialogFooter>
       </DialogContent>

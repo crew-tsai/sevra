@@ -7,6 +7,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowRight, History, LifeBuoy } from "lucide-react";
 import { CrisisLevelBadge } from "@/components/CrisisLevelBadge";
+import { useIntlLocale, useMessages } from "@/i18n";
+import { commonMessages } from "@/i18n/messages/common";
+import { auditMessages } from "@/i18n/messages/reports";
 
 type AuditEntry = {
   id: string;
@@ -25,20 +28,15 @@ type SupportAccess = {
   accessed_at: string;
 };
 
-const FIELD_LABEL: Record<string, string> = {
-  crisis_level: "Crisis level",
-  risk_score: "Risk score",
-  risk: "Risk label",
-};
-
 function ValueCell({ field, value }: { field: string; value: string | null }) {
+  const common = useMessages(commonMessages);
   if (value === null || value === "") return <span className="text-muted-foreground">—</span>;
   if (field === "crisis_level") {
     const n = Number(value);
     if (!Number.isNaN(n)) return <CrisisLevelBadge level={n} compact />;
   }
   if (field === "risk") {
-    return <Badge variant="outline" className="capitalize">{value}</Badge>;
+    return <Badge variant="outline">{common.risk[value] ?? value}</Badge>;
   }
   return <span className="font-mono text-sm">{value}</span>;
 }
@@ -48,6 +46,10 @@ export default function AuditLog() {
   const [loading, setLoading] = useState(true);
   const [fieldFilter, setFieldFilter] = useState<string>("all");
   const [supportAccess, setSupportAccess] = useState<SupportAccess[]>([]);
+  const t = useMessages(auditMessages);
+  const common = useMessages(commonMessages);
+  const intl = useIntlLocale();
+  const FIELD_LABEL: Record<string, string> = { crisis_level: t.crisisLevel, risk_score: t.riskScore, risk: t.riskLabel };
 
   useEffect(() => {
     (async () => {
@@ -80,21 +82,21 @@ export default function AuditLog() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-semibold">
-            <History className="h-6 w-6" /> Audit log
+            <History className="h-6 w-6" /> {t.title}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Changes to incident crisis levels and risk scores, with previous and new values.
+            {t.intro}
           </p>
         </div>
         <Select value={fieldFilter} onValueChange={setFieldFilter}>
           <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Filter field" />
+            <SelectValue placeholder={t.filterField} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All fields</SelectItem>
-            <SelectItem value="crisis_level">Crisis level</SelectItem>
-            <SelectItem value="risk_score">Risk score</SelectItem>
-            <SelectItem value="risk">Risk label</SelectItem>
+            <SelectItem value="all">{t.allFields}</SelectItem>
+            <SelectItem value="crisis_level">{t.crisisLevel}</SelectItem>
+            <SelectItem value="risk_score">{t.riskScore}</SelectItem>
+            <SelectItem value="risk">{t.riskLabel}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -102,32 +104,31 @@ export default function AuditLog() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
-            <LifeBuoy className="h-4 w-4 text-muted-foreground" /> Sevra support access
+            <LifeBuoy className="h-4 w-4 text-muted-foreground" /> {t.supportAccess}
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            When Sevra staff opened this workspace. Support accounts are listed under
-            Admin → Team &amp; roles, and these entries cannot be edited or deleted.
+            {t.supportIntro}
           </p>
         </CardHeader>
         <CardContent className="p-0">
           {supportAccess.length === 0 ? (
             <div className="px-6 pb-6 text-sm text-muted-foreground">
-              No Sevra staff have opened this workspace.
+              {t.noSupport}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>When</TableHead>
-                    <TableHead>Who</TableHead>
+                    <TableHead>{t.when}</TableHead>
+                    <TableHead>{t.who}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {supportAccess.map((s) => (
                     <TableRow key={s.id}>
                       <TableCell className="whitespace-nowrap text-sm">
-                        {new Date(s.accessed_at).toLocaleString()}
+                        {new Date(s.accessed_at).toLocaleString(intl)}
                       </TableCell>
                       <TableCell className="font-mono text-sm">
                         {s.user_email ?? "—"}
@@ -144,31 +145,31 @@ export default function AuditLog() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">
-            {loading ? "Loading…" : `${entries.length} change${entries.length === 1 ? "" : "s"}`}
+            {loading ? common.loading : t.changes(entries.length)}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {!loading && entries.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted-foreground">
-              No changes recorded yet. Future updates to crisis level or risk score will appear here.
+              {t.empty}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>When</TableHead>
-                    <TableHead>Incident</TableHead>
-                    <TableHead>Field</TableHead>
-                    <TableHead>Previous</TableHead>
-                    <TableHead>New</TableHead>
+                    <TableHead>{t.when}</TableHead>
+                    <TableHead>{t.incident}</TableHead>
+                    <TableHead>{t.field}</TableHead>
+                    <TableHead>{t.previous}</TableHead>
+                    <TableHead>{t.new}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {entries.map((e) => (
                     <TableRow key={e.id}>
                       <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                        {new Date(e.changed_at).toLocaleString()}
+                        {new Date(e.changed_at).toLocaleString(intl)}
                       </TableCell>
                       <TableCell className="max-w-[280px]">
                         <Link

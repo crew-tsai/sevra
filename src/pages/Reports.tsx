@@ -6,17 +6,20 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Line, LineChart, Pie, PieCh
 import { AlertTriangle, FileText, Radio, Activity } from "lucide-react";
 import { toast } from "sonner";
 import { TimeRangeFilter, DEFAULT_TIME_RANGE, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
+import { useIntlLocale, useLang, useMessages } from "@/i18n";
+import { commonMessages } from "@/i18n/messages/common";
+import { reportsMessages } from "@/i18n/messages/reports";
+import { INCIDENT_TYPES, typeLabel, type IncidentType } from "@/lib/industries";
 
 type Incident = { id: string; created_at: string; risk: string; status: string; source: string; incident_type: string };
 type Asset = { id: string; created_at: string; asset_type: string; approval_status: string };
 type Mention = { id: string; created_at: string; ai_risk: string | null };
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
 const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-const monthLabel = (key: string) => {
+const monthLabel = (key: string, locale: string) => {
   const [y, m] = key.split("-");
-  return `${MONTHS[Number(m) - 1]} ${y.slice(2)}`;
+  const name = new Date(Number(y), Number(m) - 1, 1).toLocaleString(locale, { month: "short" }).replace(".", "");
+  return `${name.charAt(0).toUpperCase()}${name.slice(1)} ${y.slice(2)}`;
 };
 
 const lastNMonths = (n: number) => {
@@ -42,6 +45,16 @@ export default function Reports() {
   const [allMentions, setAllMentions] = useState<Mention[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
+  const t = useMessages(reportsMessages);
+  const common = useMessages(commonMessages);
+  const { lang } = useLang();
+  const intl = useIntlLocale();
+  const [industry, setIndustry] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.from("company_settings").select("industry").maybeSingle().then(({ data }) => setIndustry(data?.industry ?? null));
+  }, []);
+  const typeName = (v: string) =>
+    (INCIDENT_TYPES as readonly string[]).includes(v) ? typeLabel(industry, v as IncidentType, lang) : v.replace(/_/g, " ");
 
   const incidents = useMemo(() => allIncidents.filter((i) => isInRange(i.created_at, timeRange)), [allIncidents, timeRange]);
   const assets = useMemo(() => allAssets.filter((a) => isInRange(a.created_at, timeRange)), [allAssets, timeRange]);
@@ -77,8 +90,8 @@ export default function Reports() {
         counts[k].total += 1;
       }
     });
-    return months.map((m) => ({ month: monthLabel(m), ...counts[m] }));
-  }, [incidents, months]);
+    return months.map((m) => ({ month: monthLabel(m, intl), ...counts[m] }));
+  }, [incidents, months, intl]);
 
   const assetsByMonth = useMemo(() => {
     const counts: Record<string, { approved: number; pending: number; rejected: number; total: number }> = {};
@@ -91,8 +104,8 @@ export default function Reports() {
         counts[k].total += 1;
       }
     });
-    return months.map((m) => ({ month: monthLabel(m), ...counts[m] }));
-  }, [assets, months]);
+    return months.map((m) => ({ month: monthLabel(m, intl), ...counts[m] }));
+  }, [assets, months, intl]);
 
   const mentionsByMonth = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -101,8 +114,8 @@ export default function Reports() {
       const k = monthKey(new Date(m.created_at));
       if (k in counts) counts[k] += 1;
     });
-    return months.map((m) => ({ month: monthLabel(m), mentions: counts[m] }));
-  }, [mentions, months]);
+    return months.map((m) => ({ month: monthLabel(m, intl), mentions: counts[m] }));
+  }, [mentions, months, intl]);
 
   const sourceBreakdown = useMemo(() => {
     const map: Record<string, number> = {};
@@ -137,28 +150,28 @@ export default function Reports() {
   ];
 
   const incidentChartConfig = {
-    critical: { label: "Critical", color: "hsl(var(--risk-critical))" },
-    high: { label: "High", color: "hsl(var(--risk-high))" },
-    medium: { label: "Medium", color: "hsl(var(--risk-medium))" },
-    low: { label: "Low", color: "hsl(var(--risk-low))" },
+    critical: { label: common.risk.critical, color: "hsl(var(--risk-critical))" },
+    high: { label: common.risk.high, color: "hsl(var(--risk-high))" },
+    medium: { label: common.risk.medium, color: "hsl(var(--risk-medium))" },
+    low: { label: common.risk.low, color: "hsl(var(--risk-low))" },
   };
 
   const assetChartConfig = {
-    approved: { label: "Approved", color: "hsl(var(--risk-low))" },
-    pending: { label: "Pending", color: "hsl(var(--risk-medium))" },
-    rejected: { label: "Rejected", color: "hsl(var(--risk-critical))" },
+    approved: { label: t.approved, color: "hsl(var(--risk-low))" },
+    pending: { label: t.pending, color: "hsl(var(--risk-medium))" },
+    rejected: { label: t.rejected, color: "hsl(var(--risk-critical))" },
   };
 
   const mentionChartConfig = {
-    mentions: { label: "Mentions", color: "hsl(var(--primary))" },
+    mentions: { label: t.mentions, color: "hsl(var(--primary))" },
   };
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Reports</h1>
-          <p className="text-sm text-muted-foreground mt-1">Trends across incidents, assets and social intelligence</p>
+          <h1 className="text-xl font-semibold text-foreground">{t.title}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t.intro}</p>
         </div>
         <TimeRangeFilter value={timeRange} onChange={setTimeRange} />
       </div>
@@ -166,10 +179,10 @@ export default function Reports() {
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Total incidents", value: totals.incidents, icon: AlertTriangle, color: "text-risk-high" },
-          { label: "Active now", value: totals.activeIncidents, icon: Activity, color: "text-risk-critical" },
-          { label: "Assets generated", value: totals.assets, icon: FileText, color: "text-primary" },
-          { label: "Social mentions", value: totals.mentions, icon: Radio, color: "text-primary" },
+          { label: t.totalIncidents, value: totals.incidents, icon: AlertTriangle, color: "text-risk-high" },
+          { label: t.activeNow, value: totals.activeIncidents, icon: Activity, color: "text-risk-critical" },
+          { label: t.assetsGenerated, value: totals.assets, icon: FileText, color: "text-primary" },
+          { label: t.socialMentions, value: totals.mentions, icon: Radio, color: "text-primary" },
         ].map((s) => (
           <div key={s.label} className="rounded-lg border border-border bg-card p-4">
             <div className="flex items-center gap-2 mb-2">
@@ -184,8 +197,8 @@ export default function Reports() {
       {/* Incidents by month */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Incidents created per month</CardTitle>
-          <CardDescription>Stacked by risk level</CardDescription>
+          <CardTitle className="text-base">{t.incidentsPerMonth}</CardTitle>
+          <CardDescription>{t.byRisk}</CardDescription>
         </CardHeader>
         <CardContent>
           <ChartContainer config={incidentChartConfig} className="h-64 w-full">
@@ -207,8 +220,8 @@ export default function Reports() {
       {/* Assets by month */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Assets generated per month</CardTitle>
-          <CardDescription>Stacked by approval status</CardDescription>
+          <CardTitle className="text-base">{t.assetsPerMonth}</CardTitle>
+          <CardDescription>{t.byApproval}</CardDescription>
         </CardHeader>
         <CardContent>
           <ChartContainer config={assetChartConfig} className="h-64 w-full">
@@ -230,8 +243,8 @@ export default function Reports() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Social mentions per month</CardTitle>
-            <CardDescription>Volume from continuous monitoring</CardDescription>
+            <CardTitle className="text-base">{t.mentionsPerMonth}</CardTitle>
+            <CardDescription>{t.monitoringVolume}</CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer config={mentionChartConfig} className="h-56 w-full">
@@ -248,8 +261,8 @@ export default function Reports() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Incidents by source</CardTitle>
-            <CardDescription>All-time distribution</CardDescription>
+            <CardTitle className="text-base">{t.bySource}</CardTitle>
+            <CardDescription>{t.allTime}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-56 w-full">
@@ -267,7 +280,7 @@ export default function Reports() {
               {sourceBreakdown.map((s, i) => (
                 <div key={s.name} className="flex items-center gap-2 text-muted-foreground">
                   <span className="h-2 w-2 rounded-full" style={{ background: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }} />
-                  <span className="truncate">{s.name.replace(/_/g, " ")}</span>
+                  <span className="truncate">{common.source[s.name] ?? s.name.replace(/_/g, " ")}</span>
                   <span className="ml-auto text-foreground font-medium">{s.value}</span>
                 </div>
               ))}
@@ -279,26 +292,26 @@ export default function Reports() {
       {/* Top incident types */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Top incident types</CardTitle>
-          <CardDescription>Distribution by category</CardDescription>
+          <CardTitle className="text-base">{t.topTypes}</CardTitle>
+          <CardDescription>{t.byCategory}</CardDescription>
         </CardHeader>
         <CardContent>
           {!typeBreakdown.length ? (
-            <p className="text-sm text-muted-foreground">No data yet.</p>
+            <p className="text-sm text-muted-foreground">{t.noData}</p>
           ) : (
             <div className="space-y-2">
-              {typeBreakdown.slice(0, 8).map((t, i) => {
+              {typeBreakdown.slice(0, 8).map((row, i) => {
                 const max = typeBreakdown[0].count;
-                const pct = (t.count / max) * 100;
+                const pct = (row.count / max) * 100;
                 const color = CATEGORY_COLORS[i % CATEGORY_COLORS.length];
                 return (
-                  <div key={t.type} className="space-y-1">
+                  <div key={row.type} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
                         <span className="h-2 w-2 rounded-full" style={{ background: color }} />
-                        <span className="capitalize text-foreground">{t.type}</span>
+                        <span className="text-foreground">{typeName(row.type)}</span>
                       </div>
-                      <span className="text-muted-foreground">{t.count}</span>
+                      <span className="text-muted-foreground">{row.count}</span>
                     </div>
                     <div className="h-2 rounded-full bg-muted overflow-hidden">
                       <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />

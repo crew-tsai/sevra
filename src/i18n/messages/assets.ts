@@ -1,0 +1,36 @@
+import { defineMessages } from "@/i18n";
+
+export const assetsMessages = defineMessages({
+  en: {
+    title: "Generated Statements",
+    intro: "AI-drafted communications grouped by incident",
+    collapseAll: "Collapse all",
+    expandAll: "Expand all",
+    allTypes: "All types",
+    empty: "No assets in this range.",
+    unknownIncident: "Unknown incident",
+    assetCount: (n: number) => `${n} asset${n === 1 ? "" : "s"}`,
+    pendingCount: (n: number) => `${n} pending`,
+    approvedCount: (n: number) => `${n} approved`,
+    rejectedCount: (n: number) => `${n} rejected`,
+    incident: "Incident",
+    open: "Open",
+    shareWhatsApp: "Share on WhatsApp",
+  },
+  es: {
+    title: "Comunicados generados",
+    intro: "Comunicaciones redactadas por IA, agrupadas por incidente",
+    collapseAll: "Contraer todo",
+    expandAll: "Desplegar todo",
+    allTypes: "Todos los tipos",
+    empty: "No hay contenidos en este periodo.",
+    unknownIncident: "Incidente desconocido",
+    assetCount: (n: number) => `${n} contenido${n === 1 ? "" : "s"}`,
+    pendingCount: (n: number) => `${n} pendiente${n === 1 ? "" : "s"}`,
+    approvedCount: (n: number) => `${n} aprobado${n === 1 ? "" : "s"}`,
+    rejectedCount: (n: number) => `${n} rechazado${n === 1 ? "" : "s"}`,
+    incident: "Incidente",
+    open: "Abrir",
+    shareWhatsApp: "Compartir por WhatsApp",
+  },
+});
