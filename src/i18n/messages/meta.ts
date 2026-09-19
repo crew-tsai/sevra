@@ -8,6 +8,9 @@ export const metaMessages = defineMessages<{ routes: Record<string, Meta>; fallb
     routes: {
       "/": { title: "Sevra — AI-powered crisis management for modern brands", description: "Sevra helps enterprises detect, decide, and respond to reputation crises in real time with AI-driven social monitoring and playbooks." },
       "/product": { title: "Product — Sevra Crisis Navigator", description: "Explore Sevra's crisis intelligence modules: social monitoring, strategy, asset generation, approvals, and reporting." },
+      "/privacy": { title: "Privacy Policy — Sevra", description: "How Sevra, a service of The Stellar Crew LLC, handles information." },
+      "/terms": { title: "Terms of Service — Sevra", description: "The terms that govern the use of Sevra." },
+      "/data-deletion": { title: "Data Deletion — Sevra", description: "How to have data held by Sevra deleted." },
       "/about": { title: "About Sevra — The team behind crisis-ready brands", description: "Meet the team building Sevra, the AI crisis navigator trusted by communications and risk leaders." },
       "/login": { title: "Log in — Sevra", description: "Sign in to your Sevra crisis management workspace." },
       "/signin": { title: "Sign in — Sevra", description: "Find your company's Sevra workspace." },
@@ -31,6 +34,9 @@ export const metaMessages = defineMessages<{ routes: Record<string, Meta>; fallb
     routes: {
       "/": { title: "Sevra — Gestión de crisis con IA para marcas modernas", description: "Sevra ayuda a las empresas a detectar, decidir y responder a crisis de reputación en tiempo real con monitorización social y protocolos impulsados por IA." },
       "/product": { title: "Producto — Sevra Crisis Navigator", description: "Descubre los módulos de inteligencia de crisis de Sevra: monitorización social, estrategia, generación de contenidos, aprobaciones e informes." },
+      "/privacy": { title: "Política de privacidad — Sevra", description: "Cómo trata la información Sevra, un servicio de The Stellar Crew LLC." },
+      "/terms": { title: "Términos del servicio — Sevra", description: "Los términos que regulan el uso de Sevra." },
+      "/data-deletion": { title: "Eliminación de datos — Sevra", description: "Cómo pedir que se eliminen los datos que guarda Sevra." },
       "/about": { title: "Sobre Sevra — El equipo detrás de las marcas preparadas para la crisis", description: "Conoce al equipo que construye Sevra, el navegador de crisis con IA en el que confían los responsables de comunicación y riesgos." },
       "/login": { title: "Iniciar sesión — Sevra", description: "Inicia sesión en tu espacio de trabajo de gestión de crisis de Sevra." },
       "/signin": { title: "Iniciar sesión — Sevra", description: "Encuentra el espacio de trabajo de Sevra de tu empresa." },

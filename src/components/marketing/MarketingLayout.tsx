@@ -6,6 +6,7 @@ import sevraLogo from "@/assets/sevra-logo-dark.png";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { useMessages } from "@/i18n";
 import { marketingLayoutMessages } from "@/i18n/messages/marketing-layout";
+import { legalMessages } from "@/i18n/messages/legal";
 
 const NAV: ReadonlyArray<{ to: string; key: "home" | "ourProduct" | "aboutUs"; end?: boolean }> = [
   { to: "/", key: "home", end: true },
@@ -17,6 +18,7 @@ export default function MarketingLayout() {
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const m = useMessages(marketingLayoutMessages);
+  const legal = useMessages(legalMessages);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -113,10 +115,13 @@ export default function MarketingLayout() {
               </a>
             </span>
           </div>
-          <div className="flex items-center gap-6 text-sm text-muted-foreground">
+          <div className="flex items-center gap-x-6 gap-y-2 flex-wrap justify-center text-sm text-muted-foreground">
             <Link to="/product" className="hover:text-foreground">{m.product}</Link>
             <Link to="/about" className="hover:text-foreground">{m.about}</Link>
             <Link to={signInPath()} className="hover:text-foreground">{m.logIn}</Link>
+            <Link to="/privacy" className="hover:text-foreground">{legal.footerPrivacy}</Link>
+            <Link to="/terms" className="hover:text-foreground">{legal.footerTerms}</Link>
+            <Link to="/data-deletion" className="hover:text-foreground">{legal.footerDeletion}</Link>
           </div>
         </div>
       </footer>

@@ -29,6 +29,7 @@ import MarketingLayout from "@/components/marketing/MarketingLayout";
 import Home from "@/pages/marketing/Home";
 import Product from "@/pages/marketing/Product";
 import About from "@/pages/marketing/About";
+import LegalPage from "@/pages/legal/LegalPage";
 
 
 const queryClient = new QueryClient();
@@ -53,6 +54,9 @@ const App = () => (
             <Route path="/product" element={<Product />} />
             
             <Route path="/about" element={<About />} />
+            <Route path="/privacy" element={<LegalPage doc="privacy" />} />
+            <Route path="/terms" element={<LegalPage doc="terms" />} />
+            <Route path="/data-deletion" element={<LegalPage doc="deletion" />} />
           </Route>
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route path="/welcome" element={<Welcome />} />
