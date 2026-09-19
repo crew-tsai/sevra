@@ -16,7 +16,7 @@ import type { TemplateEntry } from './registry.ts'
 // communication to their own people; signing it "The Sevra team" or calling
 // Sevra "our platform" misattributes it at the moment attribution matters most.
 // Falls back only when the workspace has no company name set.
-const DEFAULT_ORG = 'Communications'
+const DEFAULT_ORG = { en: 'Communications', es: 'Comunicación' }
 
 interface CrisisCommunicationProps {
   assetTitle?: string
@@ -27,18 +27,50 @@ interface CrisisCommunicationProps {
   recipientName?: string
   senderName?: string
   companyName?: string
+  /** The language the communication itself is written in; the wrapper matches it. */
+  lang?: 'en' | 'es'
 }
 
-const ASSET_TYPE_LABELS: Record<string, string> = {
-  press_release: 'Press release',
-  holding_statement: 'Holding statement',
-  internal_memo: 'Internal memo',
-  faq: 'FAQ',
-  social_post: 'Social post',
+const ASSET_TYPE_LABELS: Record<'en' | 'es', Record<string, string>> = {
+  en: {
+    press_release: 'Press release',
+    holding_statement: 'Holding statement',
+    internal_memo: 'Internal memo',
+    customer_faq: 'Customer FAQ',
+    faq: 'FAQ',
+    social_post: 'Social post',
+  },
+  es: {
+    press_release: 'Nota de prensa',
+    holding_statement: 'Comunicado de espera',
+    internal_memo: 'Nota interna',
+    customer_faq: 'Preguntas frecuentes',
+    faq: 'Preguntas frecuentes',
+    social_post: 'Publicación en redes',
+  },
 }
+
+const WORDS = {
+  en: {
+    hi: (name?: string) => (name ? `Hi ${name},` : 'Hi,'),
+    team: (org: string) => `— The ${org} team`,
+    confidential: 'Please treat this content as confidential until publicly released.',
+    fallbackTitle: 'Crisis communication',
+    fallbackType: 'Update',
+  },
+  es: {
+    hi: (name?: string) => (name ? `Hola, ${name}:` : 'Hola:'),
+    team: (org: string) => `— El equipo de ${org}`,
+    confidential: 'Trata este contenido como confidencial hasta que se haga público.',
+    fallbackTitle: 'Comunicación de crisis',
+    fallbackType: 'Actualización',
+  },
+}
+
+const pickLang = (l: unknown): 'en' | 'es' => (l === 'es' ? 'es' : 'en')
 
 const CrisisCommunicationEmail = ({
-  assetTitle = 'Crisis communication',
+  assetTitle,
   assetType = 'communication',
   assetContent = '',
   incidentRef,
@@ -46,21 +78,25 @@ const CrisisCommunicationEmail = ({
   recipientName,
   senderName,
   companyName,
+  lang,
 }: CrisisCommunicationProps) => {
-  const typeLabel = ASSET_TYPE_LABELS[assetType] || assetType
-  const greeting = recipientName ? `Hi ${recipientName},` : 'Hi,'
+  const l = pickLang(lang)
+  const w = WORDS[l]
+  const title = assetTitle || w.fallbackTitle
+  const typeLabel = ASSET_TYPE_LABELS[l][assetType] || assetType
+  const greeting = w.hi(recipientName)
 
   return (
-    <Html lang="en" dir="ltr">
+    <Html lang={l} dir="ltr">
       <Head />
-      <Preview>{assetTitle}</Preview>
+      <Preview>{title}</Preview>
       <Body style={main}>
         <Container style={container}>
           <Section style={badge}>
             <Text style={badgeText}>{typeLabel.toUpperCase()}</Text>
           </Section>
 
-          <Heading style={h1}>{assetTitle}</Heading>
+          <Heading style={h1}>{title}</Heading>
 
           {(incidentRef || packageRef) && (
             <Text style={refLine}>
@@ -91,11 +127,11 @@ const CrisisCommunicationEmail = ({
           <Hr style={hr} />
 
           <Text style={signoff}>
-            {senderName ? `— ${senderName}` : `— The ${companyName || DEFAULT_ORG} team`}
+            {senderName ? `— ${senderName}` : w.team(companyName || DEFAULT_ORG[l])}
           </Text>
 
           <Text style={footer}>
-            Please treat this content as confidential until publicly released.
+            {w.confidential}
           </Text>
         </Container>
       </Body>
@@ -106,9 +142,10 @@ const CrisisCommunicationEmail = ({
 export const template = {
   component: CrisisCommunicationEmail,
   subject: (data: Record<string, any>) => {
+    const l = pickLang(data?.lang)
     const typeLabel =
-      ASSET_TYPE_LABELS[data?.assetType] || data?.assetType || 'Update'
-    return `[${typeLabel}] ${data?.assetTitle || 'Crisis communication'}`
+      ASSET_TYPE_LABELS[l][data?.assetType] || data?.assetType || WORDS[l].fallbackType
+    return `[${typeLabel}] ${data?.assetTitle || WORDS[l].fallbackTitle}`
   },
   displayName: 'Crisis communication',
   previewData: {

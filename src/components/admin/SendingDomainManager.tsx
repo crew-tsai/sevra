@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Copy, RefreshCw, CheckCircle2, Globe } from "lucide-react";
+import { useMessages } from "@/i18n";
+import { sendingDomainMessages } from "@/i18n/messages/admin-panels";
 
 type DnsRecord = {
   record?: string;
@@ -26,6 +28,7 @@ export default function SendingDomainManager() {
   const [records, setRecords] = useState<DnsRecord[]>([]);
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(false);
+  const t = useMessages(sendingDomainMessages);
 
   useEffect(() => {
     void (async () => {
@@ -47,7 +50,7 @@ export default function SendingDomainManager() {
     });
     if (error || !data?.success) {
       toast({
-        title: action === "add" ? "Couldn't set up that domain" : "Couldn't check the domain",
+        title: action === "add" ? t.setupFailed : t.checkFailed,
         description: data?.error ?? error?.message,
         variant: "destructive",
       });
@@ -64,7 +67,7 @@ export default function SendingDomainManager() {
     setSaved(data.domain);
     setStatus("pending");
     setRecords(data.records ?? []);
-    toast({ title: "Domain added", description: "Add the DNS records below, then check again." });
+    toast({ title: t.added, description: t.addedDetail });
   };
 
   const check = async () => {
@@ -74,12 +77,12 @@ export default function SendingDomainManager() {
     if (!data) return;
     if (data.status === "verified") {
       setStatus("verified");
-      toast({ title: "Domain verified", description: `Email now sends from ${saved}.` });
+      toast({ title: t.verified, description: t.verifiedDetail(saved ?? "") });
     } else {
       setRecords(data.records ?? records);
       toast({
-        title: "Not verified yet",
-        description: "DNS changes can take a while to propagate. Try again in a few minutes.",
+        title: t.notYet,
+        description: t.notYetDetail,
       });
     }
   };
@@ -89,42 +92,36 @@ export default function SendingDomainManager() {
       <CardHeader>
         <div className="flex items-center gap-2">
           <Globe className="h-5 w-5 text-primary" />
-          <CardTitle>Sending domain</CardTitle>
+          <CardTitle>{t.title}</CardTitle>
           {status === "verified" && (
-            <Badge className="ml-1 text-[10px]">Verified</Badge>
+            <Badge className="ml-1 text-[10px]">{t.verifiedBadge}</Badge>
           )}
           {status === "pending" && (
-            <Badge variant="outline" className="ml-1 text-[10px]">Pending DNS</Badge>
+            <Badge variant="outline" className="ml-1 text-[10px]">{t.pendingBadge}</Badge>
           )}
         </div>
         <CardDescription>
-          Optional. Your emails already arrive under your company's name, so there is nothing
-          you need to do here to start sending. Adding your own domain changes the address
-          they come from as well, which is worth doing before a large send to journalists or
-          regulators — recipients who check the sending domain will see yours rather than
-          Sevra's.
+          {t.intro}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid sm:grid-cols-[1fr_auto] gap-2 items-end">
           <div className="space-y-2">
-            <Label>Subdomain to send from</Label>
+            <Label>{t.subdomain}</Label>
             <Input
               value={domain}
               onChange={(e) => setDomain(e.target.value)}
-              placeholder="notify.yourcompany.com"
+              placeholder={t.subdomainPlaceholder}
               disabled={status === "verified"}
             />
             <p className="text-xs text-muted-foreground">
-              Use a subdomain like <code>notify.</code> or <code>mail.</code> — not your main
-              domain. Your main domain carries your company's own email, and this must not
-              touch it.
+              {t.subdomainHintBefore} <code>notify.</code> {t.subdomainHintOr} <code>mail.</code> {t.subdomainHintAfter}
             </p>
           </div>
           {status !== "verified" && (
             <Button onClick={start} disabled={busy || !domain.trim()}>
               {busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {saved ? "Update" : "Set up"}
+              {saved ? t.update : t.setUp}
             </Button>
           )}
         </div>
@@ -133,7 +130,7 @@ export default function SendingDomainManager() {
           <div className="flex items-center gap-2 rounded-md border p-3 bg-muted/30 text-sm">
             <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
             <span>
-              Verified. Email sends from <strong>noreply@{saved}</strong>.
+              {t.verifiedSends} <strong>noreply@{saved}</strong>.
             </span>
           </div>
         )}
@@ -141,19 +138,19 @@ export default function SendingDomainManager() {
         {status === "pending" && records.length > 0 && (
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-medium">Add these records at your DNS provider</p>
+              <p className="text-sm font-medium">{t.addRecords}</p>
               <Button variant="outline" size="sm" onClick={check} disabled={checking}>
                 {checking ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-2" />}
-                Check again
+                {t.checkAgain}
               </Button>
             </div>
             <div className="overflow-x-auto rounded-md border">
               <table className="w-full text-xs">
                 <thead className="bg-muted/40">
                   <tr>
-                    <th className="text-left p-2 font-medium">Type</th>
-                    <th className="text-left p-2 font-medium">Name</th>
-                    <th className="text-left p-2 font-medium">Value</th>
+                    <th className="text-left p-2 font-medium">{t.type}</th>
+                    <th className="text-left p-2 font-medium">{t.name}</th>
+                    <th className="text-left p-2 font-medium">{t.value}</th>
                     <th className="p-2" />
                   </tr>
                 </thead>
@@ -168,9 +165,10 @@ export default function SendingDomainManager() {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6"
+                          aria-label={t.copyValue}
                           onClick={() => {
                             void navigator.clipboard.writeText(r.value ?? "");
-                            toast({ title: "Value copied" });
+                            toast({ title: t.valueCopied });
                           }}
                         >
                           <Copy className="h-3 w-3" />
@@ -182,8 +180,7 @@ export default function SendingDomainManager() {
               </table>
             </div>
             <p className="text-xs text-muted-foreground">
-              DNS can take anywhere from a few minutes to a few hours. Until it verifies, email
-              keeps going out from Sevra's domain, so nothing stops working while you wait.
+              {t.dnsWait}
             </p>
           </div>
         )}

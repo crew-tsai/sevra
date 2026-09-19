@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import sevraLogo from "@/assets/sevra-logo.png";
 import { LanguageToggle } from "@/components/LanguageToggle";
-import { useMessages } from "@/i18n";
+import { useLang, useMessages } from "@/i18n";
 import { authMessages } from "@/i18n/messages/auth";
 import { shellMessages } from "@/i18n/messages/shell";
 import {
@@ -25,6 +25,7 @@ import {
  */
 export default function SignIn() {
   const m = useMessages(authMessages);
+  const { lang } = useLang();
   const shell = useMessages(shellMessages);
   const [remembered, setRemembered] = useState<RememberedWorkspace[]>(() => rememberedWorkspaces());
   const [useOther, setUseOther] = useState(false);
@@ -40,7 +41,7 @@ export default function SignIn() {
       const res = await fetch(`${CONTROL_PLANE_URL}/functions/v1/workspace-lookup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: email.trim(), lang }),
       });
       if (!res.ok) {
         throw new Error(res.status === 429 ? m.tooManyAttempts : res.status === 400 ? m.invalidEmail : m.somethingWrong);

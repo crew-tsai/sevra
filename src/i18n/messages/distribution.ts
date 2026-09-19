@@ -61,6 +61,30 @@ export const distributionMessages = defineMessages({
     add: "Add",
     saveAsDefault: (type: string) => `Save these recipients as the default list for ${type.toLowerCase()}`,
     sendTo: (n: number) => `Send to ${n} recipient${n === 1 ? "" : "s"}`,
+
+    // Email lists (Admin)
+    nameRequired: "Name required",
+    createList: "Create a new list",
+    createListIntro:
+      "Group contacts by audience — Executive Team, Press, Operations, Regulators… Lists are used to build the responsibility matrix and to recommend recipients when deploying a crisis email.",
+    listName: "List name",
+    listNamePlaceholder: "e.g. Crisis Committee",
+    description: "Description",
+    descriptionPlaceholder: "What is this group used for?",
+    createListButton: "Create list",
+    deleteList: (name: string) => `Delete ${name}`,
+    noContactsYet: "No contacts yet",
+    contacts: (n: number) => `${n} contact${n === 1 ? "" : "s"}`,
+
+    // Responsibility matrix (Admin)
+    saved: "Saved",
+    matrixUpdated: "Responsibility matrix updated.",
+    needList: "Create at least one email list first to build the matrix.",
+    matrixTitle: "Responsibility matrix (RACI)",
+    matrixIntroBefore: "For each crisis comms type, mark which lists are",
+    matrixIntroAnd: "and",
+    matrixIntroAfter: ". These choices drive the recommended recipients shown when deploying an email.",
+    saveMatrix: "Save matrix",
   },
   es: {
     raci: { responsible: "Responsable", accountable: "Aprobador", consulted: "Consultado", informed: "Informado" } as Record<string, string>,
@@ -119,5 +143,27 @@ export const distributionMessages = defineMessages({
     add: "Añadir",
     saveAsDefault: (type: string) => `Guardar estos destinatarios como lista predeterminada para ${type.toLowerCase()}`,
     sendTo: (n: number) => `Enviar a ${n} destinatario${n === 1 ? "" : "s"}`,
+
+    nameRequired: "El nombre es obligatorio",
+    createList: "Crear una lista nueva",
+    createListIntro:
+      "Agrupa los contactos por audiencia — Dirección, Prensa, Operaciones, Reguladores… Las listas sirven para construir la matriz de responsabilidades y para recomendar destinatarios al enviar un correo de crisis.",
+    listName: "Nombre de la lista",
+    listNamePlaceholder: "p. ej. Comité de crisis",
+    description: "Descripción",
+    descriptionPlaceholder: "¿Para qué se usa este grupo?",
+    createListButton: "Crear lista",
+    deleteList: (name: string) => `Eliminar ${name}`,
+    noContactsYet: "Aún no hay contactos",
+    contacts: (n: number) => `${n} contacto${n === 1 ? "" : "s"}`,
+
+    saved: "Guardado",
+    matrixUpdated: "Matriz de responsabilidades actualizada.",
+    needList: "Crea primero al menos una lista de correo para construir la matriz.",
+    matrixTitle: "Matriz de responsabilidades (RACI)",
+    matrixIntroBefore: "Para cada tipo de comunicación de crisis, marca qué listas son",
+    matrixIntroAnd: "e",
+    matrixIntroAfter: ". Estas elecciones determinan los destinatarios recomendados al enviar un correo.",
+    saveMatrix: "Guardar matriz",
   },
 });

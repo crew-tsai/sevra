@@ -4,18 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import {
-  ASSET_TYPE_LABELS,
   EMAIL_ASSET_TYPES,
   EmailList,
-  RACI_DESCRIPTIONS,
-  RACI_LABELS,
   RaciLevel,
+  listDisplay,
   ResponsibilityMatrix,
   loadEmailLists,
   loadResponsibilityMatrix,
   saveResponsibilityMatrix,
 } from "@/lib/distribution";
 import { Save } from "lucide-react";
+import { useLang, useMessages } from "@/i18n";
+import { commonMessages } from "@/i18n/messages/common";
+import { distributionMessages } from "@/i18n/messages/distribution";
 
 const LEVELS: RaciLevel[] = ["responsible", "accountable", "consulted", "informed"];
 
@@ -29,6 +30,9 @@ const LEVEL_COLORS: Record<RaciLevel, string> = {
 export default function ResponsibilityMatrixEditor() {
   const [lists, setLists] = useState<EmailList[]>([]);
   const [matrix, setMatrix] = useState<ResponsibilityMatrix>({});
+  const t = useMessages(distributionMessages);
+  const common = useMessages(commonMessages);
+  const { lang } = useLang();
 
   useEffect(() => {
     setLists(loadEmailLists());
@@ -55,14 +59,14 @@ export default function ResponsibilityMatrixEditor() {
 
   function save() {
     saveResponsibilityMatrix(matrix);
-    toast({ title: "Saved", description: "Responsibility matrix updated." });
+    toast({ title: t.saved, description: t.matrixUpdated });
   }
 
   if (lists.length === 0) {
     return (
       <Card>
         <CardContent className="py-8 text-center text-sm text-muted-foreground">
-          Create at least one email list first to build the matrix.
+          {t.needList}
         </CardContent>
       </Card>
     );
@@ -72,14 +76,13 @@ export default function ResponsibilityMatrixEditor() {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Responsibility matrix (RACI)</CardTitle>
+          <CardTitle>{t.matrixTitle}</CardTitle>
           <CardDescription>
-            For each crisis comms type, mark which lists are
-            <strong className="text-foreground"> Responsible</strong>,
-            <strong className="text-foreground"> Accountable</strong>,
-            <strong className="text-foreground"> Consulted</strong>, and
-            <strong className="text-foreground"> Informed</strong>. These choices drive
-            the recommended recipients shown when deploying an email.
+            {t.matrixIntroBefore}
+            <strong className="text-foreground"> {t.raci.responsible}</strong>,
+            <strong className="text-foreground"> {t.raci.accountable}</strong>,
+            <strong className="text-foreground"> {t.raci.consulted}</strong> {t.matrixIntroAnd}
+            <strong className="text-foreground"> {t.raci.informed}</strong>{t.matrixIntroAfter}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -89,8 +92,8 @@ export default function ResponsibilityMatrixEditor() {
                 <span
                   className={`inline-block h-3 w-3 rounded-sm border ${LEVEL_COLORS[l]}`}
                 />
-                <span className="font-medium">{RACI_LABELS[l]}</span>
-                <span className="text-muted-foreground">— {RACI_DESCRIPTIONS[l]}</span>
+                <span className="font-medium">{t.raci[l]}</span>
+                <span className="text-muted-foreground">— {t.raciDesc[l]}</span>
               </div>
             ))}
           </div>
@@ -109,7 +112,7 @@ export default function ResponsibilityMatrixEditor() {
             <Card key={assetType}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">
-                  {ASSET_TYPE_LABELS[assetType]}
+                  {common.assetType[assetType] ?? assetType}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -119,7 +122,7 @@ export default function ResponsibilityMatrixEditor() {
                       variant="outline"
                       className={`justify-center w-fit ${LEVEL_COLORS[level]}`}
                     >
-                      {RACI_LABELS[level]}
+                      {t.raci[level]}
                     </Badge>
                     <div className="flex flex-wrap gap-1.5">
                       {lists.map((list) => {
@@ -135,7 +138,7 @@ export default function ResponsibilityMatrixEditor() {
                                 : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
                             }`}
                           >
-                            {list.name}
+                            {listDisplay(list, lang).name}
                             <span className="ml-1 opacity-60">({list.emails.length})</span>
                           </button>
                         );
@@ -151,7 +154,7 @@ export default function ResponsibilityMatrixEditor() {
 
       <div className="flex justify-end">
         <Button onClick={save}>
-          <Save className="h-4 w-4 mr-2" /> Save matrix
+          <Save className="h-4 w-4 mr-2" /> {t.saveMatrix}
         </Button>
       </div>
     </div>

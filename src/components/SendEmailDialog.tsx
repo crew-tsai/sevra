@@ -44,6 +44,7 @@ type Props = {
     asset_type: string;
     title: string;
     content: string;
+    language?: string | null;
   } | null;
 };
 
@@ -142,6 +143,9 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
               assetContent: asset.content,
               incidentRef,
               packageRef,
+              // The email around the communication matches the language it
+              // was written in, not whoever happens to be sending it.
+              lang: asset.language ?? lang,
             },
           },
         },

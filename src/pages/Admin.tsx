@@ -20,23 +20,20 @@ import EmailListsManager from "@/components/admin/EmailListsManager";
 import ResponsibilityMatrixEditor from "@/components/admin/ResponsibilityMatrixEditor";
 import SocialConnectionsManager from "@/components/admin/SocialConnectionsManager";
 import SendingDomainManager from "@/components/admin/SendingDomainManager";
-import { INDUSTRY_GROUPS } from "@/lib/industries";
+import { groupLabel, INDUSTRY_GROUPS, industryLabel } from "@/lib/industries";
+import { useLang, useMessages } from "@/i18n";
+import { adminMessages } from "@/i18n/messages/admin";
 
-const ROLES = [
-  { value: "admin", label: "Admin" },
-  { value: "coordinador", label: "Coordinator" },
-  { value: "manager", label: "Manager" },
-  { value: "ejecutivo", label: "Executive" },
-  { value: "soporte", label: "Sevra Support" },
-] as const;
+// Stored values; their names on screen are adminMessages.roles.
+const ROLES = ["admin", "coordinador", "manager", "ejecutivo", "soporte"] as const;
 
-type Role = typeof ROLES[number]["value"];
+type Role = typeof ROLES[number];
 
 // Keep in sync with ROLES above — the invite is validated against this list
 // before it reaches the database, so a value missing here is rejected client
 // side even though the column accepts it.
-const inviteSchema = z.object({
-  email: z.string().trim().email("Invalid email").max(255),
+const inviteSchema = (invalidEmail: string) => z.object({
+  email: z.string().trim().email(invalidEmail).max(255),
   full_name: z.string().trim().max(120).optional(),
   role: z.enum(["admin", "coordinador", "manager", "ejecutivo", "soporte"]),
 });
@@ -45,6 +42,8 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminExists, setAdminExists] = useState(true);
+  const t = useMessages(adminMessages);
+  const { lang } = useLang();
 
   // Settings
   const [settingsId, setSettingsId] = useState<string | null>(null);
@@ -79,9 +78,9 @@ export default function Admin() {
     const connected = searchParams.get("connected");
     const error = searchParams.get("error");
     if (connected) {
-      toast({ title: `${connected} connected` });
+      toast({ title: t.connected(connected) });
     } else if (error) {
-      toast({ title: "Connection failed", description: error, variant: "destructive" });
+      toast({ title: t.connectionFailed, description: error, variant: "destructive" });
     }
     if (connected || error) {
       const next = new URLSearchParams(searchParams);
@@ -108,8 +107,8 @@ export default function Admin() {
       if (session) {
         setLoading(false);
         toast({
-          title: "Couldn't verify your account",
-          description: `${userErr?.message ?? "The server didn't respond"} — reload the page. Nothing has been lost.`,
+          title: t.cantVerify,
+          description: t.cantVerifyDetail(userErr?.message ?? null),
           variant: "destructive",
         });
         return;
@@ -137,8 +136,8 @@ export default function Admin() {
     const { data, error } = await supabase.from("company_settings").select("*").maybeSingle();
     if (error) {
       toast({
-        title: "Couldn't load company settings",
-        description: `${error.message} — your saved settings are still there; this is a loading problem.`,
+        title: t.cantLoadSettings,
+        description: t.cantLoadSettingsDetail(error.message),
         variant: "destructive",
       });
       return;
@@ -168,10 +167,10 @@ export default function Admin() {
     // for a user who isn't already an admin. The RPC also checks the caller
     // against the admin email designated for this deployment.
     const { data: status, error } = await supabase.rpc("claim_first_admin");
-    if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
+    if (error) return toast({ title: t.error, description: error.message, variant: "destructive" });
 
     if (status === "claimed") {
-      toast({ title: "You are admin", description: "You can now configure the system." });
+      toast({ title: t.youAreAdmin, description: t.canConfigure });
       await init();
       return;
     }
@@ -179,24 +178,7 @@ export default function Admin() {
     // adminExists is computed from a count query that RLS filters to the
     // caller's own roles, so the claim button can appear even when the claim
     // cannot succeed. Explain which case this is.
-    const reasons: Record<string, { title: string; description: string }> = {
-      already_claimed: {
-        title: "Admin already claimed",
-        description: "Someone else already holds the admin role. Ask them to invite you from Admin → Team & roles.",
-      },
-      not_authorized: {
-        title: "Not the designated administrator",
-        description: "This workspace is assigned to a different administrator. Ask them to invite you from Admin → Team & roles.",
-      },
-      not_configured: {
-        title: "Workspace not set up yet",
-        description: "No administrator has been designated for this deployment. Contact your Sevra administrator to finish setup.",
-      },
-    };
-    const reason = reasons[status as string] ?? {
-      title: "Could not claim admin",
-      description: "Please contact your Sevra administrator.",
-    };
+    const reason = t.reasons[status as string] ?? t.couldNotClaim;
     await init();
     toast({ ...reason, variant: "destructive" });
   }
@@ -222,43 +204,42 @@ export default function Admin() {
       ? await supabase.from("company_settings").update(payload).eq("id", settingsId).select()
       : await supabase.from("company_settings").insert(payload).select();
     setSavingSettings(false);
-    if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
+    if (error) return toast({ title: t.error, description: error.message, variant: "destructive" });
     if (!data || data.length === 0) {
       return toast({
-        title: "Not saved",
-        description:
-          "You don't have permission to change company settings. Ask an administrator, or ask them to grant you the admin role.",
+        title: t.notSaved,
+        description: t.noPermission,
         variant: "destructive",
       });
     }
-    toast({ title: "Saved", description: "Settings updated." });
+    toast({ title: t.saved, description: t.settingsUpdated });
     await loadSettings();
   }
 
   async function uploadLogo(file: File) {
-    if (file.size > 5 * 1024 * 1024) return toast({ title: "File too large", description: "Max 5 MB", variant: "destructive" });
+    if (file.size > 5 * 1024 * 1024) return toast({ title: t.fileTooLarge, description: t.max5, variant: "destructive" });
     const path = `logo-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
     const { error } = await supabase.storage.from("branding").upload(path, file, { upsert: true });
-    if (error) return toast({ title: "Logo upload error", description: error.message, variant: "destructive" });
+    if (error) return toast({ title: t.logoUploadError, description: error.message, variant: "destructive" });
     const { data } = supabase.storage.from("branding").getPublicUrl(path);
     setLogoUrl(data.publicUrl);
-    toast({ title: "Logo uploaded", description: "Remember to save." });
+    toast({ title: t.logoUploaded, description: t.rememberToSave });
   }
 
   async function uploadManual(file: File) {
-    if (file.size > 20 * 1024 * 1024) return toast({ title: "File too large", description: "Max 20 MB", variant: "destructive" });
+    if (file.size > 20 * 1024 * 1024) return toast({ title: t.fileTooLarge, description: t.max20, variant: "destructive" });
     const path = `manual-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
     const { error } = await supabase.storage.from("manuals").upload(path, file, { upsert: true });
-    if (error) return toast({ title: "Manual upload error", description: error.message, variant: "destructive" });
+    if (error) return toast({ title: t.manualUploadError, description: error.message, variant: "destructive" });
     const { data } = await supabase.storage.from("manuals").createSignedUrl(path, 60 * 60 * 24 * 365);
     setManualUrl(data?.signedUrl ?? null);
     setManualName(file.name);
-    toast({ title: "Manual uploaded", description: "Remember to save." });
+    toast({ title: t.manualUploaded, description: t.rememberToSave });
   }
 
   async function inviteMember() {
-    const parsed = inviteSchema.safeParse({ email: inviteEmail, full_name: inviteName || undefined, role: inviteRole });
-    if (!parsed.success) return toast({ title: "Invalid data", description: parsed.error.issues[0].message, variant: "destructive" });
+    const parsed = inviteSchema(t.invalidEmail).safeParse({ email: inviteEmail, full_name: inviteName || undefined, role: inviteRole });
+    if (!parsed.success) return toast({ title: t.invalidData, description: parsed.error.issues[0].message, variant: "destructive" });
     setInviting(true);
     const { error } = await supabase.from("team_members").insert({
       email: parsed.data.email,
@@ -266,9 +247,9 @@ export default function Admin() {
       role: parsed.data.role,
     });
     setInviting(false);
-    if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
+    if (error) return toast({ title: t.error, description: error.message, variant: "destructive" });
     setInviteEmail(""); setInviteName(""); setInviteRole("ejecutivo");
-    toast({ title: "Invited", description: "Member added to the team." });
+    toast({ title: t.invited, description: t.memberAdded });
     await loadTeam();
   }
 
@@ -293,13 +274,13 @@ export default function Admin() {
       <div className="max-w-2xl mx-auto py-12">
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-2"><ShieldAlert className="h-5 w-5 text-destructive" /><CardTitle>Restricted access</CardTitle></div>
-            <CardDescription>The admin panel is only visible to users with the <strong>admin</strong> role.</CardDescription>
+            <div className="flex items-center gap-2"><ShieldAlert className="h-5 w-5 text-destructive" /><CardTitle>{t.restricted}</CardTitle></div>
+            <CardDescription>{t.restrictedDetailBefore} <strong>{t.restrictedDetailRole}</strong>{lang === "es" ? "" : " "}{t.restrictedDetailAfter}</CardDescription>
           </CardHeader>
           {!adminExists && (
             <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">No administrator exists yet. You can claim this role to start the setup.</p>
-              <Button onClick={claimAdmin}>Claim admin role</Button>
+              <p className="text-sm text-muted-foreground">{t.noAdminYet}</p>
+              <Button onClick={claimAdmin}>{t.claimAdmin}</Button>
             </CardContent>
           )}
         </Card>
@@ -310,74 +291,72 @@ export default function Admin() {
   return (
     <div className="max-w-5xl mx-auto py-6 space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Admin panel</h1>
-        <p className="text-sm text-muted-foreground">Configure your company, team, and branding.</p>
+        <h1 className="text-2xl font-semibold tracking-tight">{t.title}</h1>
+        <p className="text-sm text-muted-foreground">{t.intro}</p>
       </header>
 
       <Tabs defaultValue={initialTab}>
         <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="company"><Building2 className="h-4 w-4 mr-2" />Company</TabsTrigger>
-          <TabsTrigger value="branding"><Palette className="h-4 w-4 mr-2" />Branding</TabsTrigger>
-          <TabsTrigger value="team"><Users className="h-4 w-4 mr-2" />Team & roles</TabsTrigger>
-          <TabsTrigger value="lists"><Mail className="h-4 w-4 mr-2" />Email lists</TabsTrigger>
-          <TabsTrigger value="raci"><Network className="h-4 w-4 mr-2" />Responsibility matrix</TabsTrigger>
-          <TabsTrigger value="social"><Share2 className="h-4 w-4 mr-2" />Social connections</TabsTrigger>
+          <TabsTrigger value="company"><Building2 className="h-4 w-4 mr-2" />{t.tabs.company}</TabsTrigger>
+          <TabsTrigger value="branding"><Palette className="h-4 w-4 mr-2" />{t.tabs.branding}</TabsTrigger>
+          <TabsTrigger value="team"><Users className="h-4 w-4 mr-2" />{t.tabs.team}</TabsTrigger>
+          <TabsTrigger value="lists"><Mail className="h-4 w-4 mr-2" />{t.tabs.lists}</TabsTrigger>
+          <TabsTrigger value="raci"><Network className="h-4 w-4 mr-2" />{t.tabs.raci}</TabsTrigger>
+          <TabsTrigger value="social"><Share2 className="h-4 w-4 mr-2" />{t.tabs.social}</TabsTrigger>
         </TabsList>
 
         {/* COMPANY */}
         <TabsContent value="company" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Company information</CardTitle>
-              <CardDescription>Company name, industry and communications manual.</CardDescription>
+              <CardTitle>{t.companyInfo}</CardTitle>
+              <CardDescription>{t.companyInfoIntro}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Company name</Label>
+                  <Label>{t.companyName}</Label>
                   <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} maxLength={120} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Industry</Label>
+                  <Label>{t.industry}</Label>
                   <Select value={industry} onValueChange={setIndustry}>
-                    <SelectTrigger><SelectValue placeholder="Select industry" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={t.selectIndustry} /></SelectTrigger>
                     <SelectContent>
                       {INDUSTRY_GROUPS.map((g) => (
                         <SelectGroup key={g.group}>
-                          <SelectLabel>{g.group}</SelectLabel>
-                          {g.values.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}
+                          <SelectLabel>{groupLabel(g.group, lang)}</SelectLabel>
+                          {g.values.map((i) => <SelectItem key={i} value={i}>{industryLabel(i, lang)}</SelectItem>)}
                         </SelectGroup>
                       ))}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Sets the incident field labels and the incident types offered across the workspace,
-                    and briefs the AI that classifies mentions and drafts communications.
+                    {t.industryHint}
                   </p>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label>X (Twitter) handle</Label>
+                <Label>{t.xHandle}</Label>
                 <Input
                   value={xHandle}
                   onChange={(e) => setXHandle(e.target.value)}
-                  placeholder="@yourcompany"
+                  placeholder={t.xHandlePlaceholder}
                   maxLength={40}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Monitoring starts as soon as this is set — you don't need to connect an
-                  account. Connecting is only required to publish from Sevra.
+                  {t.xHandleHint}
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label>Communications manual</Label>
+                <Label>{t.manual}</Label>
                 <div className="flex items-center gap-3">
                   <input ref={manualInput} type="file" accept=".pdf,.doc,.docx,.md,.txt" className="hidden"
                     onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadManual(f); e.currentTarget.value = ""; }} />
                   <Button type="button" variant="outline" onClick={() => manualInput.current?.click()}>
-                    <Upload className="h-4 w-4 mr-2" />Upload manual
+                    <Upload className="h-4 w-4 mr-2" />{t.uploadManual}
                   </Button>
                   {manualName && (
                     <a href={manualUrl ?? "#"} target="_blank" rel="noreferrer" className="text-sm text-primary inline-flex items-center gap-2 hover:underline">
@@ -385,11 +364,11 @@ export default function Admin() {
                     </a>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground">PDF, DOC or text. Max 20 MB.</p>
+                <p className="text-xs text-muted-foreground">{t.manualHint}</p>
               </div>
 
               <Button onClick={saveSettings} disabled={savingSettings}>
-                {savingSettings && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save
+                {savingSettings && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}{t.save}
               </Button>
             </CardContent>
           </Card>
@@ -399,36 +378,36 @@ export default function Admin() {
         <TabsContent value="branding" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Logo and colors</CardTitle>
-              <CardDescription>Applied to generated assets (emails, communications, exports).</CardDescription>
+              <CardTitle>{t.logoAndColors}</CardTitle>
+              <CardDescription>{t.logoAndColorsIntro}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label>Logo</Label>
+                <Label>{t.logo}</Label>
                 <div className="flex items-center gap-4">
                   <div className="h-20 w-20 rounded-md border bg-muted/30 flex items-center justify-center overflow-hidden">
-                    {logoUrl ? <img src={logoUrl} alt="Logo" className="max-h-full max-w-full object-contain" /> : <span className="text-xs text-muted-foreground">No logo</span>}
+                    {logoUrl ? <img src={logoUrl} alt={t.logo} className="max-h-full max-w-full object-contain" /> : <span className="text-xs text-muted-foreground">{t.noLogo}</span>}
                   </div>
                   <input ref={logoInput} type="file" accept="image/*" className="hidden"
                     onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadLogo(f); e.currentTarget.value = ""; }} />
                   <Button type="button" variant="outline" onClick={() => logoInput.current?.click()}>
-                    <Upload className="h-4 w-4 mr-2" />Upload logo
+                    <Upload className="h-4 w-4 mr-2" />{t.uploadLogo}
                   </Button>
-                  {logoUrl && <Button type="button" variant="ghost" onClick={() => setLogoUrl(null)}>Remove</Button>}
+                  {logoUrl && <Button type="button" variant="ghost" onClick={() => setLogoUrl(null)}>{t.remove}</Button>}
                 </div>
-                <p className="text-xs text-muted-foreground">PNG, JPG or SVG. Max 5 MB.</p>
+                <p className="text-xs text-muted-foreground">{t.logoHint}</p>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Primary color</Label>
+                  <Label>{t.primaryColor}</Label>
                   <div className="flex items-center gap-2">
                     <input type="color" value={brandPrimary} onChange={(e) => setBrandPrimary(e.target.value)} className="h-10 w-14 rounded border bg-transparent cursor-pointer" />
                     <Input value={brandPrimary} onChange={(e) => setBrandPrimary(e.target.value)} maxLength={9} />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Secondary color</Label>
+                  <Label>{t.secondaryColor}</Label>
                   <div className="flex items-center gap-2">
                     <input type="color" value={brandSecondary} onChange={(e) => setBrandSecondary(e.target.value)} className="h-10 w-14 rounded border bg-transparent cursor-pointer" />
                     <Input value={brandSecondary} onChange={(e) => setBrandSecondary(e.target.value)} maxLength={9} />
@@ -437,16 +416,16 @@ export default function Admin() {
               </div>
 
               <div className="rounded-lg border p-4 space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Preview</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.preview}</p>
                 <div className="rounded-md p-4 flex items-center gap-3" style={{ background: brandSecondary, color: "#fff" }}>
                   {logoUrl && <img src={logoUrl} alt="" className="h-8 w-8 object-contain" />}
-                  <span className="font-semibold">{companyName || "Your Company"}</span>
+                  <span className="font-semibold">{companyName || t.yourCompany}</span>
                   <span className="ml-auto px-3 py-1 rounded text-xs font-medium" style={{ background: brandPrimary }}>CTA</span>
                 </div>
               </div>
 
               <Button onClick={saveSettings} disabled={savingSettings}>
-                {savingSettings && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save
+                {savingSettings && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}{t.save}
               </Button>
             </CardContent>
           </Card>
@@ -456,30 +435,30 @@ export default function Admin() {
         <TabsContent value="team" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Invite member</CardTitle>
-              <CardDescription>Assign a role before or after they sign up.</CardDescription>
+              <CardTitle>{t.inviteMember}</CardTitle>
+              <CardDescription>{t.inviteIntro}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid sm:grid-cols-[1fr_1fr_180px_auto] gap-3 items-end">
                 <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="name@auroraskylines.com" />
+                  <Label>{t.email}</Label>
+                  <Input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder={t.emailPlaceholder} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Name</Label>
-                  <Input value={inviteName} onChange={(e) => setInviteName(e.target.value)} placeholder="e.g. Elena Navarro (MAD)" />
+                  <Label>{t.name}</Label>
+                  <Input value={inviteName} onChange={(e) => setInviteName(e.target.value)} placeholder={t.namePlaceholder} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Role</Label>
+                  <Label>{t.role}</Label>
                   <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as Role)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                      {ROLES.map((r) => <SelectItem key={r} value={r}>{t.roles[r]}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <Button onClick={inviteMember} disabled={inviting}>
-                  {inviting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Add
+                  {inviting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}{t.add}
                 </Button>
               </div>
             </CardContent>
@@ -487,20 +466,20 @@ export default function Admin() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Team members</CardTitle>
-              <CardDescription>{team.length} {team.length === 1 ? "member" : "members"}</CardDescription>
+              <CardTitle>{t.teamMembers}</CardTitle>
+              <CardDescription>{t.memberCount(team.length)}</CardDescription>
             </CardHeader>
             <CardContent>
               {team.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-6 text-center">No members invited yet.</p>
+                <p className="text-sm text-muted-foreground py-6 text-center">{t.noMembers}</p>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>{t.email}</TableHead>
+                      <TableHead>{t.name}</TableHead>
+                      <TableHead>{t.role}</TableHead>
+                      <TableHead>{t.status}</TableHead>
                       <TableHead className="w-12"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -513,14 +492,14 @@ export default function Admin() {
                           <Select value={m.role} onValueChange={(v) => updateMemberRole(m.id, v as Role)}>
                             <SelectTrigger className="w-[150px] h-8"><SelectValue /></SelectTrigger>
                             <SelectContent>
-                              {ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                              {ROLES.map((r) => <SelectItem key={r} value={r}>{t.roles[r]}</SelectItem>)}
                             </SelectContent>
                           </Select>
                         </TableCell>
                         <TableCell>
                           {m.user_id
-                            ? <Badge variant="secondary">Active</Badge>
-                            : <Badge variant="outline">Pending</Badge>}
+                            ? <Badge variant="secondary">{t.active}</Badge>
+                            : <Badge variant="outline">{t.pending}</Badge>}
                         </TableCell>
                         <TableCell>
                           <Button variant="ghost" size="icon" onClick={() => removeMember(m.id)}>

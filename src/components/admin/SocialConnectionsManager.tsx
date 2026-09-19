@@ -20,6 +20,8 @@ import {
   Copy,
   Pencil,
 } from "lucide-react";
+import { useIntlLocale, useMessages } from "@/i18n";
+import { socialMessages } from "@/i18n/messages/admin-panels";
 
 type Network = "x" | "instagram" | "tiktok" | "facebook";
 
@@ -85,6 +87,8 @@ export default function SocialConnectionsManager() {
   const [editingCreds, setEditingCreds] = useState<Record<string, boolean>>({});
   const [credForm, setCredForm] = useState<Record<string, { client_id: string; client_secret: string }>>({});
   const [savingCreds, setSavingCreds] = useState<Network | null>(null);
+  const t = useMessages(socialMessages);
+  const intl = useIntlLocale();
 
   useEffect(() => {
     void loadConnections();
@@ -95,7 +99,7 @@ export default function SocialConnectionsManager() {
     setLoading(true);
     const { data, error } = await supabase.from("social_connections").select("*");
     if (error) {
-      toast({ title: "Failed to load social connections", description: error.message, variant: "destructive" });
+      toast({ title: t.loadFailed, description: error.message, variant: "destructive" });
     } else {
       const byNetwork: Record<string, SocialConnection> = {};
       for (const row of data ?? []) {
@@ -111,7 +115,7 @@ export default function SocialConnectionsManager() {
   async function loadCredentials() {
     const { data, error } = await supabase.functions.invoke("social-oauth-credentials", { body: { action: "status" } });
     if (error || !data?.success) {
-      toast({ title: "Failed to load developer app status", description: data?.error ?? error?.message, variant: "destructive" });
+      toast({ title: t.credsLoadFailed, description: data?.error ?? error?.message, variant: "destructive" });
       return;
     }
     setCredentials({ ...emptyCredentials(), ...data.credentials });
@@ -124,7 +128,7 @@ export default function SocialConnectionsManager() {
   async function saveCredentials(network: Network) {
     const { client_id, client_secret } = credField(network);
     if (!client_id.trim() || !client_secret.trim()) {
-      toast({ title: "Client ID and Client Secret are both required", variant: "destructive" });
+      toast({ title: t.bothRequired, variant: "destructive" });
       return;
     }
     setSavingCreds(network);
@@ -132,12 +136,12 @@ export default function SocialConnectionsManager() {
       body: { action: "save", network, client_id: client_id.trim(), client_secret: client_secret.trim() },
     });
     if (error || !data?.success) {
-      toast({ title: "Couldn't save credentials", description: data?.error ?? error?.message, variant: "destructive" });
+      toast({ title: t.saveFailed, description: data?.error ?? error?.message, variant: "destructive" });
     } else {
       toast({
-        title: `${NETWORK_META[network].label} developer app saved`,
+        title: t.appSaved(NETWORK_META[network].label),
         description: data.requires_reconnect
-          ? "The account connected under the previous app must be reconnected before it can publish again."
+          ? t.reconnect
           : undefined,
       });
       setEditingCreds((s) => ({ ...s, [network]: false }));
@@ -150,7 +154,7 @@ export default function SocialConnectionsManager() {
 
   async function copyRedirectUri() {
     await navigator.clipboard.writeText(REDIRECT_URI);
-    toast({ title: "Redirect URI copied" });
+    toast({ title: t.uriCopied });
   }
 
   async function connect(network: Network) {
@@ -158,7 +162,7 @@ export default function SocialConnectionsManager() {
     const { data, error } = await supabase.functions.invoke("social-oauth-start", { body: { network } });
     if (error || !data?.success) {
       toast({
-        title: `Couldn't start ${NETWORK_META[network].label} connection`,
+        title: t.startFailed(NETWORK_META[network].label),
         description: data?.error ?? error?.message,
         variant: "destructive",
       });
@@ -173,12 +177,12 @@ export default function SocialConnectionsManager() {
     const { data, error } = await supabase.functions.invoke("social-oauth-disconnect", { body: { network } });
     if (error || !data?.success) {
       toast({
-        title: `Couldn't disconnect ${NETWORK_META[network].label}`,
+        title: t.disconnectFailed(NETWORK_META[network].label),
         description: data?.error ?? error?.message,
         variant: "destructive",
       });
     } else {
-      toast({ title: `${NETWORK_META[network].label} disconnected` });
+      toast({ title: t.disconnected(NETWORK_META[network].label) });
       await loadConnections();
     }
     setPending(null);
@@ -188,12 +192,9 @@ export default function SocialConnectionsManager() {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Social connections</CardTitle>
+          <CardTitle>{t.title}</CardTitle>
           <CardDescription>
-            Connect the company's official social accounts. These are shared, company-wide
-            connections — not personal staff accounts. Most networks connect with one click,
-            through Sevra's own developer app. You can register your own instead if you'd rather
-            use your company's name on the authorization screen or keep a separate API quota.
+            {t.intro}
           </CardDescription>
         </CardHeader>
       </Card>
@@ -223,7 +224,7 @@ export default function SocialConnectionsManager() {
                     <span className="font-medium text-sm">{meta.label}</span>
                   </div>
                   <Badge variant={isConnected ? "default" : "outline"} className="text-[10px]">
-                    {loading ? "…" : isConnected ? "Connected" : "Not connected"}
+                    {loading ? "…" : isConnected ? t.connected : t.notConnected}
                   </Badge>
                 </div>
 
@@ -231,21 +232,21 @@ export default function SocialConnectionsManager() {
                 {showCredForm ? (
                   <div className="space-y-2 rounded-md border p-3 bg-muted/20">
                     <div className="flex items-center gap-1.5 text-xs font-medium">
-                      <KeyRound className="h-3.5 w-3.5" /> Developer app
+                      <KeyRound className="h-3.5 w-3.5" /> {t.developerApp}
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-[11px]">Client ID</Label>
+                      <Label className="text-[11px]">{t.clientId}</Label>
                       <Input
                         value={credField(network).client_id}
                         onChange={(e) =>
                           setCredForm((s) => ({ ...s, [network]: { ...credField(network), client_id: e.target.value } }))
                         }
                         className="h-8 text-xs"
-                        placeholder="Client ID"
+                        placeholder={t.clientId}
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-[11px]">Client Secret</Label>
+                      <Label className="text-[11px]">{t.clientSecret}</Label>
                       <Input
                         type="password"
                         value={credField(network).client_secret}
@@ -253,20 +254,20 @@ export default function SocialConnectionsManager() {
                           setCredForm((s) => ({ ...s, [network]: { ...credField(network), client_secret: e.target.value } }))
                         }
                         className="h-8 text-xs"
-                        placeholder="Client Secret"
+                        placeholder={t.clientSecret}
                       />
                     </div>
                     <div className="text-[11px] text-muted-foreground space-y-1">
                       <p>
                         {cred?.platform_available
-                          ? `Optional — ${meta.label} already works through Sevra's app. To use your own instead, register an app on ${meta.label}'s developer site with this redirect URI:`
-                          : `Register an app on ${meta.label}'s developer site with this redirect URI:`}
+                          ? t.optionalOwnApp(meta.label)
+                          : t.registerApp(meta.label)}
                       </p>
                       <div className="flex items-center gap-1">
                         <code className="flex-1 truncate rounded bg-background px-1.5 py-1 border text-[10px]">
                           {REDIRECT_URI}
                         </code>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={copyRedirectUri}>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={copyRedirectUri} aria-label={t.copyUri}>
                           <Copy className="h-3 w-3" />
                         </Button>
                       </div>
@@ -274,7 +275,7 @@ export default function SocialConnectionsManager() {
                     <div className="flex gap-2">
                       <Button size="sm" className="flex-1" disabled={isSavingCreds} onClick={() => saveCredentials(network)}>
                         {isSavingCreds && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                        Save
+                        {t.save}
                       </Button>
                       {/* Cancellable whenever there's something to fall back to:
                           their saved app, or Sevra's. */}
@@ -287,7 +288,7 @@ export default function SocialConnectionsManager() {
                             setCredForm((s) => ({ ...s, [network]: { client_id: "", client_secret: "" } }));
                           }}
                         >
-                          Cancel
+                          {t.cancel}
                         </Button>
                       )}
                     </div>
@@ -298,8 +299,8 @@ export default function SocialConnectionsManager() {
                       <KeyRound className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                       <span className="truncate text-muted-foreground">
                         {cred?.configured
-                          ? `Your developer app · ${cred.client_id}`
-                          : "Using Sevra's app · no setup needed"}
+                          ? t.yourApp(cred.client_id ?? "")
+                          : t.sevraApp}
                       </span>
                     </div>
                     <Button
@@ -307,8 +308,9 @@ export default function SocialConnectionsManager() {
                       size={cred?.configured ? "icon" : "sm"}
                       className={cred?.configured ? "h-6 w-6 shrink-0" : "h-6 shrink-0 text-[11px]"}
                       onClick={() => setEditingCreds((s) => ({ ...s, [network]: true }))}
+                      aria-label={cred?.configured ? t.editApp : undefined}
                     >
-                      {cred?.configured ? <Pencil className="h-3 w-3" /> : "Use my own app"}
+                      {cred?.configured ? <Pencil className="h-3 w-3" /> : t.useOwnApp}
                     </Button>
                   </div>
                 )}
@@ -327,7 +329,7 @@ export default function SocialConnectionsManager() {
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm truncate">{conn.account_label ?? "Connected account"}</p>
+                      <p className="text-sm truncate">{conn.account_label ?? t.connectedAccount}</p>
                       {needsCheck ? (
                         // Whatever account the browser was signed into is the one that
                         // got authorised. Somebody signed into a personal account rather
@@ -335,12 +337,12 @@ export default function SocialConnectionsManager() {
                         // it happened on this very deployment and went unspotted for
                         // weeks. Ask while they still remember clicking Authorize.
                         <p className="text-[11px] text-muted-foreground">
-                          Is this the right account for {meta.label}?
+                          {t.rightAccount(meta.label)}
                         </p>
                       ) : (
                         conn.connected_at && (
                           <p className="text-[11px] text-muted-foreground">
-                            Connected {new Date(conn.connected_at).toLocaleDateString()}
+                            {t.connectedOn(new Date(conn.connected_at).toLocaleDateString(intl))}
                           </p>
                         )
                       )}
@@ -353,7 +355,7 @@ export default function SocialConnectionsManager() {
                           className="h-7 text-xs"
                           onClick={() => setConfirmed((prev) => new Set(prev).add(network))}
                         >
-                          Yes
+                          {t.yes}
                         </Button>
                         <Button
                           size="sm"
@@ -362,7 +364,7 @@ export default function SocialConnectionsManager() {
                           disabled={isPending}
                           onClick={() => disconnect(network)}
                         >
-                          Use another
+                          {t.useAnother}
                         </Button>
                       </div>
                     )}
@@ -382,7 +384,7 @@ export default function SocialConnectionsManager() {
                     onClick={() => disconnect(network)}
                   >
                     {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Unlink className="h-4 w-4" />}
-                    Disconnect
+                    {t.disconnect}
                   </Button>
                 ) : (
                   <Button
@@ -392,7 +394,7 @@ export default function SocialConnectionsManager() {
                     onClick={() => connect(network)}
                   >
                     {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
-                    Connect
+                    {t.connect}
                   </Button>
                 )}
               </CardContent>
