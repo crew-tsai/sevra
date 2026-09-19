@@ -99,7 +99,9 @@ export default function NewIncident() {
       airline_name: airlineName.trim() || null,
       flight_number: flightNumber.trim() || null,
       route: route.trim() || null,
-      airport_code: airportCode.trim().toUpperCase() || null,
+      // Stored as typed. It used to be capitalised and capped at 4 characters
+      // -- an airport code -- which mangled a ward, a branch or a site name.
+      airport_code: airportCode.trim() || null,
       country: country.trim() || null,
       injury_fatality: injuryFatality,
       regulator_involved: regulatorInvolved,
@@ -181,12 +183,12 @@ export default function NewIncident() {
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="route">{t.route}</Label>
-              <Input id="route" placeholder={vocab.routeExample} value={route} onChange={(e) => setRoute(e.target.value)} maxLength={20} />
+              <Label htmlFor="route">{vocab.routeLabel}</Label>
+              <Input id="route" placeholder={vocab.routeExample} value={route} onChange={(e) => setRoute(e.target.value)} maxLength={80} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="airport">{vocab.locationLabel}</Label>
-              <Input id="airport" placeholder={vocab.locationExample} value={airportCode} onChange={(e) => setAirportCode(e.target.value)} maxLength={4} />
+              <Input id="airport" placeholder={vocab.locationExample} value={airportCode} onChange={(e) => setAirportCode(e.target.value)} maxLength={60} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="country">{t.country}</Label>

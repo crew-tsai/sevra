@@ -2,7 +2,7 @@
 
 > AI-powered crisis management platform that helps organizations detect, decide, and respond to reputation crises in real time.
 
-Sevra brings together social monitoring, crisis-level scoring (L0–L4), AI-drafted statements, approvals, and distribution in one workspace — built for crisis teams across transportation, healthcare, financial services, utilities and telecoms, retail and hospitality, education and the public sector.
+Sevra brings together social monitoring, crisis-level scoring (L0–L4), AI-drafted statements, approvals, and distribution in one workspace — built for crisis teams across transportation, healthcare, financial services, utilities and telecoms, construction, retail and hospitality, education and the public sector.
 
 The workspace adapts to the customer's industry: incident fields, the incident taxonomy, AI classification, and drafted communications all use the vocabulary of that sector.
 

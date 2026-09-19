@@ -82,9 +82,9 @@ INCIDENT
 Title: ${incident.title}
 Type: ${incident.incident_type}${incident.sub_type ? ` / ${incident.sub_type}` : ""}
 Risk: ${incident.risk} (${incident.risk_score}/100)  Crisis level: L${incident.crisis_level ?? 0}
-${profile.serviceLabel}: ${incident.flight_number ?? "n/a"}  Route: ${incident.route ?? "n/a"}
+${profile.serviceLabel}: ${incident.flight_number ?? "n/a"}  ${profile.routeLabel}: ${incident.route ?? "n/a"}
 ${profile.locationLabel}: ${incident.airport_code ?? "n/a"}
-${profile.peopleLabel} impacted: ${incident.estimated_passengers_impacted ?? "unknown"}
+${profile.peopleLabel}: ${incident.estimated_passengers_impacted ?? "unknown"}
 Injury/fatality: ${incident.injury_fatality ? "YES" : "no"}
 Regulator involved: ${incident.regulator_involved ? "YES" : "no"}
 Description: ${incident.description ?? "n/a"}
@@ -102,8 +102,8 @@ ${(mentions ?? []).map((m: any) => `- [${m.channel}] @${m.author_handle}: ${m.co
         {
           role: "system",
           content:
-            `You are SEVRA, a crisis-communications strategist for ${company}, a ` +
-        `${profile.simFlavor} operator. Generate a structured, actionable response plan ` +
+            `You are SEVRA, a crisis-communications strategist for ${company}` +
+        `${settings?.industry ? `, an organization in the ${settings.industry} sector` : ""}. Generate a structured, actionable response plan ` +
         `with concrete tasks for each phase. Name the departments, regulatory or ` +
         `oversight bodies, and communication channels that are actually relevant to this ` +
         `industry and to the countries involved. Do not invent regulators; if the ` +

@@ -6,7 +6,7 @@ export const homeMessages = defineMessages({
     heroLead: "Lead the room when",
     heroAccent: "every second counts",
     heroBody:
-      "Sevra is the enterprise platform for crisis communications teams. Detect, decide and respond with confidence — across transportation, healthcare, financial services, utilities and beyond.",
+      "Sevra is the enterprise platform for crisis communications teams. Detect, decide and respond with confidence — across transportation, healthcare, financial services, utilities, construction and beyond.",
     requestDemo: "Request a demo",
     exploreProduct: "Explore the product",
     badges: ["SOC2-ready", "Real-time monitoring", "Approval workflows"],
@@ -35,6 +35,7 @@ export const homeMessages = defineMessages({
       Finance: "Financial Services",
       Consumer: "Retail & Hospitality",
       Infrastructure: "Energy, Utilities & Telecoms",
+      Construction: "Construction",
     } as Record<string, string>,
     truthTitle: "A single source of truth in crisis.",
     truthBody:
@@ -61,7 +62,7 @@ export const homeMessages = defineMessages({
     heroLead: "Lidera la sala cuando",
     heroAccent: "cada segundo cuenta",
     heroBody:
-      "Sevra es la plataforma empresarial para equipos de comunicación de crisis. Detecta, decide y responde con confianza — en transporte, salud, servicios financieros, suministros y más.",
+      "Sevra es la plataforma empresarial para equipos de comunicación de crisis. Detecta, decide y responde con confianza — en transporte, salud, servicios financieros, suministros, construcción y más.",
     requestDemo: "Solicita una demo",
     exploreProduct: "Conoce el producto",
     badges: ["Preparado para SOC2", "Monitorización en tiempo real", "Flujos de aprobación"],
@@ -90,6 +91,7 @@ export const homeMessages = defineMessages({
       Finance: "Servicios financieros",
       Consumer: "Comercio y hostelería",
       Infrastructure: "Energía, suministros y telecomunicaciones",
+      Construction: "Construcción",
     } as Record<string, string>,
     truthTitle: "Una única fuente de verdad en plena crisis.",
     truthBody:

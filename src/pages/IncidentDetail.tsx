@@ -407,7 +407,7 @@ export default function IncidentDetail() {
             <h2 className="text-sm font-semibold text-foreground">{t.operationalDetails}</h2>
             <DetailRow icon={Plane} label={vocab.operatorLabel} value={incident.airline_name} />
             <DetailRow icon={Plane} label={vocab.serviceLabel} value={incident.flight_number} />
-            <DetailRow icon={MapPin} label={t.route} value={incident.route} />
+            <DetailRow icon={MapPin} label={vocab.routeLabel} value={incident.route} />
             <DetailRow icon={MapPin} label={vocab.locationLabel} value={incident.airport_code} />
             <DetailRow icon={MapPin} label={t.country} value={incident.country} />
             <DetailRow
@@ -521,7 +521,7 @@ function buildRecommendations(
   // 2. Stakeholder / regulator
   recs.push(inc.injury_fatality || inc.regulator_involved ? r.regulators : r.internal);
 
-  // 3. Passenger care
+  // 3. Care for the people affected
   if ((inc.estimated_passengers_impacted ?? 0) > 0 || inc.incident_type === "delay" || inc.incident_type === "safety") {
     recs.push(r.care(inc.estimated_passengers_impacted ? inc.estimated_passengers_impacted.toLocaleString(intl) : null, peopleNoun));
   } else {

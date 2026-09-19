@@ -67,6 +67,7 @@ export const workflowsMessages = defineMessages({
       Any: "Cualquiera",
       Social: "Redes sociales",
       "Risk score": "Puntuación de riesgo",
+      "People impacted": "Personas afectadas",
       "Pax impacted": "Personas afectadas",
       "Influencer involved": "Influencer involucrado",
       "Regulator involved": "Regulador involucrado",

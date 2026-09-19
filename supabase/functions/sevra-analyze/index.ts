@@ -21,14 +21,14 @@ ${INCIDENT_TYPES.map((t) => `- ${t}: ${vocab.subTypes[t].join(", ")}`).join("\n"
 
 Risk levels: critical, high, medium, low. risk_score 0-100.
 Set should_create_incident=false only for clear noise (jokes, unrelated, spam). Otherwise true.
-Extract any ${vocab.serviceLabel.toLowerCase()} (e.g. ${vocab.serviceExample}), route (e.g. ${vocab.routeExample}), ${vocab.locationLabel.toLowerCase()}, country, ${vocab.operatorLabel.toLowerCase()} name, ${vocab.peopleLabel.toLowerCase()} you can infer.
+Extract any ${vocab.serviceLabel.toLowerCase()} (e.g. ${vocab.serviceExample}), ${vocab.routeLabel.toLowerCase()} (e.g. ${vocab.routeExample}), ${vocab.locationLabel.toLowerCase()}, country, ${vocab.operatorLabel.toLowerCase()} name, ${vocab.peopleLabel.toLowerCase()} you can infer.
 Title: short ENGLISH headline (max 80 chars). Summary: 1-2 ENGLISH sentences.
 Also give title_es and summary_es: the same headline and summary in neutral, professional Spanish — a translation of the English, not a different text.`;
 }
 
 // Check if a recent incident already exists that matches this mention's signature.
 // Dedup rules (any one is enough):
-//  1. Same service/flight number (within 48h)
+//  1. Same service reference, e.g. flight or project number (within 48h)
 //  2. Same operator + same incident_type + same sub_type (within 24h)
 //  3. Same location code + same incident_type (within 24h)
 async function findExistingIncident(admin: any, analysis: any) {

@@ -34,7 +34,7 @@ function parseJwtClaims(token: string): Record<string, unknown> | null {
 function buildSimPrompt(companyName: string | null, industry: string | null): string {
   const vocab = profileFor(industry);
   const company = companyName ?? "the company";
-  return `Generate 2 realistic, DISTINCT social media posts (in Spanish, English, or French — mix languages) about possible incidents happening RIGHT NOW with ${company.toUpperCase()}, a ${vocab.simFlavor} operator. All posts MUST mention ${company} by name and use realistic ${vocab.serviceLabel.toLowerCase()}s in the style of "${vocab.serviceExample}". Vary routes/locations in the style of "${vocab.routeExample}" and location codes like "${vocab.locationExample}". Mix risk levels: include 1 likely real incident (delay, safety, customer treatment, outage, etc.) and 1 lower-risk or noise post (joke, vague complaint, or unrelated). Never mention competitor companies.
+  return `Generate 2 realistic, DISTINCT social media posts (in Spanish, English, or French — mix languages) about possible incidents happening RIGHT NOW with ${company.toUpperCase()}${industry ? `, an organization in the ${industry} sector` : ""} (think: ${vocab.simFlavor}). All posts MUST mention ${company} by name and use realistic ${vocab.serviceLabel.toLowerCase()}s in the style of "${vocab.serviceExample}". Vary the ${vocab.routeLabel.toLowerCase()} in the style of "${vocab.routeExample}" and location codes like "${vocab.locationExample}". Mix risk levels: include 1 likely real incident (delay, safety, customer treatment, outage, etc.) and 1 lower-risk or noise post (joke, vague complaint, or unrelated). Never mention competitor companies.
 
 Return STRICT JSON only:
 {

@@ -41,7 +41,7 @@ type Workflow = {
 
 const CLASSIFICATION_TYPES = ["Operational", "Safety", "Reputational", "Regulatory", "Cyber"];
 const CRISIS_LEVELS = ["L0", "L1", "L2", "L3", "L4"];
-const CRITERIA_FIELDS = ["Risk score", "Pax impacted", "Influencer involved", "Regulator involved", "Region", "Source"];
+const CRITERIA_FIELDS = ["Risk score", "People impacted", "Influencer involved", "Regulator involved", "Region", "Source"];
 const CRITERIA_OPS = [">=", ">", "=", "<", "<=", "contains"];
 const ACTION_TYPES = [
   "Generate assets with AI",

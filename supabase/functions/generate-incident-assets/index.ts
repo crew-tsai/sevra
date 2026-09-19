@@ -83,7 +83,7 @@ Type: ${incident.incident_type}${incident.sub_type ? ` / ${incident.sub_type}` :
 Risk: ${incident.risk} (${incident.risk_score}/100)
 ${vocab.operatorLabel}: ${incident.airline_name ?? "n/a"}
 ${vocab.serviceLabel}: ${incident.flight_number ?? "n/a"}
-Route: ${incident.route ?? "n/a"} (${incident.country ?? "n/a"})
+${vocab.routeLabel}: ${incident.route ?? "n/a"} (${incident.country ?? "n/a"})
 ${vocab.peopleLabel}: ${incident.estimated_passengers_impacted ?? "unknown"}
 Injury/fatality: ${incident.injury_fatality ? "yes" : "no"}
 Regulator involved: ${incident.regulator_involved ? "yes" : "no"}

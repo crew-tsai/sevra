@@ -149,10 +149,10 @@ export const template = {
   },
   displayName: 'Crisis communication',
   previewData: {
-    assetTitle: 'Statement regarding flight AA-2453 diversion',
+    assetTitle: 'Statement regarding the service disruption on 12 March',
     assetType: 'holding_statement',
     assetContent:
-      'We are aware of the situation involving flight AA-2453 and are working closely with local authorities.\n\nThe safety of our passengers and crew is our highest priority. We will provide further updates as more information becomes available.\n\nFor inquiries, please contact our press team.',
+      'We are aware of the disruption affecting some of our customers and are working closely with the relevant authorities.\n\nThe safety of the people we serve and of our staff is our highest priority. We will provide further updates as more information becomes available.\n\nFor inquiries, please contact our press team.',
     incidentRef: 'INC-A1B2C3D4',
     packageRef: 'PKG-A1B2C3D4',
     recipientName: 'Jane',

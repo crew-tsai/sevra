@@ -18,6 +18,8 @@ export type IndustryProfile = {
   serviceLabel: string;
   locationLabel: string;
   peopleLabel: string;
+  /** What the incident's "route" field means here: a route for transport, a phase for construction. */
+  routeLabel: string;
   serviceExample: string;
   routeExample: string;
   locationExample: string;
@@ -60,8 +62,9 @@ const GENERIC: IndustryProfile = {
   serviceLabel: "Service ID",
   locationLabel: "Location code",
   peopleLabel: "People impacted",
+  routeLabel: "Area / segment",
   serviceExample: "e.g. SVC-4021",
-  routeExample: "e.g. Origin-Destination",
+  routeExample: "e.g. North region",
   locationExample: "e.g. HUB1",
   simFlavor: "service",
   subTypes: {
@@ -89,6 +92,7 @@ function transportProfile(
     serviceLabel,
     locationLabel,
     peopleLabel,
+    routeLabel: "Route",
     serviceExample: examples.service,
     routeExample: examples.route,
     locationExample: examples.location,
@@ -175,6 +179,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
     serviceLabel: "Shipment/tracking number",
     locationLabel: "Depot/hub code",
     peopleLabel: "Shipments/customers impacted",
+    routeLabel: "Route",
     serviceExample: "e.g. SHP-77213",
     routeExample: "e.g. Warehouse A-Warehouse B",
     locationExample: "e.g. HUB-A",
@@ -196,6 +201,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
     serviceLabel: "Case/encounter ID",
     locationLabel: "Facility/unit",
     peopleLabel: "Patients affected",
+    routeLabel: "Department / care pathway",
     serviceExample: "e.g. ENC-48210",
     routeExample: "e.g. Emergency-ICU",
     locationExample: "e.g. WARD-3",
@@ -217,6 +223,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
     serviceLabel: "Transaction/account ref",
     locationLabel: "Branch/region code",
     peopleLabel: "Customers affected",
+    routeLabel: "Business line",
     serviceExample: "e.g. TXN-99183",
     routeExample: "e.g. Retail-Corporate",
     locationExample: "e.g. BR-114",
@@ -236,6 +243,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
     serviceLabel: "Policy/claim number",
     locationLabel: "Region code",
     peopleLabel: "Policyholders affected",
+    routeLabel: "Product line",
     serviceExample: "e.g. CLM-33019",
     routeExample: "e.g. Auto-Home",
     locationExample: "e.g. REG-2",
@@ -257,6 +265,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
     serviceLabel: "Booking reference",
     locationLabel: "Property/site code",
     peopleLabel: "Guests affected",
+    routeLabel: "Area / service",
     serviceExample: "e.g. BK-77412",
     routeExample: "e.g. Resort-Spa",
     locationExample: "e.g. PROP-9",
@@ -275,6 +284,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
     serviceLabel: "Order number",
     locationLabel: "Store/warehouse code",
     peopleLabel: "Customers affected",
+    routeLabel: "Sales channel",
     serviceExample: "e.g. ORD-51220",
     routeExample: "e.g. Online-Store",
     locationExample: "e.g. ST-42",
@@ -294,6 +304,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
     serviceLabel: "Batch/order number",
     locationLabel: "Site/venue code",
     peopleLabel: "Customers affected",
+    routeLabel: "Supply chain stage",
     serviceExample: "e.g. BATCH-2291",
     routeExample: "e.g. Production-Retail",
     locationExample: "e.g. SITE-7",
@@ -315,6 +326,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
     serviceLabel: "Incident/work order ref",
     locationLabel: "Grid/zone code",
     peopleLabel: "Customers affected",
+    routeLabel: "Network segment",
     serviceExample: "e.g. WO-40218",
     routeExample: "e.g. Substation A-B",
     locationExample: "e.g. ZONE-11",
@@ -334,6 +346,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
     serviceLabel: "Incident/ticket ref",
     locationLabel: "Cell/region code",
     peopleLabel: "Subscribers affected",
+    routeLabel: "Network segment",
     serviceExample: "e.g. INC-77120",
     routeExample: "e.g. Core-Edge",
     locationExample: "e.g. CELL-88",
@@ -348,6 +361,33 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
     },
   },
 
+  // ── Construction ──────────────────────────────────────────────────
+  Construction: {
+    group: "Construction",
+    operatorLabel: "Contractor",
+    serviceLabel: "Project/contract number",
+    locationLabel: "Site code",
+    peopleLabel: "People affected",
+    routeLabel: "Work package / phase",
+    serviceExample: "e.g. PRJ-2291",
+    routeExample: "e.g. Phase 2 - Foundations",
+    locationExample: "e.g. SITE-07",
+    simFlavor: "construction project",
+    typeLabels: {
+      safety: "Site safety",
+      delay: "Project delay",
+      customer_treatment: "Community & client relations",
+      outage: "Disruption to services",
+    },
+    subTypes: {
+      safety: ["workplace_injury", "fatality_on_site", "fall_from_height", "structural_collapse", "crane_or_equipment_incident", "fire_or_explosion", "environmental_spill"],
+      delay: ["project_delay", "permit_delay", "supply_shortage", "labor_dispute", "weather_stoppage", "cost_overrun"],
+      customer_treatment: [...COMMON_TREATMENT, "noise_and_nuisance_complaint", "property_damage_claim", "contract_dispute"],
+      outage: ["utility_strike", "road_closure", "site_shutdown", "system_outage"],
+      misinformation: [...COMMON_MISINFORMATION, "safety_rumor"],
+    },
+  },
+
   // ── Other sectors ─────────────────────────────────────────────────
   Technology: {
     group: "Other",
@@ -355,6 +395,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
     serviceLabel: "Incident ID",
     locationLabel: "Region/cluster",
     peopleLabel: "Users affected",
+    routeLabel: "Region / service",
     serviceExample: "e.g. INC-2291",
     routeExample: "e.g. EU-West",
     locationExample: "e.g. eu-west-1",
@@ -373,6 +414,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
     serviceLabel: "Case/reference number",
     locationLabel: "Campus/site code",
     peopleLabel: "Students affected",
+    routeLabel: "Campus / program",
     serviceExample: "e.g. CASE-1182",
     routeExample: "e.g. Campus A-B",
     locationExample: "e.g. CAMP-2",
@@ -391,6 +433,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
     serviceLabel: "Case/reference number",
     locationLabel: "Office/region code",
     peopleLabel: "Citizens affected",
+    routeLabel: "Region / program",
     serviceExample: "e.g. REF-90210",
     routeExample: "e.g. Region North",
     locationExample: "e.g. OFF-15",
@@ -409,6 +452,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
     serviceLabel: "Batch/lot number",
     locationLabel: "Plant/line code",
     peopleLabel: "Customers affected",
+    routeLabel: "Supply chain stage",
     serviceExample: "e.g. LOT-55190",
     routeExample: "e.g. Plant A-Distribution",
     locationExample: "e.g. LINE-4",
@@ -432,6 +476,7 @@ export const INDUSTRY_GROUPS: Array<{ group: string; values: string[] }> = [
   { group: "Finance", values: ["Financial Services", "Insurance"] },
   { group: "Consumer", values: ["Hospitality & Travel", "Retail & E-commerce", "Food & Beverage"] },
   { group: "Infrastructure", values: ["Energy & Utilities", "Telecommunications"] },
+  { group: "Construction", values: ["Construction"] },
   { group: "Other", values: ["Technology", "Education", "Government & Public Sector", "Manufacturing", "Other"] },
 ];
 

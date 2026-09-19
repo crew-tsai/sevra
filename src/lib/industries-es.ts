@@ -18,6 +18,7 @@ export const INDUSTRY_NAME_ES: Record<string, string> = {
   "Food & Beverage": "Alimentación y bebidas",
   "Energy & Utilities": "Energía y suministros",
   Telecommunications: "Telecomunicaciones",
+  Construction: "Construcción",
   Technology: "Tecnología",
   Education: "Educación",
   "Government & Public Sector": "Gobierno y sector público",
@@ -39,6 +40,7 @@ export const GROUP_ES: Record<string, string> = {
   Finance: "Finanzas",
   Consumer: "Consumo",
   Infrastructure: "Infraestructura",
+  Construction: "Construcción",
   Other: "Otros sectores",
 };
 
@@ -62,6 +64,10 @@ export const TYPE_LABEL_ES: Record<string, string> = {
   "Supply outage": "Corte de suministro",
   "Network outage": "Caída de la red",
   "Product & site safety": "Seguridad de producto y planta",
+  "Site safety": "Seguridad en obra",
+  "Project delay": "Retraso del proyecto",
+  "Community & client relations": "Relación con vecinos y clientes",
+  "Disruption to services": "Afectación a servicios",
 };
 
 /** Field labels, shared across industries, so keyed by the English text. */
@@ -133,6 +139,25 @@ export const FIELD_LABEL_ES: Record<string, string> = {
   "Transit operator": "Operador de transporte",
   "Line/route number": "Número de línea/ruta",
   "Station/stop code": "Código de estación/parada",
+  // Construction
+  Contractor: "Contratista",
+  "Project/contract number": "Número de proyecto/contrato",
+  "Site code": "Código de obra",
+  "People affected": "Personas afectadas",
+  // What the "route" field means in each industry
+  Route: "Ruta",
+  "Area / segment": "Zona / segmento",
+  "Department / care pathway": "Servicio / circuito asistencial",
+  "Business line": "Línea de negocio",
+  "Product line": "Línea de producto",
+  "Area / service": "Área / servicio",
+  "Sales channel": "Canal de venta",
+  "Supply chain stage": "Etapa de la cadena de suministro",
+  "Network segment": "Tramo de red",
+  "Region / service": "Región / servicio",
+  "Campus / program": "Campus / programa",
+  "Region / program": "Región / programa",
+  "Work package / phase": "Paquete de obra / fase",
 };
 
 // Words inside the example placeholders ("e.g. Madrid-Barcelona").
@@ -144,6 +169,7 @@ const EXAMPLE_WORDS_ES: Array<[RegExp, string]> = [
   [/\bEdge\b/g, "Borde"], [/\bRegion North\b/g, "Región Norte"], [/\bPlant\b/g, "Planta"],
   [/\bDistribution\b/g, "Distribución"], [/\bDowntown\b/g, "Centro"], [/\bAirport\b/g, "Aeropuerto"],
   [/\bNorth-South Line\b/g, "Línea Norte-Sur"], [/\bLine (\d+)/g, "Línea $1"],
+  [/\bNorth region\b/g, "Región norte"], [/\bPhase (\d+) - Foundations\b/g, "Fase $1 - Cimentación"],
 ];
 
 export function exampleEs(s: string): string {
@@ -322,4 +348,19 @@ export const SUBTYPE_ES: Record<string, string> = {
   water_supply_failure: "Fallo del suministro de agua",
   workplace_injury: "Accidente laboral",
   zone_outage: "Caída en la zona",
+  // Construction
+  fatality_on_site: "Víctima mortal en obra",
+  fall_from_height: "Caída en altura",
+  structural_collapse: "Derrumbe estructural",
+  crane_or_equipment_incident: "Incidente con grúa o maquinaria",
+  project_delay: "Retraso del proyecto",
+  labor_dispute: "Conflicto laboral",
+  weather_stoppage: "Paralización por meteorología",
+  cost_overrun: "Sobrecoste",
+  noise_and_nuisance_complaint: "Queja por ruido y molestias",
+  property_damage_claim: "Reclamación por daños a la propiedad",
+  utility_strike: "Rotura de una red de servicios",
+  road_closure: "Corte de calle o carretera",
+  site_shutdown: "Paralización de la obra",
+  safety_rumor: "Rumor sobre la seguridad",
 };
