@@ -74,6 +74,7 @@ type Mention = {
   shares: number | null;
   ai_risk: string | null;
   ai_summary: string | null;
+  ai_sentiment: string | null;
   incident_id: string | null;
   post_url: string | null;
   posted_at: string | null;
@@ -121,7 +122,7 @@ export default function Dashboard() {
           .limit(300),
         supabase
           .from("social_mentions")
-          .select("id, content, channel, author_handle, author_name, author_avatar_url, is_influencer, is_verified, reach, likes, shares, ai_risk, ai_summary, incident_id, post_url, posted_at, created_at, translations")
+          .select("id, content, channel, author_handle, author_name, author_avatar_url, is_influencer, is_verified, reach, likes, shares, ai_risk, ai_summary, ai_sentiment, incident_id, post_url, posted_at, created_at, translations")
           .order("created_at", { ascending: false })
           .limit(500),
       ]);
@@ -350,6 +351,9 @@ export default function Dashboard() {
   ];
   const classifySentiment = (m: Mention): "negative" | "neutral" | "positive" => {
     if (m.ai_risk === "critical" || m.ai_risk === "high") return "negative";
+    // The AI reads tone in any language; the keyword lists are the fallback
+    // for mentions analysed before it recorded sentiment.
+    if (m.ai_sentiment === "positive" || m.ai_sentiment === "neutral" || m.ai_sentiment === "negative") return m.ai_sentiment;
     const text = `${m.content ?? ""} ${m.ai_summary ?? ""}`.toLowerCase();
     if (!text.trim()) return "neutral";
     const hasNeg = NEG_TERMS.some((t) => text.includes(t));

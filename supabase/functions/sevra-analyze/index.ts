@@ -30,7 +30,12 @@ sub_types below are specific to this organization's industry — use them verbat
 ${INCIDENT_TYPES.map((t) => `- ${t}: ${vocab.subTypes[t].join(", ")}`).join("\n")}
 
 Risk levels: critical, high, medium, low. risk_score 0-100.
-Set should_create_incident=false only for clear noise (jokes, unrelated, spam). Otherwise true.
+First decide relevance:
+- "crisis": about this organization and a real or emerging risk (complaint, safety, outage, accusation, misinformation). should_create_incident=true.
+- "no_risk": about this organization but not a threat — praise, thanks, questions, neutral news or announcements. should_create_incident=false.
+- "unrelated": not about this organization at all (the name used as an ordinary word, another company, spam, jokes). should_create_incident=false.
+Give sentiment (positive, neutral, negative) for every post, whatever its relevance.
+Only for "crisis": pick incident_type and sub_type. For "no_risk" and "unrelated" leave them out — never label praise as a complaint.
 Extract any ${vocab.serviceLabel.toLowerCase()} (e.g. ${vocab.serviceExample}), ${vocab.routeLabel.toLowerCase()} (e.g. ${vocab.routeExample}), ${vocab.locationLabel.toLowerCase()}, country, ${vocab.operatorLabel.toLowerCase()} name, ${vocab.peopleLabel.toLowerCase()} you can infer.
 ${countries.length ? `
 WHERE ${company.toUpperCase()} OPERATES: ${countries.map(countryName).join(", ")}. A post about a different country, or that uses the company's name as an ordinary word (for example a product, a place or a word in another language), is not about this company: set should_create_incident=false and say so in the summary.
@@ -141,6 +146,8 @@ Deno.serve(async (req) => {
               type: "object",
               properties: {
                 should_create_incident: { type: "boolean" },
+                relevance: { type: "string", enum: ["crisis", "no_risk", "unrelated"] },
+                sentiment: { type: "string", enum: ["positive", "neutral", "negative"] },
                 title: { type: "string", description: "English headline, max 80 chars" },
                 summary: { type: "string", description: "1-2 sentence English summary" },
                 title_es: { type: "string", description: "The same headline in Spanish, max 80 chars" },
@@ -161,7 +168,7 @@ Deno.serve(async (req) => {
                 injury_fatality: { type: "boolean" },
                 regulator_involved: { type: "boolean" },
               },
-              required: ["should_create_incident", "title", "summary", "title_es", "summary_es", "incident_type", "sub_type", "risk", "risk_score"],
+              required: ["should_create_incident", "relevance", "sentiment", "title", "summary", "title_es", "summary_es", "risk", "risk_score"],
             },
           },
         },
@@ -180,6 +187,22 @@ Deno.serve(async (req) => {
     const toolCall = aiJson.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) throw new Error("AI did not return classification");
     const analysis = JSON.parse(toolCall.function.arguments);
+    // Relevance is the source of truth; keep the flag consistent with it, and
+    // drop any type the model attached to something that is not an incident.
+    const relevance: "crisis" | "no_risk" | "unrelated" =
+      ["crisis", "no_risk", "unrelated"].includes(analysis.relevance)
+        ? analysis.relevance
+        : analysis.should_create_incident ? "crisis" : "unrelated";
+    analysis.should_create_incident = relevance === "crisis";
+    if (relevance !== "crisis") {
+      analysis.incident_type = null;
+      analysis.sub_type = null;
+    } else if (!INCIDENT_TYPES.includes(analysis.incident_type)) {
+      // Incidents require a type; the schema no longer forces one, so a
+      // crisis that arrives without it gets the broadest.
+      analysis.incident_type = "customer_treatment";
+    }
+    const sentiment = ["positive", "neutral", "negative"].includes(analysis.sentiment) ? analysis.sentiment : null;
 
     let incidentId: string | null = null;
     let dedupedTo: string | null = null;
@@ -254,7 +277,8 @@ Deno.serve(async (req) => {
       .update({
         status: analysis.should_create_incident
           ? (dedupedTo ? "linked_to_incident" : "incident_created")
-          : "dismissed",
+          : relevance === "no_risk" ? "no_risk" : "dismissed",
+        ai_sentiment: sentiment,
         ai_incident_type: analysis.incident_type,
         ai_sub_type: analysis.sub_type,
         ai_risk: analysis.risk,

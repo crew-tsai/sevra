@@ -52,10 +52,20 @@ type Mention = {
   ai_risk: string | null;
   ai_risk_score: number | null;
   ai_summary: string | null;
+  ai_sentiment: string | null;
   incident_id: string | null;
   created_at: string;
   updated_at: string;
   translations: unknown;
+};
+
+/** A mention that is, or may be, a risk: not yet analyzed, or analyzed as one. */
+const isRisk = (m: { status: string }) => m.status !== "dismissed" && m.status !== "no_risk";
+
+const SENTIMENT_STYLE: Record<string, string> = {
+  positive: "bg-risk-low-bg text-risk-low",
+  neutral: "bg-muted text-muted-foreground",
+  negative: "bg-risk-critical-bg text-risk-critical",
 };
 
 const formatDateTime = (iso: string | null | undefined, locale?: string) => {
@@ -98,7 +108,7 @@ export default function Sevra() {
   const [loading, setLoading] = useState(true);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "noise" | "crisis_level">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "noise" | "no_risk" | "crisis_level">("all");
   const [levelFilter, setLevelFilter] = useState<number | "all">("all");
   const [approvedIds, setApprovedIds] = useState<Set<string>>(new Set());
   const [monitorRunning, setMonitorRunning] = useState(false);
@@ -238,7 +248,8 @@ export default function Sevra() {
       (filter === "all" || m.channel === filter) &&
       (statusFilter === "all" ||
         (statusFilter === "noise" && m.status === "dismissed") ||
-        (statusFilter === "crisis_level" && m.status !== "dismissed")) &&
+        (statusFilter === "no_risk" && m.status === "no_risk") ||
+        (statusFilter === "crisis_level" && isRisk(m))) &&
       (statusFilter !== "crisis_level" || levelFilter === "all" || mentionCrisisLevel(m) === levelFilter),
   );
 
@@ -247,7 +258,7 @@ export default function Sevra() {
     return acc;
   }, {});
 
-  const crisisMentions = timeScoped.filter((m) => m.status !== "dismissed");
+  const crisisMentions = timeScoped.filter(isRisk);
   const levelCounts: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
   crisisMentions.forEach((m) => {
     levelCounts[mentionCrisisLevel(m)]++;
@@ -257,6 +268,8 @@ export default function Sevra() {
 
   const stats = {
     noise: timeScoped.filter((m) => m.status === "dismissed").length,
+    no_risk: timeScoped.filter((m) => m.status === "no_risk").length,
+    pending: mentions.filter((m) => m.status === "pending").length,
     crisis_level: crisisMentions.length,
   };
 
@@ -280,8 +293,8 @@ export default function Sevra() {
             {monitorRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radio className="h-4 w-4" />}
             <span className="hidden xs:inline">{t.runMonitorNow}</span><span className="xs:hidden">{t.monitorShort}</span>
           </Button>
-          <Button size="sm" onClick={analyzeAllPending} disabled={!stats.crisis_level} className="flex-1 sm:flex-none">
-            <Sparkles className="h-4 w-4" /> {t.analyzeAll(stats.crisis_level)}
+          <Button size="sm" onClick={analyzeAllPending} disabled={!stats.pending} className="flex-1 sm:flex-none">
+            <Sparkles className="h-4 w-4" /> {t.analyzeAll(stats.pending)}
           </Button>
         </div>
       </div>
@@ -342,9 +355,10 @@ export default function Sevra() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         {([
           { key: "crisis_level" as const, label: t.crisisLevel, value: stats.crisis_level, color: "text-primary" },
+          { key: "no_risk" as const, label: t.noRisk, value: stats.no_risk, color: "text-risk-low" },
           { key: "noise" as const, label: t.noise, value: stats.noise, color: "text-muted-foreground" },
         ]).map((s) => {
           const active = statusFilter === s.key;
@@ -454,8 +468,13 @@ export default function Sevra() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <Sparkles className="h-3.5 w-3.5 text-primary" />
                           <span className="text-xs font-semibold text-foreground">{t.analysis}</span>
-                          {m.ai_risk && <RiskBadge level={m.ai_risk as any} />}
-                          {m.status !== "dismissed" && (m.ai_risk || m.ai_risk_score != null) && (
+                          {isRisk(m) && m.ai_risk && <RiskBadge level={m.ai_risk as any} />}
+                          {m.ai_sentiment && (
+                            <Badge variant="outline" className={`text-[10px] border-0 ${SENTIMENT_STYLE[m.ai_sentiment] ?? ""}`}>
+                              {t.sentiment[m.ai_sentiment] ?? m.ai_sentiment}
+                            </Badge>
+                          )}
+                          {isRisk(m) && (m.ai_risk || m.ai_risk_score != null) && (
                             <CrisisLevelBadge level={mentionCrisisLevel(m)} compact />
                           )}
                           {m.ai_incident_type && <Badge variant="outline" className="text-[10px]">{incidentTypeLabel(m.ai_incident_type)}</Badge>}
@@ -510,6 +529,9 @@ export default function Sevra() {
                           <Badge variant="outline" className="text-[10px]">{t.deduped}</Badge>
                         )}
                       </>
+                    )}
+                    {m.status === "no_risk" && (
+                      <Badge variant="outline" className="gap-1 border-risk-low/40 text-risk-low"><CheckCircle2 className="h-3 w-3" /> {t.noRiskBadge}</Badge>
                     )}
                     {m.status === "dismissed" && (
                       <Badge variant="outline" className="gap-1"><CheckCircle2 className="h-3 w-3" /> {t.noiseBadge}</Badge>

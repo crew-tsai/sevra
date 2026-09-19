@@ -651,6 +651,7 @@ export type Database = {
           ai_incident_type: string | null
           ai_risk: string | null
           ai_risk_score: number | null
+          ai_sentiment: string | null
           ai_should_create_incident: boolean | null
           ai_sub_type: string | null
           ai_summary: string | null
@@ -680,6 +681,7 @@ export type Database = {
           ai_incident_type?: string | null
           ai_risk?: string | null
           ai_risk_score?: number | null
+          ai_sentiment?: string | null
           ai_should_create_incident?: boolean | null
           ai_sub_type?: string | null
           ai_summary?: string | null
@@ -709,6 +711,7 @@ export type Database = {
           ai_incident_type?: string | null
           ai_risk?: string | null
           ai_risk_score?: number | null
+          ai_sentiment?: string | null
           ai_should_create_incident?: boolean | null
           ai_sub_type?: string | null
           ai_summary?: string | null
