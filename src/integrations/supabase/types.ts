@@ -43,6 +43,11 @@ export type Database = {
           id: string
           industry: string | null
           logo_url: string | null
+          monitor_countries: string[]
+          monitor_exclude_terms: string[]
+          monitor_languages: string[]
+          monitor_last_result: Json | null
+          monitor_last_run_at: string | null
           sending_domain: string | null
           sending_domain_records: Json | null
           sending_domain_status: string | null
@@ -61,6 +66,11 @@ export type Database = {
           id?: string
           industry?: string | null
           logo_url?: string | null
+          monitor_countries?: string[]
+          monitor_exclude_terms?: string[]
+          monitor_languages?: string[]
+          monitor_last_result?: Json | null
+          monitor_last_run_at?: string | null
           sending_domain?: string | null
           sending_domain_records?: Json | null
           sending_domain_status?: string | null
@@ -79,6 +89,11 @@ export type Database = {
           id?: string
           industry?: string | null
           logo_url?: string | null
+          monitor_countries?: string[]
+          monitor_exclude_terms?: string[]
+          monitor_languages?: string[]
+          monitor_last_result?: Json | null
+          monitor_last_run_at?: string | null
           sending_domain?: string | null
           sending_domain_records?: Json | null
           sending_domain_status?: string | null

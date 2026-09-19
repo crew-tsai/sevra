@@ -112,6 +112,49 @@ async function generateSimulatedMentions(companyName: string | null, industry: s
  * existing behaviour intact and carries that account's own context; the
  * app-only bearer otherwise.
  */
+/**
+ * The X search for this company.
+ *
+ * A bare company name matches any post containing that word: "Lessence" pulled
+ * French posts about petrol prices. Two things narrow it:
+ *
+ *  - The languages the company is talked about in (lang:), which X filters
+ *    reliably. With them set, the name can be searched on its own again, so
+ *    posts that name the company without tagging it -- in a crisis usually the
+ *    larger half -- are caught alongside those that tag the handle.
+ *  - Words to exclude, for whatever noise is left.
+ *
+ * Without either, the handle alone is searched when there is one, since a
+ * common-word name on its own is mostly noise.
+ */
+export function buildXQuery(o: { companyName: string | null; handle: string; languages: string[]; excludeTerms: string[] }): string {
+  const clean = (s: string) => s.replace(/["()]/g, " ").replace(/\s+/g, " ").trim();
+  const name = o.companyName ? clean(o.companyName) : "";
+  const handle = o.handle.replace(/[^A-Za-z0-9_]/g, "");
+  const langs = [...new Set(o.languages.map((l) => l.toLowerCase()).filter((l) => /^[a-z]{2,3}$/.test(l)))];
+  const excludes = [...new Set(o.excludeTerms.map(clean).filter(Boolean))];
+  const focused = langs.length > 0 || excludes.length > 0;
+
+  const terms: string[] = [];
+  if (handle) terms.push(`@${handle}`);
+  if (name && (focused || !handle)) terms.push(`"${name}"`);
+  if (!terms.length) return "";
+
+  const parts = [terms.length > 1 ? `(${terms.join(" OR ")})` : terms[0]];
+  if (langs.length === 1) parts.push(`lang:${langs[0]}`);
+  if (langs.length > 1) parts.push(`(${langs.map((l) => `lang:${l}`).join(" OR ")})`);
+  for (const e of excludes) parts.push(e.includes(" ") ? `-"${e}"` : `-${e}`);
+  parts.push("-is:retweet");
+
+  // X rejects queries over 512 characters; drop exclusions from the end first.
+  let q = parts.join(" ");
+  while (q.length > 512 && parts.length > 2) {
+    parts.splice(parts.length - 2, 1);
+    q = parts.join(" ");
+  }
+  return q;
+}
+
 async function pullRealX(admin: any, companyName: string | null): Promise<{ rows: MentionRow[]; error?: string }> {
   const { data: connection } = await admin
     .from("social_connections")
@@ -123,30 +166,23 @@ async function pullRealX(admin: any, companyName: string | null): Promise<{ rows
   try {
     const { data: settings } = await admin
       .from("company_settings")
-      .select("x_handle")
+      .select("x_handle, monitor_languages, monitor_exclude_terms")
       .maybeSingle();
 
     const handle = String(connection?.account_label ?? settings?.x_handle ?? "")
       .replace(/^@/, "")
       .trim();
-    // A bare company name matches any post containing that word. "Lessence"
-    // pulled ten French posts about petrol prices — the classifier dismissed
-    // every one, but each still cost a search call and an AI classification to
-    // learn nothing.
-    //
-    // Tying the company name to the handle keeps the broad half of the search
-    // — posts that name the company without tagging it, which in a crisis is
-    // usually the larger half — while requiring the post to be about this
-    // company rather than to contain a common word. With no handle, the name
-    // alone is all there is, so it stands by itself.
-    const nameTerm = companyName ? `"${companyName}"` : null;
-    const handleTerm = handle ? `@${handle}` : null;
-    const query = handleTerm && nameTerm
-      ? `(${handleTerm} OR (${nameTerm} ${handleTerm})) -is:retweet`
-      : `(${handleTerm ?? nameTerm}) -is:retweet`;
+    const query = buildXQuery({
+      companyName,
+      handle,
+      languages: settings?.monitor_languages ?? [],
+      excludeTerms: settings?.monitor_exclude_terms ?? [],
+    });
 
     // Nothing to look for is not a failure — it is a workspace that has not
     // said who it is yet, and saying so on every tick would be noise.
+    const handleTerm = handle ? `@${handle}` : null;
+    const nameTerm = companyName ? `"${companyName}"` : null;
     if (!handleTerm && !nameTerm) return { rows: [] };
 
     let accessToken: string | null = null;

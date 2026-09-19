@@ -20,6 +20,7 @@ import EmailListsManager from "@/components/admin/EmailListsManager";
 import ResponsibilityMatrixEditor from "@/components/admin/ResponsibilityMatrixEditor";
 import SocialConnectionsManager from "@/components/admin/SocialConnectionsManager";
 import SendingDomainManager from "@/components/admin/SendingDomainManager";
+import { MonitoringFocus } from "@/components/admin/MonitoringFocus";
 import { groupLabel, INDUSTRY_GROUPS, industryLabel } from "@/lib/industries";
 import { useLang, useMessages } from "@/i18n";
 import { adminMessages } from "@/i18n/messages/admin";
@@ -50,6 +51,9 @@ export default function Admin() {
   const [companyName, setCompanyName] = useState("");
   const [industry, setIndustry] = useState("");
   const [xHandle, setXHandle] = useState("");
+  const [monitorCountries, setMonitorCountries] = useState<string[]>([]);
+  const [monitorLanguages, setMonitorLanguages] = useState<string[]>([]);
+  const [monitorExcludeTerms, setMonitorExcludeTerms] = useState<string[]>([]);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [brandPrimary, setBrandPrimary] = useState("#3B82F6");
   const [brandSecondary, setBrandSecondary] = useState("#0F172A");
@@ -147,6 +151,9 @@ export default function Admin() {
       setCompanyName(data.company_name ?? "");
       setIndustry(data.industry ?? "");
       setXHandle(data.x_handle ?? "");
+      setMonitorCountries(data.monitor_countries ?? []);
+      setMonitorLanguages(data.monitor_languages ?? []);
+      setMonitorExcludeTerms(data.monitor_exclude_terms ?? []);
       setLogoUrl(data.logo_url ?? null);
       setBrandPrimary(data.brand_primary ?? "#3B82F6");
       setBrandSecondary(data.brand_secondary ?? "#0F172A");
@@ -189,6 +196,9 @@ export default function Admin() {
       company_name: companyName.trim() || null,
       industry: industry || null,
       x_handle: xHandle.trim().replace(/^@/, "") || null,
+      monitor_countries: monitorCountries,
+      monitor_languages: monitorLanguages,
+      monitor_exclude_terms: monitorExcludeTerms,
       logo_url: logoUrl,
       brand_primary: brandPrimary,
       brand_secondary: brandSecondary,
@@ -349,6 +359,17 @@ export default function Admin() {
                   {t.xHandleHint}
                 </p>
               </div>
+
+              <MonitoringFocus
+                companyName={companyName}
+                xHandle={xHandle}
+                countries={monitorCountries}
+                languages={monitorLanguages}
+                excludeTerms={monitorExcludeTerms}
+                onCountries={setMonitorCountries}
+                onLanguages={setMonitorLanguages}
+                onExcludeTerms={setMonitorExcludeTerms}
+              />
 
               <div className="space-y-2">
                 <Label>{t.manual}</Label>

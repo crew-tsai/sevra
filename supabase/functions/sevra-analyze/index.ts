@@ -8,7 +8,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-function buildSystemPrompt(companyName: string | null, industry: string | null): string {
+/** "CO" → "Colombia (CO)". Names in English, for the model. */
+function countryName(code: string): string {
+  try {
+    const n = new Intl.DisplayNames(["en"], { type: "region" }).of(code.toUpperCase());
+    return n && n !== code.toUpperCase() ? `${n} (${code.toUpperCase()})` : code.toUpperCase();
+  } catch {
+    return code.toUpperCase();
+  }
+}
+
+function buildSystemPrompt(companyName: string | null, industry: string | null, countries: string[] = []): string {
   const vocab = profileFor(industry);
   const company = companyName ?? "the company";
   return `You are SEVRA, an AI crisis analyst for ${company}${industry ? ` (${industry})` : ""}. You analyze a single social media mention (which may be in ANY language: Spanish, English, Portuguese, French, etc.) and decide if it represents a real incident that should be tracked.
@@ -22,6 +32,9 @@ ${INCIDENT_TYPES.map((t) => `- ${t}: ${vocab.subTypes[t].join(", ")}`).join("\n"
 Risk levels: critical, high, medium, low. risk_score 0-100.
 Set should_create_incident=false only for clear noise (jokes, unrelated, spam). Otherwise true.
 Extract any ${vocab.serviceLabel.toLowerCase()} (e.g. ${vocab.serviceExample}), ${vocab.routeLabel.toLowerCase()} (e.g. ${vocab.routeExample}), ${vocab.locationLabel.toLowerCase()}, country, ${vocab.operatorLabel.toLowerCase()} name, ${vocab.peopleLabel.toLowerCase()} you can infer.
+${countries.length ? `
+WHERE ${company.toUpperCase()} OPERATES: ${countries.map(countryName).join(", ")}. A post about a different country, or that uses the company's name as an ordinary word (for example a product, a place or a word in another language), is not about this company: set should_create_incident=false and say so in the summary.
+` : ""}
 Title: short ENGLISH headline (max 80 chars). Summary: 1-2 ENGLISH sentences.
 Also give title_es and summary_es: the same headline and summary in neutral, professional Spanish — a translation of the English, not a different text.`;
 }
@@ -106,8 +119,8 @@ Deno.serve(async (req) => {
 
     await admin.from("social_mentions").update({ status: "analyzing" }).eq("id", mention_id);
 
-    const { data: settings } = await admin.from("company_settings").select("company_name, industry").maybeSingle();
-    const systemPrompt = buildSystemPrompt(settings?.company_name ?? null, settings?.industry ?? null);
+    const { data: settings } = await admin.from("company_settings").select("company_name, industry, monitor_countries").maybeSingle();
+    const systemPrompt = buildSystemPrompt(settings?.company_name ?? null, settings?.industry ?? null, settings?.monitor_countries ?? []);
 
     const aiResp = await chatCompletion({
       model: MODELS.reasoning,
