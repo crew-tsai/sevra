@@ -174,7 +174,7 @@ export default function NewIncident() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="airline">{vocab.operatorLabel}</Label>
-              <Input id="airline" placeholder={t.eg(vocab.operatorLabel)} value={airlineName} onChange={(e) => setAirlineName(e.target.value)} maxLength={100} />
+              <Input id="airline" placeholder={vocab.operatorExample} value={airlineName} onChange={(e) => setAirlineName(e.target.value)} maxLength={100} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="flight">{vocab.serviceLabel}</Label>

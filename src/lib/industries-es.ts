@@ -169,6 +169,8 @@ const EXAMPLE_WORDS_ES: Array<[RegExp, string]> = [
   [/\bEdge\b/g, "Borde"], [/\bRegion North\b/g, "Región Norte"], [/\bPlant\b/g, "Planta"],
   [/\bDistribution\b/g, "Distribución"], [/\bDowntown\b/g, "Centro"], [/\bAirport\b/g, "Aeropuerto"],
   [/\bNorth-South Line\b/g, "Línea Norte-Sur"], [/\bLine (\d+)/g, "Línea $1"],
+  [/\bCity Transit Authority\b/g, "Consorcio de Transportes"], [/\bCity Council\b/g, "Ayuntamiento de Ejemplo"],
+  [/\bWestfield University\b/g, "Universidad de Westfield"], [/\bRiverside General Hospital\b/g, "Hospital General Riverside"],
   [/\bNorth region\b/g, "Región norte"], [/\bPhase (\d+) - Foundations\b/g, "Fase $1 - Cimentación"],
 ];
 

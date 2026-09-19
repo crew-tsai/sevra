@@ -28,6 +28,8 @@ export type IncidentType = (typeof INCIDENT_TYPES)[number];
 export type IndustryProfile = {
   group: string;
   operatorLabel: string;
+  /** A made-up name, so the placeholder never suggests a real company. */
+  operatorExample: string;
   serviceLabel: string;
   locationLabel: string;
   peopleLabel: string;
@@ -72,6 +74,7 @@ const COMMON_MISINFORMATION = [
 const GENERIC: IndustryProfile = {
   group: "Other",
   operatorLabel: "Operator",
+  operatorExample: "e.g. Acme Services",
   serviceLabel: "Service ID",
   locationLabel: "Location code",
   peopleLabel: "People impacted",
@@ -95,13 +98,14 @@ function transportProfile(
   serviceLabel: string,
   locationLabel: string,
   peopleLabel: string,
-  examples: { service: string; route: string; location: string },
+  examples: { operator: string; service: string; route: string; location: string },
   simFlavor: string,
   extra: Partial<Record<IncidentType, string[]>> = {},
 ): IndustryProfile {
   return {
     group: "Transportation",
     operatorLabel,
+    operatorExample: examples.operator,
     serviceLabel,
     locationLabel,
     peopleLabel,
@@ -142,11 +146,13 @@ function transportProfile(
 export const INDUSTRIES: Record<string, IndustryProfile> = {
   // ── Transportation ────────────────────────────────────────────────
   Airline: transportProfile("Airline", "Flight number", "Airport code", "Passengers impacted", {
+    operator: "e.g. Aurora Airways",
     service: "e.g. AS412",
     route: "e.g. MAD-BCN",
     location: "e.g. MAD",
   }, "airline flight"),
   Rail: transportProfile("Rail operator", "Train number", "Station code", "Passengers impacted", {
+    operator: "e.g. Northline Rail",
     service: "e.g. IC2047",
     route: "e.g. Madrid-Barcelona",
     location: "e.g. MADR",
@@ -155,6 +161,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
     outage: ["system_outage", "ticketing_failure", "signalling_failure", "app_or_website_down"],
   }),
   "Bus/Coach": transportProfile("Bus company", "Route number", "Stop/terminal code", "Passengers impacted", {
+    operator: "e.g. Metro Coachlines",
     service: "e.g. R12",
     route: "e.g. Downtown-Airport",
     location: "e.g. T4",
@@ -163,6 +170,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
     outage: ["system_outage", "ticketing_failure", "app_or_website_down"],
   }),
   "Maritime/Ferry": transportProfile("Shipping line", "Voyage number", "Port code", "Passengers impacted", {
+    operator: "e.g. Blue Bay Ferries",
     service: "e.g. V-3305",
     route: "e.g. Barcelona-Palma",
     location: "e.g. BCN",
@@ -171,6 +179,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
     outage: ["system_outage", "boarding_system_issue", "app_or_website_down"],
   }),
   "Ride-hailing": transportProfile("Ride-hailing company", "Trip ID", "Zone/city code", "Riders impacted", {
+    operator: "e.g. RideNow",
     service: "e.g. TRIP-88291",
     route: "e.g. Downtown-Airport",
     location: "e.g. ZONE-3",
@@ -180,6 +189,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
     outage: ["system_outage", "dispatch_failure", "payment_system_failure", "app_or_website_down"],
   }),
   "Public Transit": transportProfile("Transit operator", "Line/route number", "Station/stop code", "Riders impacted", {
+    operator: "e.g. City Transit Authority",
     service: "e.g. Line 4",
     route: "e.g. North-South Line",
     location: "e.g. STN-12",
@@ -189,6 +199,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
   "Freight/Logistics": {
     group: "Transportation",
     operatorLabel: "Carrier",
+    operatorExample: "e.g. Swift Cargo",
     serviceLabel: "Shipment/tracking number",
     locationLabel: "Depot/hub code",
     peopleLabel: "Shipments/customers impacted",
@@ -211,6 +222,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
   Healthcare: {
     group: "Health",
     operatorLabel: "Provider",
+    operatorExample: "e.g. Riverside General Hospital",
     serviceLabel: "Case/encounter ID",
     locationLabel: "Facility/unit",
     peopleLabel: "Patients affected",
@@ -233,6 +245,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
   "Financial Services": {
     group: "Finance",
     operatorLabel: "Institution",
+    operatorExample: "e.g. Northbank",
     serviceLabel: "Transaction/account ref",
     locationLabel: "Branch/region code",
     peopleLabel: "Customers affected",
@@ -253,6 +266,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
   Insurance: {
     group: "Finance",
     operatorLabel: "Insurer",
+    operatorExample: "e.g. Shield Mutual",
     serviceLabel: "Policy/claim number",
     locationLabel: "Region code",
     peopleLabel: "Policyholders affected",
@@ -275,6 +289,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
   "Hospitality & Travel": {
     group: "Consumer",
     operatorLabel: "Operator",
+    operatorExample: "e.g. Harbor View Hotels",
     serviceLabel: "Booking reference",
     locationLabel: "Property/site code",
     peopleLabel: "Guests affected",
@@ -294,6 +309,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
   "Retail & E-commerce": {
     group: "Consumer",
     operatorLabel: "Retailer",
+    operatorExample: "e.g. Urban Market",
     serviceLabel: "Order number",
     locationLabel: "Store/warehouse code",
     peopleLabel: "Customers affected",
@@ -314,6 +330,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
   "Food & Beverage": {
     group: "Consumer",
     operatorLabel: "Operator",
+    operatorExample: "e.g. Green Leaf Foods",
     serviceLabel: "Batch/order number",
     locationLabel: "Site/venue code",
     peopleLabel: "Customers affected",
@@ -336,6 +353,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
   "Energy & Utilities": {
     group: "Infrastructure",
     operatorLabel: "Utility",
+    operatorExample: "e.g. Brightgrid Energy",
     serviceLabel: "Incident/work order ref",
     locationLabel: "Grid/zone code",
     peopleLabel: "Customers affected",
@@ -356,6 +374,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
   Telecommunications: {
     group: "Infrastructure",
     operatorLabel: "Operator",
+    operatorExample: "e.g. Nexa Telecom",
     serviceLabel: "Incident/ticket ref",
     locationLabel: "Cell/region code",
     peopleLabel: "Subscribers affected",
@@ -378,6 +397,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
   Construction: {
     group: "Construction",
     operatorLabel: "Contractor",
+    operatorExample: "e.g. Solid Build Contractors",
     serviceLabel: "Project/contract number",
     locationLabel: "Site code",
     peopleLabel: "People affected",
@@ -405,6 +425,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
   Technology: {
     group: "Other",
     operatorLabel: "Company",
+    operatorExample: "e.g. Cloudway",
     serviceLabel: "Incident ID",
     locationLabel: "Region/cluster",
     peopleLabel: "Users affected",
@@ -424,6 +445,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
   Education: {
     group: "Other",
     operatorLabel: "Institution",
+    operatorExample: "e.g. Westfield University",
     serviceLabel: "Case/reference number",
     locationLabel: "Campus/site code",
     peopleLabel: "Students affected",
@@ -443,6 +465,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
   "Government & Public Sector": {
     group: "Other",
     operatorLabel: "Agency",
+    operatorExample: "e.g. City Council",
     serviceLabel: "Case/reference number",
     locationLabel: "Office/region code",
     peopleLabel: "Citizens affected",
@@ -462,6 +485,7 @@ export const INDUSTRIES: Record<string, IndustryProfile> = {
   Manufacturing: {
     group: "Other",
     operatorLabel: "Manufacturer",
+    operatorExample: "e.g. Apex Components",
     serviceLabel: "Batch/lot number",
     locationLabel: "Plant/line code",
     peopleLabel: "Customers affected",
@@ -527,6 +551,7 @@ export function profileFor(industry: string | null | undefined, lang: Lang = "en
     serviceLabel: f(p.serviceLabel),
     locationLabel: f(p.locationLabel),
     peopleLabel: f(p.peopleLabel),
+    operatorExample: exampleEs(p.operatorExample),
     routeLabel: f(p.routeLabel),
     serviceExample: exampleEs(p.serviceExample),
     routeExample: exampleEs(p.routeExample),
