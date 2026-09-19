@@ -3,6 +3,14 @@
 // Instagram publishing additionally requires a Business/Creator IG account
 // linked to a Facebook Page, configured on Meta's side, not here.
 
+// Meta Graph API version, in one place. The previous pin, repeated in four
+// other files, quietly expired in 2026 -- Meta forwards calls on a retired
+// version to the oldest supported one, so nothing broke, but nothing was
+// chosen either. Versions last about two years: bump this, not the call sites.
+export const META_GRAPH_VERSION = "v23.0";
+export const META_GRAPH = `https://graph.facebook.com/${META_GRAPH_VERSION}`;
+export const META_DIALOG = `https://www.facebook.com/${META_GRAPH_VERSION}/dialog/oauth`;
+
 export type Network = "x" | "instagram" | "tiktok" | "facebook";
 
 export const NETWORKS: Network[] = ["x", "instagram", "tiktok", "facebook"];
@@ -51,15 +59,15 @@ export const PROVIDERS: Record<Network, ProviderConfig> = {
     profileUrl: "https://api.twitter.com/2/users/me?user.fields=profile_image_url",
   },
   facebook: {
-    authorizeUrl: "https://www.facebook.com/v19.0/dialog/oauth",
-    tokenUrl: "https://graph.facebook.com/v19.0/oauth/access_token",
+    authorizeUrl: META_DIALOG,
+    tokenUrl: `${META_GRAPH}/oauth/access_token`,
     // pages_read_user_content lets us pull posts that tag the Page (the
     // /tagged edge), in addition to comments on the Page's own posts.
     scope: "pages_show_list,pages_read_engagement,pages_manage_posts,pages_read_user_content",
     clientIdParam: "client_id",
     tokenAuthStyle: "body",
     pkce: false,
-    profileUrl: "https://graph.facebook.com/v19.0/me?fields=id,name,picture",
+    profileUrl: `${META_GRAPH}/me?fields=id,name,picture`,
   },
   instagram: {
     // Same Meta app + Facebook Login dialog as `facebook`; the difference is
@@ -67,13 +75,13 @@ export const PROVIDERS: Record<Network, ProviderConfig> = {
     // required for this to resolve to something publishable — resolving the
     // linked IG business account id (via /me/accounts) is left as a
     // follow-up once direct publishing is in scope.
-    authorizeUrl: "https://www.facebook.com/v19.0/dialog/oauth",
-    tokenUrl: "https://graph.facebook.com/v19.0/oauth/access_token",
+    authorizeUrl: META_DIALOG,
+    tokenUrl: `${META_GRAPH}/oauth/access_token`,
     scope: "instagram_basic,pages_show_list,pages_read_engagement",
     clientIdParam: "client_id",
     tokenAuthStyle: "body",
     pkce: false,
-    profileUrl: "https://graph.facebook.com/v19.0/me?fields=id,name,picture",
+    profileUrl: `${META_GRAPH}/me?fields=id,name,picture`,
   },
   tiktok: {
     authorizeUrl: "https://www.tiktok.com/v2/auth/authorize",

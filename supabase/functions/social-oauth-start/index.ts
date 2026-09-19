@@ -110,6 +110,14 @@ Deno.serve(async (req) => {
       scope: provider.scope,
       state,
     });
+    // Sevra's shared Meta app uses Facebook Login for Business, which takes a
+    // configuration (the permissions, set up once in Meta's dashboard) rather
+    // than a scope list. A client's own Meta app keeps the scope list.
+    const metaConfigId = Deno.env.get("PLATFORM_META_CONFIG_ID")?.trim();
+    if (network === "facebook" && creds.source === "platform" && metaConfigId) {
+      params.delete("scope");
+      params.set("config_id", metaConfigId);
+    }
     if (provider.pkce && codeChallenge) {
       params.set("code_challenge", codeChallenge);
       params.set("code_challenge_method", "S256");

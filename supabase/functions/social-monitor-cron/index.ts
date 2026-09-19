@@ -3,7 +3,7 @@
 // there yet). All new rows run through SEVRA analysis afterward.
 // Triggered by pg_cron every 15 minutes (or on-demand).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { refreshXToken } from "../_shared/social-providers.ts";
+import { refreshXToken, META_GRAPH } from "../_shared/social-providers.ts";
 import { resolveCredentials } from "../_shared/social-credentials.ts";
 import { profileFor } from "../_shared/industries.ts";
 import { chatCompletion, MODELS } from "../_shared/ai.ts";
@@ -289,7 +289,7 @@ async function pullRealFacebook(admin: any): Promise<{ rows: MentionRow[]; error
       fields: "id,permalink_url,comments.limit(50){id,message,from,created_time,like_count}",
       access_token: accessToken,
     });
-    const feedRes = await fetch(`https://graph.facebook.com/v19.0/${pageId}/feed?${feedParams}`);
+    const feedRes = await fetch(`${META_GRAPH}/${pageId}/feed?${feedParams}`);
     const feedJson = await feedRes.json().catch(() => ({}));
     if (!feedRes.ok) {
       return { rows: [], error: feedJson?.error?.message ?? `Facebook feed pull failed (${feedRes.status})` };
@@ -320,7 +320,7 @@ async function pullRealFacebook(admin: any): Promise<{ rows: MentionRow[]; error
       fields: "id,message,created_time,from,permalink_url",
       access_token: accessToken,
     });
-    const taggedRes = await fetch(`https://graph.facebook.com/v19.0/${pageId}/tagged?${taggedParams}`);
+    const taggedRes = await fetch(`${META_GRAPH}/${pageId}/tagged?${taggedParams}`);
     const taggedJson = await taggedRes.json().catch(() => ({}));
     if (taggedRes.ok) {
       for (const post of taggedJson.data ?? []) {

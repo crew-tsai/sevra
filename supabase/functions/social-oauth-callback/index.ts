@@ -3,7 +3,7 @@
 // the provider's browser redirect, authenticated only by the one-time
 // `state` value we minted in social-oauth-start.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { callbackRedirectUri, isNetwork, PROVIDERS } from "../_shared/social-providers.ts";
+import { callbackRedirectUri, isNetwork, PROVIDERS, META_GRAPH } from "../_shared/social-providers.ts";
 import { resolveCredentials } from "../_shared/social-credentials.ts";
 
 const corsHeaders = {
@@ -38,13 +38,13 @@ async function resolveFacebookPage(
       client_secret: clientSecret,
       fb_exchange_token: shortLivedUserToken,
     });
-    const exchangeRes = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?${exchangeParams}`);
+    const exchangeRes = await fetch(`${META_GRAPH}/oauth/access_token?${exchangeParams}`);
     const exchangeJson = await exchangeRes.json().catch(() => ({}));
     const longLivedToken: string | null = exchangeRes.ok ? exchangeJson.access_token ?? null : null;
     const userToken = longLivedToken ?? shortLivedUserToken;
 
     const pagesRes = await fetch(
-      `https://graph.facebook.com/v19.0/me/accounts?access_token=${encodeURIComponent(userToken)}`,
+      `${META_GRAPH}/me/accounts?access_token=${encodeURIComponent(userToken)}`,
     );
     const pagesJson = await pagesRes.json().catch(() => ({}));
     const page = pagesJson?.data?.[0];

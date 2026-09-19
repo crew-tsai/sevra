@@ -3,7 +3,7 @@
 // is a day-to-day Approvals-page action, same as the existing copy+open-tab
 // flow it replaces) — only the account *connection* itself is admin-gated.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { refreshXToken } from "../_shared/social-providers.ts";
+import { refreshXToken, META_GRAPH } from "../_shared/social-providers.ts";
 import { resolveCredentials } from "../_shared/social-credentials.ts";
 
 const corsHeaders = {
@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const fbRes = await fetch(`https://graph.facebook.com/v19.0/${pageId}/feed`, {
+    const fbRes = await fetch(`${META_GRAPH}/${pageId}/feed`, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ message: content, access_token: tokenRow.access_token }),
