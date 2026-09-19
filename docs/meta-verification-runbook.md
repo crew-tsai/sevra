@@ -91,6 +91,17 @@ Meta, not the reverse.
 
 ## Stage 2 — Business Verification
 
+> **The Start Verification button is not there at first.** Security Centre says
+> *"Your organization does not need to be verified"* until an app linked to the
+> portfolio requests Advanced Access. So do Stage 3 first, then request Advanced Access
+> on the permissions (Stage 4, "Permissions to request"): Meta answers *"Business
+> verification required"* with a **Start verification** link, and the button appears
+> here. Seen on The Stellar Crew's portfolio, 2026-09-19.
+>
+> While in Security Centre: set **two-factor authentication** to required for everyone,
+> and **add a second admin** (three with full control at most) so one lost login cannot
+> strand the process.
+
 1. **Settings → Business Info → Security Centre** → **Start Verification**
 2. Enter the legal details — copied from the documents
 3. Upload the supporting documents
@@ -115,7 +126,9 @@ At **developers.facebook.com** → your app:
    *Business Account* → The Stellar Crew. This is the join between the product and the
    verified entity, and Advanced Access is impossible without it. The app keeps the name
    **Sevra**; only the owning business is The Stellar Crew.
-2. **Privacy Policy URL** and **Terms of Service URL** — required, must be live
+2. **Privacy Policy URL**, **Terms of Service URL** and **User data deletion** URL —
+   required, must be live. *Sevra's public site does not have these pages yet*; they
+   need The Stellar Crew's legal name, country, address and a privacy contact.
 3. **App icon**, category, contact email
 4. **Valid OAuth Redirect URI** — this exact value, and nothing else is needed:
 
@@ -196,8 +209,11 @@ Set the two secrets. The application code is already written and waiting.
 supabase secrets set PLATFORM_META_CLIENT_ID=<app id> PLATFORM_META_CLIENT_SECRET=<app secret> \
   --project-ref ocuicsgffeucdxqyzsai   # seeds every future client
 
+# and each workspace that already exists — at the time of writing:
 supabase secrets set PLATFORM_META_CLIENT_ID=<app id> PLATFORM_META_CLIENT_SECRET=<app secret> \
-  --project-ref cbkeuuudcqgfpdkwevto   # the live deployment
+  --project-ref cbkeuuudcqgfpdkwevto   # The Stellar Crew's own workspace
+supabase secrets set PLATFORM_META_CLIENT_ID=<app id> PLATFORM_META_CLIENT_SECRET=<app secret> \
+  --project-ref ftbnhpjapequsqqyakqa   # Lessence
 ```
 
 The Admin panel flips from "register your own developer app" to **Connect** on its own —
