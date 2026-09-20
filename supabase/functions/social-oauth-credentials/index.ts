@@ -2,7 +2,7 @@
 // (Client ID/Secret) instead of requiring `supabase secrets set` access.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { isNetwork, NETWORKS } from "../_shared/social-providers.ts";
-import { platformNetworks } from "../_shared/social-credentials.ts";
+import { featureReady, platformNetworks } from "../_shared/social-credentials.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -95,6 +95,7 @@ Deno.serve(async (req) => {
           client_id: string | null;
           updated_at: string | null;
           platform_available: boolean;
+          feature_ready: boolean;
           source: "client" | "platform" | "none";
         }
       > = {};
@@ -104,6 +105,7 @@ Deno.serve(async (req) => {
           client_id: null,
           updated_at: null,
           platform_available: platform[network],
+          feature_ready: featureReady(network),
           source: platform[network] ? "platform" : "none",
         };
       }
@@ -113,6 +115,7 @@ Deno.serve(async (req) => {
           client_id: row.client_id,
           updated_at: row.updated_at,
           platform_available: platform[row.network as keyof typeof platform] ?? false,
+          feature_ready: featureReady(row.network as Network),
           source: "client",
         };
       }

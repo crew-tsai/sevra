@@ -77,7 +77,7 @@ export const PROVIDERS: Record<Network, ProviderConfig> = {
     // follow-up once direct publishing is in scope.
     authorizeUrl: META_DIALOG,
     tokenUrl: `${META_GRAPH}/oauth/access_token`,
-    scope: "instagram_basic,pages_show_list,pages_read_engagement",
+    scope: "instagram_basic,instagram_manage_comments,pages_show_list,pages_read_engagement",
     clientIdParam: "client_id",
     tokenAuthStyle: "body",
     pkce: false,

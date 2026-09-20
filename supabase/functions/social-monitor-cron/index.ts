@@ -13,7 +13,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SIM_CHANNELS = ["instagram", "tiktok"] as const;
+// Instagram is monitored for real now; only TikTok is left to simulate, and
+// only where a workspace asked for simulation.
+const SIM_CHANNELS = ["tiktok"] as const;
 
 // Accepts two legitimate callers: the pg_cron job (Bearer = service-role
 // key) and the "Run monitor now" button (Bearer = a real user session).
@@ -40,7 +42,7 @@ Return STRICT JSON only:
 {
   "posts": [
     {
-      "channel": "instagram" | "tiktok",
+      "channel": "tiktok",
       "author_name": "Realistic full name",
       "author_handle": "handle_no_at",
       "content": "The post text (1-3 sentences, can include emojis & mentions)",
@@ -262,6 +264,108 @@ async function pullRealX(admin: any, companyName: string | null): Promise<{ rows
   }
 }
 
+/**
+ * Instagram: comments on the account's own posts, and posts by other people
+ * that tag or mention it. Instagram allows nothing wider — a post naming the
+ * company without tagging it cannot be found through any API — so this is the
+ * whole of what monitoring can see there.
+ *
+ * Reached through the Facebook Page the Instagram Business account is linked
+ * to, with that Page's token.
+ */
+// deno-lint-ignore no-explicit-any
+async function pullRealInstagram(admin: any): Promise<{ rows: MentionRow[]; error?: string }> {
+  const { data: connection } = await admin
+    .from("social_connections")
+    .select("id, account_id, account_label")
+    .eq("network", "instagram")
+    .eq("status", "connected")
+    .maybeSingle();
+  if (!connection || !connection.account_id) return { rows: [] };
+
+  try {
+    const { data: tokenRow } = await admin
+      .from("social_connection_tokens")
+      .select("access_token")
+      .eq("connection_id", connection.id)
+      .maybeSingle();
+    if (!tokenRow?.access_token) {
+      return { rows: [], error: "Instagram connected but no stored token — try reconnecting." };
+    }
+
+    const igId = connection.account_id;
+    const accessToken = tokenRow.access_token;
+    const rows: MentionRow[] = [];
+
+    // Comments on the account's own recent posts.
+    const mediaParams = new URLSearchParams({
+      fields: "id,permalink,caption,timestamp,comments.limit(50){id,text,username,timestamp,like_count}",
+      limit: "25",
+      access_token: accessToken,
+    });
+    const mediaRes = await fetch(`${META_GRAPH}/${igId}/media?${mediaParams}`);
+    const mediaJson = await mediaRes.json().catch(() => ({}));
+    if (!mediaRes.ok) {
+      return { rows: [], error: mediaJson?.error?.message ?? `Instagram media pull failed (${mediaRes.status})` };
+    }
+    for (const media of mediaJson.data ?? []) {
+      for (const comment of media.comments?.data ?? []) {
+        if (!comment.text) continue;
+        rows.push({
+          channel: "instagram",
+          external_id: comment.id,
+          author_name: comment.username ?? null,
+          author_handle: comment.username ?? null,
+          content: comment.text,
+          post_url: media.permalink ?? null,
+          likes: comment.like_count ?? 0,
+          shares: 0,
+          reach: 0,
+          is_verified: false,
+          is_influencer: false,
+          posted_at: comment.timestamp ?? new Date().toISOString(),
+          status: "pending",
+          created_by: null,
+        });
+      }
+    }
+
+    // Posts by other people that tag the account.
+    const tagParams = new URLSearchParams({
+      fields: "id,caption,username,permalink,timestamp,like_count,comments_count",
+      limit: "25",
+      access_token: accessToken,
+    });
+    const tagsRes = await fetch(`${META_GRAPH}/${igId}/tags?${tagParams}`);
+    const tagsJson = await tagsRes.json().catch(() => ({}));
+    if (tagsRes.ok) {
+      for (const media of tagsJson.data ?? []) {
+        if (!media.caption) continue;
+        rows.push({
+          channel: "instagram",
+          external_id: media.id,
+          author_name: media.username ?? null,
+          author_handle: media.username ?? null,
+          content: media.caption,
+          post_url: media.permalink ?? null,
+          likes: media.like_count ?? 0,
+          shares: media.comments_count ?? 0,
+          reach: 0,
+          is_verified: false,
+          is_influencer: false,
+          posted_at: media.timestamp ?? new Date().toISOString(),
+          status: "pending",
+          created_by: null,
+        });
+      }
+    }
+
+    return { rows };
+  } catch (e) {
+    return { rows: [], error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 // deno-lint-ignore no-explicit-any
 async function pullRealFacebook(admin: any): Promise<{ rows: MentionRow[]; error?: string }> {
   const { data: connection } = await admin
@@ -394,7 +498,7 @@ Deno.serve(async (req) => {
     // emergencies.
     const simulate = settings?.simulation_enabled === true;
 
-    const [simPosts, xResult, fbResult] = await Promise.all([
+    const [simPosts, xResult, fbResult, igResult] = await Promise.all([
       simulate
         ? generateSimulatedMentions(companyName, industry).catch((e) => {
             networkErrors.simulation = e?.message ?? String(e);
@@ -403,9 +507,11 @@ Deno.serve(async (req) => {
         : Promise.resolve([] as any[]),
       pullRealX(admin, companyName),
       pullRealFacebook(admin),
+      pullRealInstagram(admin),
     ]);
     if (xResult.error) networkErrors.x = xResult.error;
     if (fbResult.error) networkErrors.facebook = fbResult.error;
+    if (igResult.error) networkErrors.instagram = igResult.error;
 
     // deno-lint-ignore no-explicit-any
     const simRows: MentionRow[] = simPosts.map((p: any) => ({
@@ -431,7 +537,7 @@ Deno.serve(async (req) => {
       insertedIds = insertedIds.concat((data ?? []).map((r: any) => r.id));
     }
 
-    const realRows = [...xResult.rows, ...fbResult.rows];
+    const realRows = [...xResult.rows, ...fbResult.rows, ...igResult.rows];
     if (realRows.length) {
       const { data, error } = await admin
         .from("social_mentions")

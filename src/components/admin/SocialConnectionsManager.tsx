@@ -42,6 +42,8 @@ type CredentialStatus = {
   updated_at: string | null;
   /** Sevra's shared app covers this network, so no setup is required. */
   platform_available: boolean;
+  /** Sevra has a working feature for this network; if not, there is nothing to connect. */
+  feature_ready: boolean;
   /** Whose developer app a connection will actually run through. */
   source: "client" | "platform" | "none";
 };
@@ -55,10 +57,11 @@ const NETWORK_META: Record<Network, { label: string; icon: typeof Twitter }> = {
 
 const NETWORK_ORDER: Network[] = ["x", "facebook", "instagram", "tiktok"];
 
-// Networks Sevra can genuinely work with today. The others are shown, so the
-// roadmap is visible, but without a Connect button or a credentials form:
-// connecting them would store a token nothing reads.
-const SUPPORTED: ReadonlySet<Network> = new Set<Network>(["x", "facebook"]);
+// Whether a network can be connected at all is decided by the server
+// (social-oauth-credentials → feature_ready): Sevra must have a working
+// feature for it. The others are shown, so the roadmap is visible, but with no
+// Connect button and no credentials form — connecting them would store a token
+// nothing reads.
 
 const REDIRECT_URI = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-oauth-callback`;
 
@@ -70,6 +73,7 @@ function emptyCredentials(): Record<Network, CredentialStatus> {
       client_id: null,
       updated_at: null,
       platform_available: false,
+      feature_ready: false,
       source: "none",
     };
   }
@@ -217,7 +221,7 @@ export default function SocialConnectionsManager() {
           // Only demand credentials when there is genuinely no way to connect.
           // If Sevra's shared app covers this network, registering a developer
           // app is an option, not a prerequisite.
-          const supported = SUPPORTED.has(network);
+          const supported = !!cred?.feature_ready;
           const showCredForm =
             supported && (editingCreds[network] || (!cred?.configured && !cred?.platform_available));
 

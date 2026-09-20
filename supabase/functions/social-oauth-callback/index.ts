@@ -286,7 +286,37 @@ Deno.serve(async (req) => {
     let profile: { account_id: string | null; account_label: string | null; avatar_url: string | null };
     let connectError: string | null = null;
 
-    if (network === "facebook") {
+    if (network === "instagram") {
+      // Instagram Business accounts are reached through the Facebook Page they
+      // are linked to: the same login, then the Page's token, then the account
+      // hanging off that Page.
+      const pageResult = await resolveFacebookPage(clientId, clientSecret, accessToken);
+      if ("error" in pageResult) {
+        connectError = pageResult.error;
+        profile = { account_id: null, account_label: null, avatar_url: null };
+      } else {
+        const igRes = await fetch(
+          `${META_GRAPH}/${pageResult.page.id}?fields=instagram_business_account{id,username,profile_picture_url}` +
+            `&access_token=${encodeURIComponent(pageResult.page.access_token)}`,
+        );
+        const igJson = await igRes.json().catch(() => ({}));
+        const ig = igJson?.instagram_business_account;
+        if (!ig?.id) {
+          connectError =
+            "That Facebook Page has no Instagram business account linked. Link it in the Page's settings, then connect again.";
+          profile = { account_id: null, account_label: null, avatar_url: null };
+        } else {
+          accessToken = pageResult.page.access_token;
+          refreshToken = null;
+          tokenExpiresAt = pageResult.tokenExpiresAt;
+          profile = {
+            account_id: ig.id,
+            account_label: ig.username ? `@${ig.username}` : pageResult.page.name,
+            avatar_url: ig.profile_picture_url ?? null,
+          };
+        }
+      }
+    } else if (network === "facebook") {
       // Facebook posts go to a Page, not the personal profile — swap the
       // user token out for that Page's own access token before storing.
       const pageResult = await resolveFacebookPage(clientId, clientSecret, accessToken);

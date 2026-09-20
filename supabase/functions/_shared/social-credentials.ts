@@ -49,6 +49,17 @@ export function platformCredentials(network: Network): ResolvedCredentials | nul
   return { clientId: clientId.trim(), clientSecret: clientSecret.trim(), source: "platform" };
 }
 
+/**
+ * Networks Sevra has working features for. Instagram rides on Meta's shared
+ * app like Facebook, but needs its own login configuration (a different set of
+ * permissions), so it is offered only once that id is configured. TikTok has
+ * no feature at all yet.
+ */
+export function featureReady(network: Network): boolean {
+  if (network === "instagram") return !!Deno.env.get("PLATFORM_META_IG_CONFIG_ID")?.trim();
+  return network === "x" || network === "facebook";
+}
+
 /** True when this deployment could connect the network with no client setup. */
 export function platformNetworks(): Record<Network, boolean> {
   const out = {} as Record<Network, boolean>;
