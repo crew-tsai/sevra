@@ -109,7 +109,8 @@ async function setStatus(ctx: EngineContext, next: string | null): Promise<strin
     .update({ status: next })
     .eq("id", ctx.incident.id);
   if (error) return `failed: ${error.message}`;
-  await auditRow(ctx.admin, ctx.incident, "status", ctx.incident.status ?? null, next);
+  // The incidents trigger writes the audit entry for this, and knows it was
+  // Sevra because a service-role write has no auth.uid().
   ctx.incident.status = next;
   return `status → ${next}`;
 }
@@ -121,7 +122,6 @@ async function lockPublic(ctx: EngineContext): Promise<string> {
     .update({ is_public: false })
     .eq("id", ctx.incident.id);
   if (error) return `failed: ${error.message}`;
-  await auditRow(ctx.admin, ctx.incident, "is_public", "true", "false");
   ctx.incident.is_public = false;
   return "public publishing locked";
 }

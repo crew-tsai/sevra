@@ -22,6 +22,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { chatCompletion, MODELS } from "../_shared/ai.ts";
 import { profileFor } from "../_shared/industries.ts";
+import { identifyCaller, unauthorized } from "../_shared/caller.ts";
+import { loadCommsManual } from "../_shared/comms-manual.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,19 +39,11 @@ Deno.serve(async (req) => {
 
     // Authenticate before reading anything. The gateway accepts the public anon
     // key as a valid JWT, so it proves nothing about who is calling; only this
-    // check does.
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userData } = await userClient.auth.getUser();
-    const userId = userData?.user?.id ?? null;
-    if (!userId) {
-      return new Response(JSON.stringify({ success: false, error: "Not authenticated" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // does. The service role is accepted too: the plan is written alongside the
+    // package when Sevra detects a crisis, with nobody signed in.
+    const caller = await identifyCaller(req);
+    if (caller.kind === "anonymous") return unauthorized();
+    const userId: string | null = caller.kind === "user" ? caller.userId : null;
 
     const { incident_id } = await req.json().catch(() => ({}));
     if (!incident_id || typeof incident_id !== "string") {
@@ -73,9 +67,30 @@ Deno.serve(async (req) => {
       .limit(10);
 
     const { data: settings } = await admin
-      .from("company_settings").select("company_name, industry").maybeSingle();
+      .from("company_settings")
+      .select(
+        "company_name, industry, comms_manual_url, comms_manual_name, comms_manual_text, comms_manual_text_source",
+      )
+      .maybeSingle();
     const company = settings?.company_name ?? "the organization";
     const profile = profileFor(settings?.industry);
+
+    // Who this workspace has said does what. A plan that says "notify the
+    // relevant team" is a worse plan than one that says "Executive Team signs
+    // off before the press release goes out", and the workspace has already
+    // written that down in Admin - Responsibilities.
+    const [{ data: lists }, { data: matrix }] = await Promise.all([
+      admin.from("email_lists").select("id, name"),
+      admin.from("responsibility_matrix").select("asset_type, level, list_id"),
+    ]);
+    const listName = new Map((lists ?? []).map((l: any) => [l.id, l.name]));
+    const responsibilities = (matrix ?? [])
+      .map((r: any) => `- ${r.asset_type}: ${r.level} = ${listName.get(r.list_id) ?? "?"}`)
+      .join("\n");
+
+    // The same authority the communications follow: their manual if they have
+    // one, recognised practice otherwise.
+    const manual = await loadCommsManual(admin, settings);
 
     const context = `
 INCIDENT
@@ -111,7 +126,17 @@ ${(mentions ?? []).map((m: any) => `- [${m.channel}] @${m.author_handle}: ${m.co
         `English, and give the same plan in neutral, professional Spanish in the es_ ` +
         `fields — a translation, item for item, in the same order.`,
         },
-        { role: "user", content: `Generate a full response plan for the following incident:\n\n${context}` },
+        {
+          role: "user",
+          content:
+            `Generate a full response plan for the following incident:\n\n${context}` +
+            (responsibilities
+              ? `\n\nWHO IS RESPONSIBLE, ACCOUNTABLE, CONSULTED AND INFORMED in this organization — name these teams in the actions rather than generic roles:\n${responsibilities}`
+              : "") +
+            (manual
+              ? `\n\nThis organization's crisis communications manual governs the plan. Follow its procedures, escalation levels and named roles, using its own terms.\n\n--- MANUAL${manual.truncated ? " (excerpt)" : ""} ---\n${manual.text}\n--- END OF MANUAL ---`
+              : ""),
+        },
       ],
       tools: [
         {
@@ -168,7 +193,7 @@ ${(mentions ?? []).map((m: any) => `- [${m.channel}] @${m.author_handle}: ${m.co
               },
             }
           : null,
-        generated_by: "ai",
+        generated_by: manual ? "ai+manual" : "ai",
         created_by: userId,
       },
       { onConflict: "incident_id" },

@@ -18,6 +18,7 @@ type AuditEntry = {
   changed_by: string | null;
   changed_at: string;
   field_name: string;
+  change_source: string | null;
   old_value: string | null;
   new_value: string | null;
 };
@@ -44,6 +45,12 @@ function ValueCell({ field, value }: { field: string; value: string | null }) {
   if (field === "media_package") {
     return <Badge variant="outline">{t.packageBasis[value] ?? value}</Badge>;
   }
+  if (field === "status") {
+    return <Badge variant="outline">{common.status[value] ?? value}</Badge>;
+  }
+  if (field === "is_public") {
+    return <Badge variant="outline">{t.publicValue[value] ?? value}</Badge>;
+  }
   return <span className="font-mono text-sm">{value}</span>;
 }
 
@@ -60,6 +67,11 @@ export default function AuditLog() {
     risk_score: t.riskScore,
     risk: t.riskLabel,
     media_package: t.mediaPackage,
+    status: t.statusField,
+    approval_status: t.approvalField,
+    assignee: t.assigneeField,
+    is_public: t.publicField,
+    workflow: t.workflowField,
   };
 
   useEffect(() => {
@@ -78,7 +90,7 @@ export default function AuditLog() {
       setLoading(true);
       let q = supabase
         .from("incident_audit_log")
-        .select("id, incident_id, incident_title, changed_by, changed_at, field_name, old_value, new_value")
+        .select("id, incident_id, incident_title, changed_by, changed_at, field_name, old_value, new_value, change_source")
         .order("changed_at", { ascending: false })
         .limit(500);
       if (fieldFilter !== "all") q = q.eq("field_name", fieldFilter);
@@ -109,6 +121,8 @@ export default function AuditLog() {
             <SelectItem value="risk_score">{t.riskScore}</SelectItem>
             <SelectItem value="risk">{t.riskLabel}</SelectItem>
             <SelectItem value="media_package">{t.mediaPackage}</SelectItem>
+            <SelectItem value="status">{t.statusField}</SelectItem>
+            <SelectItem value="workflow">{t.workflowField}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -175,6 +189,7 @@ export default function AuditLog() {
                     <TableHead>{t.field}</TableHead>
                     <TableHead>{t.previous}</TableHead>
                     <TableHead>{t.new}</TableHead>
+                    <TableHead>{t.who}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -198,6 +213,9 @@ export default function AuditLog() {
                           <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
                           <ValueCell field={e.field_name} value={e.new_value} />
                         </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                        {e.change_source === "sevra" ? t.bySevra : t.byPerson}
                       </TableCell>
                     </TableRow>
                   ))}

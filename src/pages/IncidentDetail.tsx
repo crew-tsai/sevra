@@ -24,6 +24,7 @@ import {
   AlertTriangle,
   ShieldAlert,
   Package,
+  ListChecks,
   LayoutDashboard,
   Lightbulb,
 } from "lucide-react";
@@ -98,6 +99,19 @@ const formatDateTime = (iso: string | null | undefined, locale?: string) => {
   });
 };
 
+/** The four phases, in the order a crisis actually moves through them. */
+const PHASES = ["phase_immediate", "phase_short", "phase_medium", "phase_long"] as const;
+
+type ResponsePlan = {
+  id: string;
+  phase_immediate: string[] | null;
+  phase_short: string[] | null;
+  phase_medium: string[] | null;
+  phase_long: string[] | null;
+  generated_by: string | null;
+  translations: unknown;
+};
+
 export default function IncidentDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -114,6 +128,8 @@ export default function IncidentDetail() {
   const [mentions, setMentions] = useState<Mention[]>([]);
   const [assetCount, setAssetCount] = useState(0);
   const [drafting, setDrafting] = useState(false);
+  const [plan, setPlan] = useState<ResponsePlan | null>(null);
+  const [planning, setPlanning] = useState(false);
   const [loading, setLoading] = useState(true);
   const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
@@ -130,7 +146,12 @@ export default function IncidentDetail() {
   const load = async () => {
     if (!id) return;
     setLoading(true);
-    const [{ data: inc, error: incErr }, { data: mens, error: menErr }, { count, error: cntErr }] = await Promise.all([
+    const [
+      { data: inc, error: incErr },
+      { data: mens, error: menErr },
+      { count, error: cntErr },
+      { data: planRow },
+    ] = await Promise.all([
       supabase.from("incidents").select("*").eq("id", id).maybeSingle(),
       supabase
         .from("social_mentions")
@@ -141,6 +162,11 @@ export default function IncidentDetail() {
         .from("incident_assets")
         .select("id", { count: "exact", head: true })
         .eq("incident_id", id),
+      supabase
+        .from("response_plan")
+        .select("id, phase_immediate, phase_short, phase_medium, phase_long, generated_by, translations")
+        .eq("incident_id", id)
+        .maybeSingle(),
     ]);
     if (incErr) toast.error(incErr.message);
     if (menErr) toast.error(menErr.message);
@@ -148,6 +174,7 @@ export default function IncidentDetail() {
     setIncident((inc as Incident | null) ?? null);
     setMentions((mens ?? []) as Mention[]);
     setAssetCount(count ?? 0);
+    setPlan((planRow as ResponsePlan | null) ?? null);
     setLoading(false);
   };
 
@@ -223,6 +250,25 @@ export default function IncidentDetail() {
     }
   };
 
+  /**
+   * The plan is written alongside the package when Sevra detects a crisis.
+   * This is for the incidents that predate that, and for a plan someone wants
+   * rewritten after the facts changed.
+   */
+  const buildPlan = async () => {
+    if (!incident) return;
+    setPlanning(true);
+    const { data, error } = await supabase.functions.invoke("generate-response-plan", {
+      body: { incident_id: incident.id },
+    });
+    setPlanning(false);
+    if (error || !data?.success) {
+      return toast.error(error?.message ?? data?.error ?? t.planFailed);
+    }
+    toast.success(t.planReady);
+    load();
+  };
+
   const reject = async () => {
     if (!incident) return;
     setRejecting(true);
@@ -239,6 +285,7 @@ export default function IncidentDetail() {
   // Hooks above the early returns, so their order never changes between renders.
   const trInc = useTranslations("incidents", incident ? [incident] : []);
   const trMen = useTranslations("social_mentions", mentions);
+  const trPlan = useTranslations("response_plan", plan ? [plan] : []);
 
   if (loading) {
     return (
@@ -477,6 +524,53 @@ export default function IncidentDetail() {
               <p className="text-xs text-muted-foreground">
                 {t.when(fmt(incident.approved_at) ?? "")}
               </p>
+            )}
+          </Card>
+
+          <Card className="p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <h2 className="text-sm font-semibold text-foreground inline-flex items-center gap-2">
+                <ListChecks className="h-4 w-4 text-primary" /> {t.responsePlan}
+              </h2>
+              {plan?.generated_by === "ai+manual" && (
+                <Badge variant="secondary" className="text-[10px]">{t.fromManual}</Badge>
+              )}
+            </div>
+
+            {plan ? (
+              <div className="space-y-3">
+                {PHASES.map((phase) => {
+                  const actions = trPlan.list(plan, phase);
+                  if (!actions.length) return null;
+                  return (
+                    <div key={phase}>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
+                        {t.phases[phase]}
+                      </p>
+                      <ul className="mt-1 space-y-1">
+                        {actions.map((action, i) => (
+                          <li key={i} className="text-xs leading-relaxed flex gap-1.5">
+                            <span className="text-primary/60 shrink-0">·</span>
+                            <span>{action}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })}
+                <Button size="sm" variant="outline" className="w-full" onClick={buildPlan} disabled={planning}>
+                  {planning ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
+                  {t.rebuildPlan}
+                </Button>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground">{t.noPlanYet}</p>
+                <Button size="sm" variant="outline" className="w-full" onClick={buildPlan} disabled={planning}>
+                  {planning ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
+                  {t.buildPlan}
+                </Button>
+              </>
             )}
           </Card>
 

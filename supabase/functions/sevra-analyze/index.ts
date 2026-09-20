@@ -130,6 +130,37 @@ async function findExistingIncident(admin: any, analysis: any) {
     if (data && data.length) return data[0].id as string;
   }
 
+  // 4. Same kind of crisis, same few hours.
+  //
+  // The rules above all need something extracted from the post — a service
+  // reference, an operator name, a location code. A software outage mentions
+  // none of those, so two posts about the same twelve-hour outage opened two
+  // incidents, and everything downstream ran twice: two packages drafted, two
+  // sets of alerts, two things for the crisis team to work through. Every
+  // incident in a workspace is about the same organization, so the same type
+  // and sub-type within six hours is the same crisis until something says
+  // otherwise — a different country, or a different service reference, does.
+  if (analysis.incident_type && analysis.sub_type) {
+    const since6h = new Date(Date.now() - 6 * 3600 * 1000).toISOString();
+    const { data } = await admin
+      .from("incidents")
+      .select("id, country, flight_number")
+      .eq("incident_type", analysis.incident_type)
+      .eq("sub_type", analysis.sub_type)
+      .gte("created_at", since6h)
+      .order("created_at", { ascending: false })
+      .limit(5);
+    for (const candidate of data ?? []) {
+      const differentPlace =
+        analysis.country && candidate.country && analysis.country !== candidate.country;
+      const differentService =
+        analysis.flight_number &&
+        candidate.flight_number &&
+        analysis.flight_number !== candidate.flight_number;
+      if (!differentPlace && !differentService) return candidate.id as string;
+    }
+  }
+
   return null;
 }
 

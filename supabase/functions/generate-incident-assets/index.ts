@@ -303,6 +303,22 @@ ${instructions}`,
       if (logErr) console.error("generate-incident-assets: audit log write failed", logErr.message);
     }
 
+    // The plan and the package answer the two halves of the same question —
+    // what do we say, and what do we do — so a crisis that gets one gets the
+    // other. Dispatched rather than awaited: it is its own invocation and the
+    // caller should not wait a second minute for it.
+    if (!singleKey) {
+      const plan = fetch(`${supabaseUrl}/functions/v1/generate-response-plan`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ incident_id }),
+      }).catch((e) => {
+        console.error("generate-incident-assets: response plan request failed —", e);
+        return null;
+      });
+      await Promise.race([plan, new Promise((resolve) => setTimeout(resolve, 3000))]);
+    }
+
     return new Response(
       JSON.stringify({ success: true, count: rows.length, basis }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
