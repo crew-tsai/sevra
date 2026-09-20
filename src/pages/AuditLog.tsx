@@ -56,6 +56,10 @@ function ValueCell({ field, value }: { field: string; value: string | null }) {
 
 export default function AuditLog() {
   const [entries, setEntries] = useState<AuditEntry[]>([]);
+  // changed_by is a user id; the names live in team_members. Looked up
+  // separately rather than joined, because RLS shows a non-administrator only
+  // their own row and a join would simply return nothing for the rest.
+  const [people, setPeople] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [fieldFilter, setFieldFilter] = useState<string>("all");
   const [supportAccess, setSupportAccess] = useState<SupportAccess[]>([]);
@@ -95,8 +99,24 @@ export default function AuditLog() {
         .limit(500);
       if (fieldFilter !== "all") q = q.eq("field_name", fieldFilter);
       const { data } = await q;
-      setEntries((data ?? []) as AuditEntry[]);
+      const rows = (data ?? []) as AuditEntry[];
+      setEntries(rows);
       setLoading(false);
+
+      const ids = Array.from(
+        new Set(rows.map((e) => e.changed_by).filter((id): id is string => !!id)),
+      );
+      if (ids.length) {
+        const { data: members } = await supabase
+          .from("team_members")
+          .select("user_id, full_name, email")
+          .in("user_id", ids);
+        const byId: Record<string, string> = {};
+        for (const m of members ?? []) {
+          if (m.user_id) byId[m.user_id] = m.full_name?.trim() || m.email;
+        }
+        setPeople(byId);
+      }
     })();
   }, [fieldFilter]);
 
@@ -215,7 +235,9 @@ export default function AuditLog() {
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                        {e.change_source === "sevra" ? t.bySevra : t.byPerson}
+                        {e.change_source === "sevra"
+                          ? t.bySevra
+                          : (e.changed_by && people[e.changed_by]) || t.byPerson}
                       </TableCell>
                     </TableRow>
                   ))}
