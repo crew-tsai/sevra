@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Twitter, Instagram, Music2, Facebook, RefreshCw, Sparkles, ExternalLink, AlertTriangle, CheckCircle2, Loader2, Radio, Power, PowerOff } from "lucide-react";
+import { RefreshCw, Sparkles, ExternalLink, AlertTriangle, CheckCircle2, Loader2, Radio, Power, PowerOff } from "lucide-react";
+import { NetworkIcon } from "@/components/NetworkIcon";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { RiskBadge } from "@/components/RiskBadge";
@@ -95,12 +96,15 @@ const formatRelative = (iso: string | null | undefined, ago: Ago) => {
   return ago.d(Math.round(diffH / 24));
 };
 
-const CHANNEL_META: Record<string, { icon: typeof Twitter; label: string; color: string }> = {
-  twitter: { icon: Twitter, label: "X / Twitter", color: "text-sky-500" },
-  instagram: { icon: Instagram, label: "Instagram", color: "text-pink-500" },
-  tiktok: { icon: Music2, label: "TikTok", color: "text-foreground" },
-  facebook: { icon: Facebook, label: "Facebook", color: "text-blue-600" },
+// `twitter` is the stored channel value; X is what it is called now.
+const CHANNEL_META: Record<string, { network: string; label: string; color: string }> = {
+  twitter: { network: "x", label: "X", color: "text-foreground" },
+  instagram: { network: "instagram", label: "Instagram", color: "text-pink-500" },
+  tiktok: { network: "tiktok", label: "TikTok", color: "text-foreground" },
+  facebook: { network: "facebook", label: "Facebook", color: "text-blue-600" },
 };
+
+const CHANNEL_TABS = ["twitter", "instagram", "tiktok", "facebook"] as const;
 
 export default function Sevra() {
   const navigate = useNavigate();
@@ -411,10 +415,17 @@ export default function Sevra() {
       <Tabs value={filter} onValueChange={setFilter} className="w-full">
         <TabsList className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="all">{t.allChannels}</TabsTrigger>
-          <TabsTrigger value="twitter">X</TabsTrigger>
-          <TabsTrigger value="instagram">Instagram</TabsTrigger>
-          <TabsTrigger value="tiktok">TikTok</TabsTrigger>
-          <TabsTrigger value="facebook">Facebook</TabsTrigger>
+          {CHANNEL_TABS.map((channel) => {
+            const meta = CHANNEL_META[channel];
+            const count = timeScoped.filter((m) => m.channel === channel).length;
+            return (
+              <TabsTrigger key={channel} value={channel} title={meta.label} aria-label={meta.label} className="gap-1.5">
+                <NetworkIcon network={meta.network} size={15} className={meta.color} />
+                <span className="sr-only">{meta.label}</span>
+                {count > 0 && <span className="text-[10px] text-muted-foreground">{count}</span>}
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
       </Tabs>
 
@@ -431,14 +442,13 @@ export default function Sevra() {
         <div className="space-y-3">
           {filtered.map((m) => {
             const meta = CHANNEL_META[m.channel] ?? CHANNEL_META.twitter;
-            const Icon = meta.icon;
             const isAnalyzing = analyzingId === m.id || m.status === "analyzing";
             return (
               <Card key={m.id} className="p-3 sm:p-4 overflow-hidden">
                 <div className="flex items-start gap-3 flex-col sm:flex-row">
                   <div className="flex items-start gap-3 w-full sm:contents">
                     <div className={`h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0 ${meta.color}`}>
-                      <Icon className="h-5 w-5" />
+                      <NetworkIcon network={meta.network} size={18} />
                     </div>
                   <div className="flex-1 min-w-0 w-full">
                     <div className="flex items-center gap-2 flex-wrap">
