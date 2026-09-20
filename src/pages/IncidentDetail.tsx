@@ -113,6 +113,7 @@ export default function IncidentDetail() {
   const [incident, setIncident] = useState<Incident | null>(null);
   const [mentions, setMentions] = useState<Mention[]>([]);
   const [assetCount, setAssetCount] = useState(0);
+  const [drafting, setDrafting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
@@ -171,7 +172,35 @@ export default function IncidentDetail() {
       setApproving(false);
       return toast.error(error.message);
     }
+    // Sevra drafts the package by itself when it detects a crisis, so by the
+    // time a person approves the incident the communications may already exist
+    // — and a colleague may already have approved some of them. Regenerating
+    // deletes the lot, so an incident that has a package is only opened.
+    if (assetCount > 0) {
+      setApproving(false);
+      toast.success(t.packageAlreadyDrafted(assetCount), {
+        action: { label: t.openApprovals, onClick: () => navigate("/approvals") },
+      });
+      navigate("/approvals");
+      return;
+    }
+
     toast.success(t.approvedGenerating);
+    setApproving(false);
+    await draftPackage();
+  };
+
+  /**
+   * Write the package for this incident.
+   *
+   * Also reachable on its own, because an incident can end up approved with no
+   * package — the generation failed, the AI was rate limited, or it was
+   * approved before any of this existed — and the card used to say "in
+   * progress" for ever with no way to ask again.
+   */
+  const draftPackage = async () => {
+    if (!incident) return;
+    setDrafting(true);
     try {
       const { data, error: fnErr } = await supabase.functions.invoke("generate-incident-assets", {
         // Written in the language the person is working in; see generate-incident-assets.
@@ -179,7 +208,10 @@ export default function IncidentDetail() {
       });
       if (fnErr) throw fnErr;
       if (!data?.success) throw new Error(data?.error || t.packageFailed);
-      toast.success(t.assetsGenerated(data.count), {
+      // Say which authority it followed: a client who uploaded a manual wants
+      // to know the drafts came from theirs, not from generic practice.
+      const done = data.basis === "manual" ? t.assetsFromManual : t.assetsGenerated;
+      toast.success(done(data.count), {
         action: { label: t.openApprovals, onClick: () => navigate("/approvals") },
       });
       navigate("/approvals");
@@ -187,7 +219,7 @@ export default function IncidentDetail() {
       toast.error(e.message || t.generationFailed);
       load();
     } finally {
-      setApproving(false);
+      setDrafting(false);
     }
   };
 
@@ -472,12 +504,18 @@ export default function IncidentDetail() {
                   </Link>
                 </Button>
               </>
+            ) : drafting ? (
+              <p className="text-xs text-muted-foreground">{t.packageInProgress}</p>
+            ) : isApproved ? (
+              <>
+                <p className="text-xs text-muted-foreground">{t.packageMissing}</p>
+                <Button size="sm" className="w-full" onClick={draftPackage}>
+                  <Sparkles className="h-3.5 w-3.5 mr-1" />
+                  {t.draftPackage}
+                </Button>
+              </>
             ) : (
-              <p className="text-xs text-muted-foreground">
-                {isApproved
-                  ? t.packageInProgress
-                  : t.approveToGenerate}
-              </p>
+              <p className="text-xs text-muted-foreground">{t.approveToGenerate}</p>
             )}
           </Card>
         </div>

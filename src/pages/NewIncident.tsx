@@ -15,6 +15,7 @@ import {
   typeLabel,
   type IncidentType,
 } from "@/lib/industries";
+import { crisisLevel } from "@/lib/crisis-level";
 import { useLang, useMessages } from "@/i18n";
 import { commonMessages } from "@/i18n/messages/common";
 import { newIncidentMessages } from "@/i18n/messages/new-incident";
@@ -91,6 +92,16 @@ export default function NewIncident() {
     else if (riskScore >= 60) risk = "high";
     else if (riskScore >= 40) risk = "medium";
 
+    // The same scale the monitor uses, so a manually reported crisis and a
+    // detected one of the same severity carry the same level.
+    const level = crisisLevel({
+      risk,
+      riskScore,
+      injuryFatality,
+      regulatorInvolved,
+      amplified: influencerMedia,
+    });
+
     const { error } = await supabase.from("incidents").insert({
       title: title.trim(),
       incident_type: incidentType,
@@ -111,6 +122,7 @@ export default function NewIncident() {
       source,
       risk,
       risk_score: riskScore,
+      crisis_level: level,
       created_by: user?.id || null,
     });
 

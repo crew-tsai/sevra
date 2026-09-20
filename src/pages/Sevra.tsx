@@ -16,23 +16,21 @@ import { useIntlLocale, useLang, useMessages } from "@/i18n";
 import { useTranslations } from "@/i18n/useTranslations";
 import { sevraMessages } from "@/i18n/messages/sevra";
 import { humanizeSubType, INCIDENT_TYPES, typeLabel, type IncidentType } from "@/lib/industries";
+import { crisisLevel } from "@/lib/crisis-level";
 
-// Derive an L0–L4 crisis level for a social mention from AI risk / score.
-const mentionCrisisLevel = (m: { ai_risk: string | null; ai_risk_score: number | null }): number => {
-  const r = (m.ai_risk ?? "").toLowerCase();
-  if (r === "critical") return 4;
-  if (r === "high") return 3;
-  if (r === "medium") return 2;
-  if (r === "low") return 1;
-  const s = m.ai_risk_score;
-  if (typeof s === "number") {
-    if (s >= 80) return 4;
-    if (s >= 60) return 3;
-    if (s >= 40) return 2;
-    if (s >= 20) return 1;
-  }
-  return 0;
-};
+// The badge on a mention and the level of the incident it opens come from the
+// same function, so the two can never disagree in front of the user.
+const mentionCrisisLevel = (m: {
+  ai_risk: string | null;
+  ai_risk_score: number | null;
+  is_verified?: boolean | null;
+  is_influencer?: boolean | null;
+}): number =>
+  crisisLevel({
+    risk: m.ai_risk,
+    riskScore: m.ai_risk_score,
+    amplified: m.is_verified || m.is_influencer,
+  });
 
 type Mention = {
   id: string;

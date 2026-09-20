@@ -34,9 +34,12 @@ export type Database = {
       }
       company_settings: {
         Row: {
+          auto_package_level: number | null
           brand_primary: string | null
           brand_secondary: string | null
           comms_manual_name: string | null
+          comms_manual_text: string | null
+          comms_manual_text_source: string | null
           comms_manual_url: string | null
           company_name: string | null
           created_at: string
@@ -57,9 +60,12 @@ export type Database = {
           x_handle: string | null
         }
         Insert: {
+          auto_package_level?: number | null
           brand_primary?: string | null
           brand_secondary?: string | null
           comms_manual_name?: string | null
+          comms_manual_text?: string | null
+          comms_manual_text_source?: string | null
           comms_manual_url?: string | null
           company_name?: string | null
           created_at?: string
@@ -80,9 +86,12 @@ export type Database = {
           x_handle?: string | null
         }
         Update: {
+          auto_package_level?: number | null
           brand_primary?: string | null
           brand_secondary?: string | null
           comms_manual_name?: string | null
+          comms_manual_text?: string | null
+          comms_manual_text_source?: string | null
           comms_manual_url?: string | null
           company_name?: string | null
           created_at?: string
@@ -358,6 +367,7 @@ export type Database = {
           influencer_media_involved: boolean
           injury_fatality: boolean
           is_public: boolean
+          package_requested_at: string | null
           regulator_involved: boolean
           risk: string
           risk_score: number
@@ -389,6 +399,7 @@ export type Database = {
           influencer_media_involved?: boolean
           injury_fatality?: boolean
           is_public?: boolean
+          package_requested_at?: string | null
           regulator_involved?: boolean
           risk?: string
           risk_score?: number
@@ -420,6 +431,7 @@ export type Database = {
           influencer_media_involved?: boolean
           injury_fatality?: boolean
           is_public?: boolean
+          package_requested_at?: string | null
           regulator_involved?: boolean
           risk?: string
           risk_score?: number

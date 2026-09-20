@@ -8,6 +8,11 @@ export const incidentDetailMessages = defineMessages({
     approvedGenerating: "Incident approved — generating asset package…",
     packageFailed: "Failed to generate package",
     assetsGenerated: (n: number) => `${n} assets generated — review them in Approvals`,
+    assetsFromManual: (n: number) => `${n} assets written from your communications manual — review them in Approvals`,
+    packageMissing: "This incident has no communications yet.",
+    draftPackage: "Draft the package",
+    packageAlreadyDrafted: (n: number) =>
+      `Sevra already drafted ${n} communications for this incident — review them in Approvals`,
     openApprovals: "Open Approvals",
     generationFailed: "Asset generation failed",
     rejectedToast: "Incident rejected",
@@ -72,6 +77,11 @@ export const incidentDetailMessages = defineMessages({
     approvedGenerating: "Incidente aprobado — generando el paquete de contenidos…",
     packageFailed: "No se pudo generar el paquete",
     assetsGenerated: (n: number) => `${n} contenidos generados — revísalos en Aprobaciones`,
+    assetsFromManual: (n: number) => `${n} contenidos redactados según tu manual de comunicación — revísalos en Aprobaciones`,
+    packageMissing: "Este incidente todavía no tiene comunicaciones.",
+    draftPackage: "Redactar el paquete",
+    packageAlreadyDrafted: (n: number) =>
+      `Sevra ya redactó ${n} comunicaciones para este incidente — revísalas en Aprobaciones`,
     openApprovals: "Abrir Aprobaciones",
     generationFailed: "No se pudieron generar los contenidos",
     rejectedToast: "Incidente rechazado",

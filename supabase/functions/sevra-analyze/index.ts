@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { identifyCaller, unauthorized } from "../_shared/caller.ts";
 import { INCIDENT_TYPES, profileFor } from "../_shared/industries.ts";
 import { chatCompletion, MODELS } from "../_shared/ai.ts";
+import { crisisLevel } from "../_shared/crisis-level.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +17,45 @@ function countryName(code: string): string {
   } catch {
     return code.toUpperCase();
   }
+}
+
+/**
+ * Which language an automatically drafted package is written in.
+ *
+ * A package is published as written, so it is produced in one language. Nobody
+ * is at the keyboard at 3am to choose it, so it follows the languages the
+ * workspace monitors in: a company watched only in Spanish is a company whose
+ * audience reads Spanish.
+ */
+function packageLanguage(languages: string[] | null | undefined): "en" | "es" {
+  const langs = (languages ?? []).map((l) => String(l).toLowerCase());
+  return langs.includes("es") && !langs.includes("en") ? "es" : "en";
+}
+
+/**
+ * Ask generate-incident-assets to draft the package for this incident.
+ *
+ * Deliberately not awaited to completion: twelve communications take the better
+ * part of a minute, and the monitor calls this function once per new mention,
+ * so holding it open would push the whole run past its budget. The other
+ * function is a separate invocation that finishes on its own — all this needs
+ * is to be sure the request left the building.
+ */
+async function requestPackage(
+  baseUrl: string,
+  serviceKey: string,
+  incidentId: string,
+  lang: "en" | "es",
+): Promise<void> {
+  const call = fetch(`${baseUrl}/functions/v1/generate-incident-assets`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ incident_id: incidentId, lang, auto: true }),
+  }).catch((e) => {
+    console.error("sevra-analyze: automatic package request failed —", e);
+    return null;
+  });
+  await Promise.race([call, new Promise((resolve) => setTimeout(resolve, 3000))]);
 }
 
 function buildSystemPrompt(companyName: string | null, industry: string | null, countries: string[] = []): string {
@@ -124,7 +164,10 @@ Deno.serve(async (req) => {
 
     await admin.from("social_mentions").update({ status: "analyzing" }).eq("id", mention_id);
 
-    const { data: settings } = await admin.from("company_settings").select("company_name, industry, monitor_countries").maybeSingle();
+    const { data: settings } = await admin
+      .from("company_settings")
+      .select("company_name, industry, monitor_countries, monitor_languages, auto_package_level")
+      .maybeSingle();
     const systemPrompt = buildSystemPrompt(settings?.company_name ?? null, settings?.industry ?? null, settings?.monitor_countries ?? []);
 
     const aiResp = await chatCompletion({
@@ -207,6 +250,17 @@ Deno.serve(async (req) => {
     let incidentId: string | null = null;
     let dedupedTo: string | null = null;
 
+    // The level the rest of the product is ordered by. It was never written —
+    // every incident the monitor opened sat at L0 — so it is computed here,
+    // from the same evidence the risk came from.
+    const level = crisisLevel({
+      risk: analysis.risk,
+      riskScore: analysis.risk_score,
+      injuryFatality: analysis.injury_fatality,
+      regulatorInvolved: analysis.regulator_involved,
+      amplified: mention.is_influencer || mention.is_verified,
+    });
+
     if (analysis.should_create_incident) {
       // Try to find an existing incident this mention belongs to
       const existing = await findExistingIncident(admin, analysis);
@@ -223,13 +277,16 @@ Deno.serve(async (req) => {
         const newScore = Math.round(analysis.risk_score);
         const { data: cur } = await admin
           .from("incidents")
-          .select("risk_score, risk")
+          .select("risk_score, risk, crisis_level")
           .eq("id", existing)
           .maybeSingle();
         if (cur && newScore > (cur.risk_score ?? 0)) {
           updates.risk_score = newScore;
           updates.risk = analysis.risk;
         }
+        // A crisis escalates, it does not de-escalate because a milder post
+        // arrived. The audit log records the change through the trigger.
+        if (cur && level > (cur.crisis_level ?? 0)) updates.crisis_level = level;
         await admin.from("incidents").update(updates).eq("id", existing);
       } else {
         const { data: inc, error: incErr } = await admin
@@ -262,6 +319,7 @@ Deno.serve(async (req) => {
             source: "social_media",
             risk: analysis.risk,
             risk_score: Math.round(analysis.risk_score),
+            crisis_level: level,
             status: "active",
             created_by: userId,
           })
@@ -291,8 +349,32 @@ Deno.serve(async (req) => {
       })
       .eq("id", mention_id);
 
+    // What Sevra is sold on: a crisis arrives with its communications already
+    // drafted. At or above the workspace's level the package is written now,
+    // rather than waiting for someone to open the incident and ask — which at
+    // 3am is exactly when nobody does. generate-incident-assets refuses to
+    // overwrite a package that already exists, so an escalating incident is
+    // drafted once.
+    const threshold = settings?.auto_package_level ?? null;
+    const autoPackage = incidentId !== null && typeof threshold === "number" && level >= threshold;
+    if (autoPackage) {
+      await requestPackage(
+        supabaseUrl,
+        serviceKey,
+        incidentId!,
+        packageLanguage(settings?.monitor_languages),
+      );
+    }
+
     return new Response(
-      JSON.stringify({ success: true, analysis, incident_id: incidentId, deduped: !!dedupedTo }),
+      JSON.stringify({
+        success: true,
+        analysis,
+        incident_id: incidentId,
+        crisis_level: level,
+        deduped: !!dedupedTo,
+        auto_package: autoPackage,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {

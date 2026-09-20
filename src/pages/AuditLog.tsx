@@ -30,6 +30,7 @@ type SupportAccess = {
 
 function ValueCell({ field, value }: { field: string; value: string | null }) {
   const common = useMessages(commonMessages);
+  const t = useMessages(auditMessages);
   if (value === null || value === "") return <span className="text-muted-foreground">—</span>;
   if (field === "crisis_level") {
     const n = Number(value);
@@ -37,6 +38,11 @@ function ValueCell({ field, value }: { field: string; value: string | null }) {
   }
   if (field === "risk") {
     return <Badge variant="outline">{common.risk[value] ?? value}</Badge>;
+  }
+  // Which authority the drafting followed — the client's own manual, or
+  // industry standards when they have not uploaded one.
+  if (field === "media_package") {
+    return <Badge variant="outline">{t.packageBasis[value] ?? value}</Badge>;
   }
   return <span className="font-mono text-sm">{value}</span>;
 }
@@ -49,7 +55,12 @@ export default function AuditLog() {
   const t = useMessages(auditMessages);
   const common = useMessages(commonMessages);
   const intl = useIntlLocale();
-  const FIELD_LABEL: Record<string, string> = { crisis_level: t.crisisLevel, risk_score: t.riskScore, risk: t.riskLabel };
+  const FIELD_LABEL: Record<string, string> = {
+    crisis_level: t.crisisLevel,
+    risk_score: t.riskScore,
+    risk: t.riskLabel,
+    media_package: t.mediaPackage,
+  };
 
   useEffect(() => {
     (async () => {
@@ -97,6 +108,7 @@ export default function AuditLog() {
             <SelectItem value="crisis_level">{t.crisisLevel}</SelectItem>
             <SelectItem value="risk_score">{t.riskScore}</SelectItem>
             <SelectItem value="risk">{t.riskLabel}</SelectItem>
+            <SelectItem value="media_package">{t.mediaPackage}</SelectItem>
           </SelectContent>
         </Select>
       </div>

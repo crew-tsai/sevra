@@ -56,7 +56,13 @@ export const adminMessages = defineMessages({
     xHandleHint: "Monitoring starts as soon as this is set — you don't need to connect an account. Connecting is only required to publish from Sevra.",
     manual: "Communications manual",
     uploadManual: "Upload manual",
-    manualHint: "PDF, DOC or text. Max 20 MB.",
+    manualHint:
+      "PDF, DOCX or text. Max 20 MB. Everything Sevra writes follows this manual — its tone, its spokespersons, its required wording. Without one, drafts follow crisis-communication standards for your industry.",
+    autoPackage: "Draft the communications automatically",
+    autoPackageHint:
+      "When Sevra detects a crisis at this level or above, it writes the full package — press release, holding statement, social posts, internal memo and Q&As — and leaves it waiting in Approvals. Nothing is ever published without approval.",
+    autoPackageOff: "Only when someone asks",
+    autoPackageLevel: (level: string) => `${level} and above`,
     save: "Save",
     logoAndColors: "Logo and colors",
     logoAndColorsIntro: "Applied to generated assets (emails, communications, exports).",
@@ -156,7 +162,13 @@ export const adminMessages = defineMessages({
     xHandleHint: "La monitorización empieza en cuanto lo indicas — no hace falta conectar ninguna cuenta. Conectarla solo es necesario para publicar desde Sevra.",
     manual: "Manual de comunicación",
     uploadManual: "Subir manual",
-    manualHint: "PDF, DOC o texto. Máx. 20 MB.",
+    manualHint:
+      "PDF, DOCX o texto. Máx. 20 MB. Todo lo que Sevra redacta sigue este manual: su tono, sus voceros, sus frases obligatorias. Sin manual, los borradores siguen los estándares de comunicación de crisis de tu sector.",
+    autoPackage: "Redactar las comunicaciones automáticamente",
+    autoPackageHint:
+      "Cuando Sevra detecta una crisis de este nivel o superior, redacta el paquete completo — nota de prensa, comunicado inicial, publicaciones, memorando interno y preguntas y respuestas — y lo deja esperando en Aprobaciones. Nada se publica sin aprobación.",
+    autoPackageOff: "Solo cuando alguien lo pida",
+    autoPackageLevel: (level: string) => `${level} o superior`,
     save: "Guardar",
     logoAndColors: "Logo y colores",
     logoAndColorsIntro: "Se aplican a los contenidos generados (correos, comunicaciones, exportaciones).",

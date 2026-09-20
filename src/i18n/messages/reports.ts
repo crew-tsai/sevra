@@ -52,12 +52,17 @@ export const reportsMessages = defineMessages({
 export const auditMessages = defineMessages({
   en: {
     title: "Audit log",
-    intro: "Changes to incident crisis levels and risk scores, with previous and new values.",
+    intro: "Changes to incident crisis levels and risk scores, and the communication packages Sevra drafted, with previous and new values.",
     filterField: "Filter field",
     allFields: "All fields",
     crisisLevel: "Crisis level",
     riskScore: "Risk score",
     riskLabel: "Risk label",
+    mediaPackage: "Communication package",
+    packageBasis: {
+      manual: "Drafted from the communications manual",
+      industry_standards: "Drafted from industry standards",
+    } as Record<string, string>,
     supportAccess: "Sevra support access",
     supportIntro: "When Sevra staff opened this workspace. Support accounts are listed under Admin → Team & roles, and these entries cannot be edited or deleted.",
     noSupport: "No Sevra staff have opened this workspace.",
@@ -72,12 +77,17 @@ export const auditMessages = defineMessages({
   },
   es: {
     title: "Registro de auditoría",
-    intro: "Cambios en el nivel de crisis y la puntuación de riesgo de los incidentes, con el valor anterior y el nuevo.",
+    intro: "Cambios en el nivel de crisis y la puntuación de riesgo de los incidentes, y los paquetes de comunicación que redactó Sevra, con el valor anterior y el nuevo.",
     filterField: "Filtrar por campo",
     allFields: "Todos los campos",
     crisisLevel: "Nivel de crisis",
     riskScore: "Puntuación de riesgo",
     riskLabel: "Nivel de riesgo",
+    mediaPackage: "Paquete de comunicación",
+    packageBasis: {
+      manual: "Redactado a partir del manual de comunicación",
+      industry_standards: "Redactado según los estándares del sector",
+    } as Record<string, string>,
     supportAccess: "Accesos del soporte de Sevra",
     supportIntro: "Cuándo entró el personal de Sevra en este espacio de trabajo. Las cuentas de soporte aparecen en Administración → Equipo y roles, y estas entradas no se pueden editar ni eliminar.",
     noSupport: "Ningún miembro del personal de Sevra ha entrado en este espacio de trabajo.",

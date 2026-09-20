@@ -24,6 +24,7 @@ import { MonitoringFocus } from "@/components/admin/MonitoringFocus";
 import { groupLabel, INDUSTRY_GROUPS, industryLabel } from "@/lib/industries";
 import { useLang, useMessages } from "@/i18n";
 import { adminMessages } from "@/i18n/messages/admin";
+import { commonMessages } from "@/i18n/messages/common";
 
 // Stored values; their names on screen are adminMessages.roles.
 const ROLES = ["admin", "coordinador", "manager", "ejecutivo", "soporte"] as const;
@@ -44,6 +45,7 @@ export default function Admin() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminExists, setAdminExists] = useState(true);
   const t = useMessages(adminMessages);
+  const common = useMessages(commonMessages);
   const { lang } = useLang();
 
   // Settings
@@ -54,6 +56,8 @@ export default function Admin() {
   const [monitorCountries, setMonitorCountries] = useState<string[]>([]);
   const [monitorLanguages, setMonitorLanguages] = useState<string[]>([]);
   const [monitorExcludeTerms, setMonitorExcludeTerms] = useState<string[]>([]);
+  // null = Sevra drafts nothing until someone asks for it.
+  const [autoPackageLevel, setAutoPackageLevel] = useState<number | null>(3);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [brandPrimary, setBrandPrimary] = useState("#3B82F6");
   const [brandSecondary, setBrandSecondary] = useState("#0F172A");
@@ -154,6 +158,7 @@ export default function Admin() {
       setMonitorCountries(data.monitor_countries ?? []);
       setMonitorLanguages(data.monitor_languages ?? []);
       setMonitorExcludeTerms(data.monitor_exclude_terms ?? []);
+      setAutoPackageLevel(data.auto_package_level ?? null);
       setLogoUrl(data.logo_url ?? null);
       setBrandPrimary(data.brand_primary ?? "#3B82F6");
       setBrandSecondary(data.brand_secondary ?? "#0F172A");
@@ -199,6 +204,7 @@ export default function Admin() {
       monitor_countries: monitorCountries,
       monitor_languages: monitorLanguages,
       monitor_exclude_terms: monitorExcludeTerms,
+      auto_package_level: autoPackageLevel,
       logo_url: logoUrl,
       brand_primary: brandPrimary,
       brand_secondary: brandSecondary,
@@ -386,6 +392,25 @@ export default function Admin() {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">{t.manualHint}</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>{t.autoPackage}</Label>
+                <Select
+                  value={autoPackageLevel === null ? "off" : String(autoPackageLevel)}
+                  onValueChange={(v) => setAutoPackageLevel(v === "off" ? null : Number(v))}
+                >
+                  <SelectTrigger className="sm:w-80"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="off">{t.autoPackageOff}</SelectItem>
+                    {[1, 2, 3, 4].map((level) => (
+                      <SelectItem key={level} value={String(level)}>
+                        {t.autoPackageLevel(common.level[level])}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">{t.autoPackageHint}</p>
               </div>
 
               <Button onClick={saveSettings} disabled={savingSettings}>

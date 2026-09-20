@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { identifyCaller, unauthorized } from "../_shared/caller.ts";
 import { profileFor } from "../_shared/industries.ts";
 import { chatCompletion, MODELS } from "../_shared/ai.ts";
+import { loadCommsManual } from "../_shared/comms-manual.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,11 +25,54 @@ const ASSET_SPEC = [
   { key: "faq_partners", title: "Q&A — Partners", channel: "b2b", description: "5-7 questions from commercial partners (partner operators, hubs/stations, suppliers, corporate clients). Format Q: / A:. Reassure on operational continuity and contractual commitments." },
 ];
 
+/**
+ * What the package is written against.
+ *
+ * The client's own crisis communications manual when they have uploaded one:
+ * it is the document their team was trained on, their spokespersons are named
+ * in it, and it is what they will be held to afterwards. Recognised practice is
+ * the fallback for a workspace that has not uploaded one yet — and, where the
+ * manual is silent, for the gaps it leaves.
+ */
+function writingBasis(
+  manual: { name: string | null; text: string; truncated: boolean } | null,
+  industry: string | null,
+): { basis: "manual" | "industry_standards"; instructions: string } {
+  const vocab = profileFor(industry);
+  const standards = `Follow recognised crisis-communication practice for ${industry ?? "this industry"}:
+- Acknowledge the situation first and fast. Never wait for full facts to say something; a holding statement that admits what is not yet known beats silence.
+- Lead with people. Those affected — ${vocab.peopleLabel.toLowerCase()}, staff, families — come before assets, schedules or reputation.
+- Say only what is established. No speculation about cause, blame or numbers; attribute facts to their source; correct errors openly.
+- Express regret for the impact without assigning liability.
+- State what is being done now, by whom, and when the next update will come.
+- One consistent set of facts across every channel; the same message internally and externally, with employees told before they read it in the press.
+- Name a single spokesperson voice and keep the tone plain, human and unhedged. No jargon, no corporate abstraction, no blaming ${vocab.peopleLabel.toLowerCase()}.
+- Where authorities or regulators are involved, say that they have been notified and that the organization is cooperating — never pre-empt their findings.`;
+
+  if (!manual) return { basis: "industry_standards", instructions: standards };
+
+  return {
+    basis: "manual",
+    instructions: `This organization has its own crisis communications manual${manual.name ? ` (${manual.name})` : ""}. It is the authority for everything you write: follow its tone, its approval and escalation language, its named spokespersons and roles, its required and forbidden wording, and any statement templates it provides. Use its exact terms for teams, levels and procedures. Where the manual is silent, fall back to recognised practice for ${industry ?? "this industry"}.
+
+--- COMMUNICATIONS MANUAL${manual.truncated ? " (excerpt)" : ""} ---
+${manual.text}
+--- END OF MANUAL ---
+
+Fallback practice for anything the manual does not cover:
+${standards}`,
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // Set once the incident is claimed, so a failure can hand the claim back
+  // instead of leaving an incident that will never be drafted again.
+  let release: (() => Promise<void>) | null = null;
+
   try {
-    const { incident_id, asset_key, lang: rawLang } = await req.json();
+    const { incident_id, asset_key, lang: rawLang, auto } = await req.json();
     // Communications are published as written, so they are produced in one
     // language -- the one the person asked for -- rather than in both.
     const lang: "en" | "es" = rawLang === "es" ? "es" : "en";
@@ -65,16 +109,55 @@ Deno.serve(async (req) => {
     if (incErr) throw incErr;
     if (!incident) throw new Error("Incident not found");
 
+    // An automatic draft never overwrites work in progress. The monitor asks
+    // for the same incident more than once — a second mention of the same
+    // crisis, a retried tick — and by then a person may already have approved
+    // some of the pieces. Regenerating deletes them.
+    //
+    // The conditional UPDATE is the lock: two requests racing for the same
+    // incident, which is the ordinary case when one crisis produces several
+    // posts, both read "no assets yet" but only one of them claims the row.
+    let claimed = false;
+    if (auto) {
+      const { data: claim } = await admin
+        .from("incidents")
+        .update({ package_requested_at: new Date().toISOString() })
+        .eq("id", incident_id)
+        .is("package_requested_at", null)
+        .select("id");
+      claimed = (claim?.length ?? 0) > 0;
+      if (claimed) {
+        release = async () => {
+          await admin
+            .from("incidents")
+            .update({ package_requested_at: null })
+            .eq("id", incident_id);
+        };
+      }
+      if (!claimed) {
+        return new Response(
+          JSON.stringify({ success: true, skipped: "package already requested", count: 0 }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
+
     const { data: mentions } = await admin
       .from("social_mentions")
       .select("channel, author_handle, content, ai_summary")
       .eq("incident_id", incident_id)
       .limit(10);
 
-    const { data: settings } = await admin.from("company_settings").select("company_name, industry").maybeSingle();
+    const { data: settings } = await admin
+      .from("company_settings")
+      .select(
+        "company_name, industry, comms_manual_url, comms_manual_name, comms_manual_text, comms_manual_text_source",
+      )
+      .maybeSingle();
     const companyName = settings?.company_name ?? null;
     const industry = settings?.industry ?? null;
     const vocab = profileFor(industry);
+    const { basis, instructions } = writingBasis(await loadCommsManual(admin, settings), industry);
 
     const context = `
 INCIDENT
@@ -100,7 +183,9 @@ ${(mentions ?? []).map((m: any) => `- [${m.channel}] @${m.author_handle}: ${m.co
         {
           role: "system",
           content:
-            `You are SEVRA, a crisis-communication writer for ${companyName ?? "the company"}${industry ? ` (${industry})` : ""}. Produce a complete, ready-to-publish communication package. Be factual, empathetic, and avoid speculation. Match each asset's tone & length brief exactly. ${lang === "es" ? "Write every asset — title and content — in neutral, professional Spanish, whatever the language of the incident details." : "Write every asset — title and content — in English, whatever the language of the incident details."} Output only via the tool call.`,
+            `You are SEVRA, a crisis-communication writer for ${companyName ?? "the company"}${industry ? ` (${industry})` : ""}. Produce a complete, ready-to-publish communication package. Be factual, empathetic, and avoid speculation. Match each asset's tone & length brief exactly. ${lang === "es" ? "Write every asset — title and content — in neutral, professional Spanish, whatever the language of the incident details." : "Write every asset — title and content — in English, whatever the language of the incident details."} Output only via the tool call.
+
+${instructions}`,
         },
         {
           role: "user",
@@ -189,13 +274,42 @@ ${(mentions ?? []).map((m: any) => `- [${m.channel}] @${m.author_handle}: ${m.co
 
     const { error: insErr } = await admin.from("incident_assets").insert(rows);
     if (insErr) throw insErr;
+    release = null;
+
+    if (!singleKey && !claimed) {
+      // Generated on request rather than automatically. Stamp it all the same:
+      // from here on this incident has a package, and the monitor must leave
+      // it alone.
+      await admin
+        .from("incidents")
+        .update({ package_requested_at: new Date().toISOString() })
+        .eq("id", incident_id)
+        .is("package_requested_at", null);
+    }
+
+    // The audit log is where a client reconstructs what happened and on whose
+    // authority. "Sevra drafted twelve communications at 3am from our manual"
+    // belongs in it as much as a changed risk level does.
+    if (!singleKey) {
+      const { error: logErr } = await admin.from("incident_audit_log").insert({
+        incident_id,
+        incident_title: incident.title,
+        changed_by: userId,
+        field_name: "media_package",
+        old_value: null,
+        new_value: basis,
+        change_source: auto ? "sevra" : "user",
+      });
+      if (logErr) console.error("generate-incident-assets: audit log write failed", logErr.message);
+    }
 
     return new Response(
-      JSON.stringify({ success: true, count: rows.length }),
+      JSON.stringify({ success: true, count: rows.length, basis }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
     console.error("generate-incident-assets error", e);
+    if (release) await release().catch(() => {});
     return new Response(
       JSON.stringify({ success: false, error: e instanceof Error ? e.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
