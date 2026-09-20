@@ -53,7 +53,12 @@ const NETWORK_META: Record<Network, { label: string; icon: typeof Twitter }> = {
   facebook: { label: "Facebook", icon: Facebook },
 };
 
-const NETWORK_ORDER: Network[] = ["x", "instagram", "tiktok", "facebook"];
+const NETWORK_ORDER: Network[] = ["x", "facebook", "instagram", "tiktok"];
+
+// Networks Sevra can genuinely work with today. The others are shown, so the
+// roadmap is visible, but without a Connect button or a credentials form:
+// connecting them would store a token nothing reads.
+const SUPPORTED: ReadonlySet<Network> = new Set<Network>(["x", "facebook"]);
 
 const REDIRECT_URI = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-oauth-callback`;
 
@@ -212,8 +217,9 @@ export default function SocialConnectionsManager() {
           // Only demand credentials when there is genuinely no way to connect.
           // If Sevra's shared app covers this network, registering a developer
           // app is an option, not a prerequisite.
+          const supported = SUPPORTED.has(network);
           const showCredForm =
-            editingCreds[network] || (!cred?.configured && !cred?.platform_available);
+            supported && (editingCreds[network] || (!cred?.configured && !cred?.platform_available));
 
           return (
             <Card key={network}>
@@ -224,12 +230,16 @@ export default function SocialConnectionsManager() {
                     <span className="font-medium text-sm">{meta.label}</span>
                   </div>
                   <Badge variant={isConnected ? "default" : "outline"} className="text-[10px]">
-                    {loading ? "…" : isConnected ? t.connected : t.notConnected}
+                    {loading ? "…" : !supported ? t.comingSoon : isConnected ? t.connected : t.notConnected}
                   </Badge>
                 </div>
 
+                {!supported && (
+                  <p className="text-xs text-muted-foreground">{t.comingSoonHint(meta.label)}</p>
+                )}
+
                 {/* Developer app credentials */}
-                {showCredForm ? (
+                {supported && (showCredForm ? (
                   <div className="space-y-2 rounded-md border p-3 bg-muted/20">
                     <div className="flex items-center gap-1.5 text-xs font-medium">
                       <KeyRound className="h-3.5 w-3.5" /> {t.developerApp}
@@ -313,7 +323,7 @@ export default function SocialConnectionsManager() {
                       {cred?.configured ? <Pencil className="h-3 w-3" /> : t.useOwnApp}
                     </Button>
                   </div>
-                )}
+                ))}
 
                 {isConnected && (
                   <div
@@ -375,7 +385,7 @@ export default function SocialConnectionsManager() {
                   <p className="text-[11px] text-destructive">{conn.last_error}</p>
                 )}
 
-                {isConnected ? (
+                {!supported ? null : isConnected ? (
                   <Button
                     variant="outline"
                     size="sm"

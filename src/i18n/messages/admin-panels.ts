@@ -102,6 +102,9 @@ export const socialMessages = defineMessages({
     useAnother: "Use another",
     disconnect: "Disconnect",
     connect: "Connect",
+    comingSoon: "Coming soon",
+    comingSoonHint: (network: string) =>
+      `Sevra does not monitor or publish on ${network} yet. Connecting it would do nothing, so the button appears when the feature does.`,
   },
   es: {
     loadFailed: "No se pudieron cargar las redes conectadas",
@@ -139,6 +142,9 @@ export const socialMessages = defineMessages({
     useAnother: "Usar otra",
     disconnect: "Desconectar",
     connect: "Conectar",
+    comingSoon: "Próximamente",
+    comingSoonHint: (network: string) =>
+      `Sevra todavía no monitoriza ni publica en ${network}. Conectarlo no haría nada, así que el botón aparecerá cuando exista la función.`,
   },
 });
 
