@@ -36,18 +36,43 @@ Deno.serve(async (req) => {
     if (caller.kind !== "user") return unauthorized();
 
     const body = await req.json().catch(() => ({}));
-    const subject = String(body.subject ?? "").trim().slice(0, 200);
-    const message = String(body.message ?? "").trim().slice(0, 5000);
-    const category = CATEGORIES.includes(body.category) ? body.category : "question";
-    const page = typeof body.page === "string" ? body.page.slice(0, 200) : null;
-
-    if (!subject || !message) {
-      return json({ success: false, error: "A subject and a message are required" }, 400);
-    }
+    const retryId = typeof body.retry_id === "string" ? body.retry_id : null;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
+
+    // A retry sends the ticket that is already here rather than writing a new
+    // one. "Undelivered" is a state this function can produce, so recovering
+    // from it belongs in the product, not in an email to us.
+    let existing: Record<string, any> | null = null;
+    if (retryId) {
+      const { data } = await admin
+        .from("support_tickets")
+        .select("id, subject, message, category, page, created_email, delivered")
+        .eq("id", retryId)
+        .maybeSingle();
+      if (!data) return json({ success: false, error: "No such ticket" }, 404);
+      if (data.delivered) return json({ success: true, id: data.id, delivered: true });
+      existing = data;
+    }
+
+    const subject = existing
+      ? String(existing.subject)
+      : String(body.subject ?? "").trim().slice(0, 200);
+    const message = existing
+      ? String(existing.message)
+      : String(body.message ?? "").trim().slice(0, 5000);
+    const category = existing
+      ? String(existing.category)
+      : CATEGORIES.includes(body.category) ? body.category : "question";
+    const page = existing
+      ? (existing.page as string | null)
+      : typeof body.page === "string" ? body.page.slice(0, 200) : null;
+
+    if (!subject || !message) {
+      return json({ success: false, error: "A subject and a message are required" }, 400);
+    }
 
     const [{ data: settings }, { data: member }, { data: userRow }] = await Promise.all([
       admin.from("company_settings").select("company_name").maybeSingle(),
@@ -57,19 +82,25 @@ Deno.serve(async (req) => {
 
     const email = userRow?.user?.email ?? null;
 
-    const { data: ticket, error: insErr } = await admin
-      .from("support_tickets")
-      .insert({
-        subject,
-        message,
-        category,
-        page,
-        created_by: caller.userId,
-        created_email: email,
-      })
-      .select("id, created_at")
-      .single();
-    if (insErr) throw insErr;
+    let ticket: { id: string };
+    if (existing) {
+      ticket = { id: existing.id as string };
+    } else {
+      const { data: inserted, error: insErr } = await admin
+        .from("support_tickets")
+        .insert({
+          subject,
+          message,
+          category,
+          page,
+          created_by: caller.userId,
+          created_email: email,
+        })
+        .select("id")
+        .single();
+      if (insErr) throw insErr;
+      ticket = inserted;
+    }
 
     // Forward to Sevra. The shared secret is the same one the heartbeat uses:
     // this is a deployment identifying itself, not a person logging in.
@@ -94,7 +125,7 @@ Deno.serve(async (req) => {
             message,
             category,
             page,
-            user_email: email,
+            user_email: (existing?.created_email as string | null) ?? email,
             user_name: member?.full_name ?? null,
             user_role: member?.role ?? null,
           }),

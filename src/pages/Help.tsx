@@ -34,6 +34,7 @@ export default function Help() {
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [retrying, setRetrying] = useState<string | null>(null);
 
   // Where they came from. Someone who clicks Help from Approvals is almost
   // always asking about Approvals, and this saves the first reply being a
@@ -74,6 +75,18 @@ export default function Help() {
     }
     setSubject("");
     setMessage("");
+    void loadTickets();
+  }
+
+  async function retry(id: string) {
+    setRetrying(id);
+    const { data, error } = await supabase.functions.invoke("support-ticket", {
+      body: { retry_id: id },
+    });
+    setRetrying(null);
+    if (error || !data?.success) return toast.error(error?.message ?? t.failed);
+    if (data.delivered) toast.success(t.sent, { description: t.sentDetail });
+    else toast.warning(t.notDelivered, { description: t.notDeliveredDetail });
     void loadTickets();
   }
 
@@ -175,9 +188,26 @@ export default function Help() {
                       {ticket.created_email ? ` · ${t.by(ticket.created_email)}` : ""}
                     </p>
                   </div>
-                  <Badge variant={ticket.delivered ? "secondary" : "outline"} className="shrink-0 text-[10px]">
-                    {ticket.delivered ? t.delivered : t.pending}
-                  </Badge>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Badge variant={ticket.delivered ? "secondary" : "outline"} className="text-[10px]">
+                      {ticket.delivered ? t.delivered : t.pending}
+                    </Badge>
+                    {!ticket.delivered && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs"
+                        disabled={retrying === ticket.id}
+                        onClick={() => void retry(ticket.id)}
+                      >
+                        {retrying === ticket.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          t.retry
+                        )}
+                      </Button>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
