@@ -242,6 +242,15 @@ export default function SocialConnectionsManager() {
                   <p className="text-xs text-muted-foreground">{t.comingSoonHint(meta.label)}</p>
                 )}
 
+                {/* TikTok connects like the rest but cannot be listened to:
+                    TikTok exposes no mention search to anyone outside its
+                    academic Research API. Saying so here is cheaper than a
+                    crisis team believing they are covered and finding out
+                    afterwards that they were not. */}
+                {supported && network === "tiktok" && (
+                  <p className="text-xs text-muted-foreground">{t.tiktokNoMonitoring}</p>
+                )}
+
                 {/* Developer app credentials */}
                 {supported && (showCredForm ? (
                   <div className="space-y-2 rounded-md border p-3 bg-muted/20">

@@ -50,13 +50,20 @@ export function platformCredentials(network: Network): ResolvedCredentials | nul
 }
 
 /**
- * Networks Sevra has working features for. Instagram rides on Meta's shared
- * app like Facebook, but needs its own login configuration (a different set of
- * permissions), so it is offered only once that id is configured. TikTok has
- * no feature at all yet.
+ * Networks Sevra has working features for.
+ *
+ * Instagram rides on Meta's shared app like Facebook, but needs its own login
+ * configuration (a different set of permissions), so it is offered only once
+ * that id is configured.
+ *
+ * TikTok is offered once its app exists. What it does is narrower than the
+ * others on purpose: TikTok exposes no way to search the platform for mentions
+ * — only the academic Research API does that — so Sevra connects the account
+ * and works with it, and does not claim to listen.
  */
 export function featureReady(network: Network): boolean {
   if (network === "instagram") return !!Deno.env.get("PLATFORM_META_IG_CONFIG_ID")?.trim();
+  if (network === "tiktok") return !!Deno.env.get("PLATFORM_TIKTOK_CLIENT_ID")?.trim();
   return network === "x" || network === "facebook";
 }
 

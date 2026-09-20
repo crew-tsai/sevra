@@ -335,6 +335,13 @@ Deno.serve(async (req) => {
       }
     } else {
       profile = await fetchProfile(network, provider.profileUrl, accessToken);
+      // TikTok puts open_id in the token response as well as the profile. When
+      // the profile call is rate limited or the field is not granted, the token
+      // still identifies the account, and a connection with no account id on it
+      // is one nothing later can act on.
+      if (network === "tiktok" && !profile.account_id && typeof tokenJson.open_id === "string") {
+        profile = { ...profile, account_id: tokenJson.open_id };
+      }
     }
 
     const { data: connection, error: connErr } = await admin

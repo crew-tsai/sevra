@@ -87,11 +87,18 @@ export const PROVIDERS: Record<Network, ProviderConfig> = {
     authorizeUrl: "https://www.tiktok.com/v2/auth/authorize",
     tokenUrl: "https://open.tiktokapis.com/v2/oauth/token",
     revokeUrl: "https://open.tiktokapis.com/v2/oauth/revoke",
-    scope: "user.info.basic",
+    // TikTok grants scopes per product, and which names are valid changes with
+    // the products approved on the app. PLATFORM_TIKTOK_SCOPE lets a deployment
+    // send exactly what its own app was granted without a code change; the
+    // default is what Login Kit alone gives.
+    scope: Deno.env.get("PLATFORM_TIKTOK_SCOPE")?.trim() || "user.info.basic",
     clientIdParam: "client_key",
     tokenAuthStyle: "body",
     pkce: true,
-    profileUrl: "https://open.tiktokapis.com/v2/user/info/?fields=display_name,avatar_url",
+    // TikTok returns only the fields asked for, and open_id is how every later
+    // call identifies the account — leaving it out stored a connection with no
+    // account id on it.
+    profileUrl: "https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,avatar_url",
   },
 };
 

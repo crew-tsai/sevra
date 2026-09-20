@@ -105,6 +105,8 @@ export const socialMessages = defineMessages({
     comingSoon: "Coming soon",
     comingSoonHint: (network: string) =>
       `Sevra does not monitor or publish on ${network} yet. Connecting it would do nothing, so the button appears when the feature does.`,
+    tiktokNoMonitoring:
+      "Sevra can act on this account, but cannot listen on TikTok: TikTok gives nobody a way to search the platform for mentions.",
   },
   es: {
     loadFailed: "No se pudieron cargar las redes conectadas",
@@ -145,6 +147,8 @@ export const socialMessages = defineMessages({
     comingSoon: "Próximamente",
     comingSoonHint: (network: string) =>
       `Sevra todavía no monitoriza ni publica en ${network}. Conectarlo no haría nada, así que el botón aparecerá cuando exista la función.`,
+    tiktokNoMonitoring:
+      "Sevra puede actuar sobre esta cuenta, pero no puede escuchar en TikTok: TikTok no ofrece a nadie una forma de buscar menciones en la plataforma.",
   },
 });
 
