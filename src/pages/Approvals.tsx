@@ -101,6 +101,7 @@ export default function Approvals() {
   const [incidents, setIncidents] = useState<Record<string, IncidentLite>>({});
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [busyPackage, setBusyPackage] = useState<string | null>(null);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [tab, setTab] = useState<"pending" | "user_approved" | "approved" | "rejected">("pending");
   const [highlightId, setHighlightId] = useState<string | null>(null);
@@ -214,6 +215,33 @@ export default function Approvals() {
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusIncidentId, tab, loading]);
+
+  /**
+   * Approving a package: the same two steps as a single asset, applied to every
+   * asset a person is looking at. One press release approved and eleven left
+   * pending is the state a crisis team gets stuck in.
+   */
+  const updatePackage = async (items: Asset[], status: "user_approved" | "approved") => {
+    if (!items.length) return;
+    setBusyPackage(items[0].incident_id);
+    const { data: userData } = await supabase.auth.getUser();
+    const isFinal = status === "approved";
+    const { data, error } = await supabase
+      .from("incident_assets")
+      .update({
+        approval_status: status,
+        approved_at: isFinal ? new Date().toISOString() : null,
+        approved_by: isFinal ? userData.user?.id ?? null : null,
+      })
+      .in("id", items.map((a) => a.id))
+      .select("id");
+    setBusyPackage(null);
+    if (error) return toast.error(error.message);
+    // RLS refuses without an error, so report what actually changed.
+    const n = data?.length ?? 0;
+    if (!n) return toast.error(common.somethingWrong);
+    toast.success(isFinal ? t.packageApproved(n) : t.packageSentToAdmin(n));
+  };
 
   const updateStatus = async (
     id: string,
@@ -824,10 +852,39 @@ export default function Approvals() {
                   {inc?.risk && (
                     <Badge variant="outline" className="text-[10px] uppercase">{common.risk[inc.risk] ?? inc.risk}</Badge>
                   )}
+                  {tab === "pending" && (
+                    <Button
+                      size="sm"
+                      className="ml-auto h-7 text-xs"
+                      disabled={busyPackage === incidentId}
+                      onClick={() => updatePackage(items, "user_approved")}
+                    >
+                      {busyPackage === incidentId
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <CheckCircle2 className="h-3.5 w-3.5" />}
+                      {t.approveWholePackage(items.length)}
+                    </Button>
+                  )}
+                  {tab === "user_approved" && isAdmin && (
+                    <Button
+                      size="sm"
+                      className="ml-auto h-7 text-xs"
+                      disabled={busyPackage === incidentId}
+                      onClick={() => updatePackage(items, "approved")}
+                    >
+                      {busyPackage === incidentId
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <CheckCircle2 className="h-3.5 w-3.5" />}
+                      {t.finalApproveWholePackage(items.length)}
+                    </Button>
+                  )}
                   <Link
                     to={`/incidents/${incidentId}`}
                     state={{ from: `/approvals?incident=${incidentId}`, fromLabel: t.mediaPackage }}
-                    className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 ml-auto"
+                    className={cn(
+                      "text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1",
+                      tab === "pending" || (tab === "user_approved" && isAdmin) ? "" : "ml-auto",
+                    )}
                   >
                     {t.viewIncident} <ExternalLink className="h-3 w-3" />
                   </Link>

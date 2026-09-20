@@ -68,6 +68,10 @@ export const approvalsMessages = defineMessages({
       "Send back to pending for re-approval before redeploying. Recommended when content changes meaningfully (e.g. updated facts in a press release).",
     saveChanges: "Save changes",
     saveNewVersion: "Save as new version",
+    approveWholePackage: (n: number) => `Approve the ${n} in this package`,
+    finalApproveWholePackage: (n: number) => `Final approve the ${n} in this package`,
+    packageSentToAdmin: (n: number) => `${n} sent for admin approval`,
+    packageApproved: (n: number) => `${n} approved — ready to distribute`,
   },
   es: {
     tabs: { press: "Prensa", internal: "Comunicados internos", social: "Redes sociales", scripts: "Guiones", qna: "Preguntas y respuestas", customers: "Clientes" } as Record<string, string>,
@@ -136,5 +140,9 @@ export const approvalsMessages = defineMessages({
       "Devolver a pendientes para una nueva aprobación antes de publicarlo otra vez. Recomendado cuando el contenido cambia de forma relevante (p. ej. datos actualizados en una nota de prensa).",
     saveChanges: "Guardar cambios",
     saveNewVersion: "Guardar como nueva versión",
+    approveWholePackage: (n: number) => `Aprobar los ${n} del paquete`,
+    finalApproveWholePackage: (n: number) => `Aprobación final de los ${n} del paquete`,
+    packageSentToAdmin: (n: number) => `${n} enviados al administrador`,
+    packageApproved: (n: number) => `${n} aprobados — listos para distribuir`,
   },
 });
