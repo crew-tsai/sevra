@@ -84,9 +84,12 @@ export const PROVIDERS: Record<Network, ProviderConfig> = {
     profileUrl: `${META_GRAPH}/me?fields=id,name,picture`,
   },
   tiktok: {
-    authorizeUrl: "https://www.tiktok.com/v2/auth/authorize",
-    tokenUrl: "https://open.tiktokapis.com/v2/oauth/token",
-    revokeUrl: "https://open.tiktokapis.com/v2/oauth/revoke",
+    // The trailing slashes are load-bearing. TikTok's gateway answers
+    // /v2/oauth/token/ and returns 404 "Unsupported path" for the same URL
+    // without it, which reads as a broken integration rather than a typo.
+    authorizeUrl: "https://www.tiktok.com/v2/auth/authorize/",
+    tokenUrl: "https://open.tiktokapis.com/v2/oauth/token/",
+    revokeUrl: "https://open.tiktokapis.com/v2/oauth/revoke/",
     // TikTok grants scopes per product, and which names are valid changes with
     // the products approved on the app. PLATFORM_TIKTOK_SCOPE lets a deployment
     // send exactly what its own app was granted without a code change; the
