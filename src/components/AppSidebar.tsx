@@ -1,4 +1,5 @@
 import { LayoutDashboard, Plus, FileText, CheckCircle, LogOut, Radio, BarChart3, Settings, History, Home, Workflow } from "lucide-react";
+import { useEffect, useState } from "react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,8 +17,14 @@ import {
 } from "@/components/ui/sidebar";
 import { useMessages } from "@/i18n";
 import { shellMessages } from "@/i18n/messages/shell";
+import { adminMessages } from "@/i18n/messages/admin";
 
 type Msgs = typeof shellMessages.en;
+
+/** Most senior first: someone with two roles is shown the one that outranks. */
+const ROLE_ORDER = ["admin", "coordinador", "manager", "ejecutivo", "soporte"] as const;
+
+type SignedIn = { name: string; email: string; role: string | null };
 
 const mainItems = [
   { key: "hub", url: "/welcome", icon: Home },
@@ -37,11 +44,44 @@ const workflowItems = [
 
 export function AppSidebar() {
   const m = useMessages(shellMessages);
+  const admin = useMessages(adminMessages);
+  const [me, setMe] = useState<SignedIn | null>(null);
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + "/");
+  // Who is signed in. The footer used to offer a way out and no way to tell
+  // whose workspace session you were in — which matters here, where a Sevra
+  // support account and the client's own team use the same screens.
+  useEffect(() => {
+    void (async () => {
+      const { data } = await supabase.auth.getUser();
+      const user = data.user;
+      if (!user?.email) return;
+
+      const [{ data: roles }, { data: member }] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", user.id),
+        // Readable for your own row; an unlinked invitation simply yields
+        // nothing and the address stands in for the name.
+        supabase.from("team_members").select("full_name").eq("user_id", user.id).maybeSingle(),
+      ]);
+
+      const held = new Set((roles ?? []).map((r) => r.role as string));
+      const metaName = (user.user_metadata as Record<string, unknown> | null)?.full_name;
+      const name =
+        (typeof metaName === "string" && metaName.trim()) ||
+        member?.full_name?.trim() ||
+        user.email.split("@")[0];
+
+      setMe({
+        name,
+        email: user.email,
+        role: ROLE_ORDER.find((r) => held.has(r)) ?? null,
+      });
+    })();
+  }, []);
+
   const signOut = async () => {
     await supabase.auth.signOut();
     navigate("/login", { replace: true });
@@ -92,6 +132,24 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-2">
+        {me && (
+          <div
+            className={`flex items-center gap-2 rounded-md px-2 py-1.5 ${collapsed ? "justify-center" : ""}`}
+            title={me.email}
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-[11px] font-semibold uppercase text-foreground">
+              {me.name.slice(0, 1)}
+            </span>
+            {!collapsed && (
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium leading-tight">{me.name}</p>
+                <p className="truncate text-[11px] leading-tight text-muted-foreground">
+                  {me.role ? admin.roles[me.role] ?? me.role : me.email}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={signOut}>
