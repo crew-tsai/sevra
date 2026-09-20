@@ -47,9 +47,98 @@ async function resolveFacebookPage(
       `${META_GRAPH}/me/accounts?access_token=${encodeURIComponent(userToken)}`,
     );
     const pagesJson = await pagesRes.json().catch(() => ({}));
-    const page = pagesJson?.data?.[0];
-    if (!pagesRes.ok || !page) {
-      return { error: "No Facebook Page found — your Facebook account needs to manage at least one Page to connect." };
+    let page = pagesJson?.data?.[0];
+
+    // Facebook Login for Business grants the Pages the person ticked as
+    // "granular scopes" on the token itself, and /me/accounts can come back
+    // empty even so (it did, with all four permissions granted). The token's
+    // own record names the Page: ask Meta which ids it covers, then fetch that
+    // Page and its token directly.
+    if (!page) {
+      const dbgRes = await fetch(
+        `${META_GRAPH}/debug_token?input_token=${encodeURIComponent(userToken)}` +
+          `&access_token=${encodeURIComponent(`${clientId}|${clientSecret}`)}`,
+      );
+      const dbgJson = await dbgRes.json().catch(() => ({}));
+      const ids: string[] = [
+        ...new Set(
+          ((dbgJson?.data?.granular_scopes ?? []) as Array<{ scope: string; target_ids?: string[] }>)
+            .filter((g) => g.scope?.startsWith("pages_"))
+            .flatMap((g) => g.target_ids ?? []),
+        ),
+      ];
+      for (const id of ids) {
+        const res = await fetch(
+          `${META_GRAPH}/${id}?fields=id,name,access_token&access_token=${encodeURIComponent(userToken)}`,
+        );
+        const json = await res.json().catch(() => ({}));
+        if (json?.id && json?.access_token) {
+          page = json;
+          break;
+        }
+        console.error("resolveFacebookPage: granular scope id did not resolve", { id, error: json?.error ?? null });
+      }
+      if (!page && !ids.length) {
+        console.error("resolveFacebookPage: token names no Pages", { debugError: dbgJson?.error ?? null });
+      }
+    }
+
+    // A Page owned by a business portfolio is often absent from /me/accounts,
+    // which lists Pages the person holds directly. Ask the businesses this
+    // person belongs to for their Pages, then fetch that Page's own token.
+    if (!page) {
+      const bizRes = await fetch(`${META_GRAPH}/me/businesses?access_token=${encodeURIComponent(userToken)}`);
+      const bizJson = await bizRes.json().catch(() => ({}));
+      for (const biz of bizJson?.data ?? []) {
+        for (const edge of ["owned_pages", "client_pages"]) {
+          const res = await fetch(
+            `${META_GRAPH}/${biz.id}/${edge}?fields=id,name,access_token&access_token=${encodeURIComponent(userToken)}`,
+          );
+          const json = await res.json().catch(() => ({}));
+          const found = json?.data?.[0];
+          if (found) {
+            page = found.access_token
+              ? found
+              : await fetch(`${META_GRAPH}/${found.id}?fields=id,name,access_token&access_token=${encodeURIComponent(userToken)}`)
+                  .then((r) => r.json())
+                  .catch(() => found);
+            break;
+          }
+        }
+        if (page) break;
+      }
+      if (!page) {
+        // Which permissions the person actually granted: the difference
+        // between "no Page" and "the Page list was not shared".
+        const permRes = await fetch(`${META_GRAPH}/me/permissions?access_token=${encodeURIComponent(userToken)}`);
+        const permJson = await permRes.json().catch(() => ({}));
+        console.error("resolveFacebookPage: no page anywhere", {
+          accountsStatus: pagesRes.status,
+          accountsError: pagesJson?.error ?? null,
+          businesses: (bizJson?.data ?? []).map((b: { id: string; name?: string }) => b.id),
+          businessesError: bizJson?.error ?? null,
+          granted: (permJson?.data ?? []).filter((p: { status: string }) => p.status === "granted").map((p: { permission: string }) => p.permission),
+          declined: (permJson?.data ?? []).filter((p: { status: string }) => p.status !== "granted").map((p: { permission: string }) => p.permission),
+        });
+      }
+    }
+    if (!page) {
+      // Say what Meta said. "No Page found" was shown for every failure here,
+      // including a refused permission and an expired token, which is a
+      // different problem with a different fix.
+      const detail = pagesJson?.error?.message ?? (pagesRes.ok ? null : `HTTP ${pagesRes.status}`);
+      console.error("resolveFacebookPage: no page", {
+        status: pagesRes.status,
+        error: pagesJson?.error ?? null,
+        count: Array.isArray(pagesJson?.data) ? pagesJson.data.length : null,
+        exchangeOk: exchangeRes.ok,
+        exchangeError: exchangeRes.ok ? null : exchangeJson?.error ?? null,
+      });
+      return {
+        error: detail
+          ? `Facebook refused the Page list: ${String(detail).slice(0, 180)}`
+          : "No Facebook Page found — the account you authorized manages no Pages, or none was selected on the Meta screen.",
+      };
     }
 
     const tokenExpiresAt =
