@@ -3,6 +3,7 @@ import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 import { resolveFromAddress, resolveSenderDomain } from '../_shared/sender-identity.ts'
+import { identifyCaller } from '../_shared/caller.ts'
 
 // Sender identity is per deployment, not baked in — see _shared/sender-identity.ts
 // for why (one shared sending domain meant one shared reputation across every
@@ -46,16 +47,15 @@ Deno.serve(async (req) => {
   // config.toml has verify_jwt = false for this function, and even
   // verify_jwt = true wouldn't be sufficient on its own (Supabase's gateway
   // treats the public anon key as a "valid JWT" too, so it doesn't require a
-  // real logged-in user) — so the real check happens here: require an
-  // actual authenticated user, same pattern used across this codebase's
-  // other user-invoked functions (sevra-analyze, social-publish, etc).
-  const authHeader = req.headers.get('Authorization') ?? ''
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? supabaseServiceKey
-  const userClient = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: authHeader } },
-  })
-  const { data: userData } = await userClient.auth.getUser()
-  if (!userData?.user?.id) {
+  // real logged-in user) — so the real check happens here, through the shared
+  // classifier every other function uses.
+  //
+  // Service-role callers are accepted as well as signed-in users: a workflow
+  // rule sends its alert at 3am with nobody logged in, and it goes through this
+  // function so that an automatic alert obeys the same suppression list, rate
+  // limits, retries and send log as an email a person sends by hand.
+  const caller = await identifyCaller(req)
+  if (caller.kind === 'anonymous') {
     return new Response(JSON.stringify({ error: 'Not authenticated' }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

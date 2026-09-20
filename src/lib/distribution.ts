@@ -1,18 +1,34 @@
-// Distribution lists for crisis communications.
-// Stored in localStorage so it can be configured per-user without backend tables.
+// Distribution: the address lists a crisis communication goes to, and who is
+// responsible, accountable, consulted or informed for each kind of
+// communication.
+//
+// This used to live in localStorage "so it can be configured per-user without
+// backend tables". That made it per-browser: the head of comms configured the
+// lists, nobody else saw them, and no edge function could read them — so a
+// workflow rule could not notify anyone, and the matrix described a process the
+// product could not follow. It now lives in the workspace, where the whole team
+// and the rule engine can see the same thing.
 
-export type DistributionLists = Record<string, string[]>;
+import { supabase } from "@/integrations/supabase/client";
 
-const STORAGE_KEY = "sevra.distribution_lists.v1";
-const NAMED_LISTS_KEY = "sevra.email_lists.v1";
-const RACI_KEY = "sevra.responsibility_matrix.v1";
-
-export const DEFAULT_LISTS: DistributionLists = {
-  press_release: [],
-  holding_statement: [],
-  internal_memo: [],
-  customer_faq: [],
+export type EmailList = {
+  id: string;
+  name: string;
+  description?: string;
+  emails: string[];
 };
+
+export type RaciLevel = "responsible" | "accountable" | "consulted" | "informed";
+export type ResponsibilityMatrix = Record<string, Record<RaciLevel, string[]>>;
+
+export const RACI_LEVELS: RaciLevel[] = ["responsible", "accountable", "consulted", "informed"];
+
+const EMPTY_RACI = (): Record<RaciLevel, string[]> => ({
+  responsible: [],
+  accountable: [],
+  consulted: [],
+  informed: [],
+});
 
 export const ASSET_TYPE_LABELS: Record<string, string> = {
   press_release: "Press release",
@@ -42,132 +58,9 @@ export function isSocialAsset(assetType: string) {
   return SOCIAL_ASSET_TYPES.includes(assetType);
 }
 
-export function loadDistributionLists(): DistributionLists {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { ...DEFAULT_LISTS };
-    const parsed = JSON.parse(raw);
-    return { ...DEFAULT_LISTS, ...parsed };
-  } catch {
-    return { ...DEFAULT_LISTS };
-  }
-}
-
-export function saveDistributionLists(lists: DistributionLists) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(lists));
-}
-
-export function getListFor(assetType: string): string[] {
-  const lists = loadDistributionLists();
-  return lists[assetType] ?? [];
-}
-
 export function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
-
-// ─────────────────────────────────────────────────────────────
-// Named email lists (built in Admin → Email lists)
-// ─────────────────────────────────────────────────────────────
-
-export type EmailList = {
-  id: string;
-  name: string;
-  description?: string;
-  emails: string[];
-};
-
-const DEFAULT_NAMED_LISTS: EmailList[] = [
-  {
-    id: "exec",
-    name: "Executive Team",
-    description: "C-level and crisis decision makers",
-    emails: [],
-  },
-  {
-    id: "press",
-    name: "Press & Media",
-    description: "Journalists, PR agencies, media outlets",
-    emails: [],
-  },
-  {
-    id: "ops",
-    name: "Operations & Frontline",
-    description: "On-the-ground operations and customer-facing staff",
-    emails: [],
-  },
-  {
-    id: "regulators",
-    name: "Regulators & Authorities",
-    description: "Regulators, government contacts",
-    emails: [],
-  },
-  {
-    id: "internal-all",
-    name: "All Employees",
-    description: "Company-wide internal distribution",
-    emails: [],
-  },
-];
-
-export function loadEmailLists(): EmailList[] {
-  try {
-    const raw = localStorage.getItem(NAMED_LISTS_KEY);
-    if (!raw) return [...DEFAULT_NAMED_LISTS];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [...DEFAULT_NAMED_LISTS];
-    return parsed as EmailList[];
-  } catch {
-    return [...DEFAULT_NAMED_LISTS];
-  }
-}
-
-export function saveEmailLists(lists: EmailList[]) {
-  localStorage.setItem(NAMED_LISTS_KEY, JSON.stringify(lists));
-}
-
-// ─────────────────────────────────────────────────────────────
-// Responsibility matrix (RACI)
-// Maps each asset type → list IDs by responsibility level.
-// ─────────────────────────────────────────────────────────────
-
-export type RaciLevel = "responsible" | "accountable" | "consulted" | "informed";
-
-export type ResponsibilityMatrix = Record<string, Record<RaciLevel, string[]>>;
-
-const EMPTY_RACI: Record<RaciLevel, string[]> = {
-  responsible: [],
-  accountable: [],
-  consulted: [],
-  informed: [],
-};
-
-const DEFAULT_MATRIX: ResponsibilityMatrix = {
-  press_release: {
-    responsible: ["press"],
-    accountable: ["exec"],
-    consulted: ["regulators"],
-    informed: ["internal-all"],
-  },
-  holding_statement: {
-    responsible: ["press", "ops"],
-    accountable: ["exec"],
-    consulted: [],
-    informed: ["internal-all"],
-  },
-  internal_memo: {
-    responsible: ["internal-all"],
-    accountable: ["exec"],
-    consulted: ["ops"],
-    informed: [],
-  },
-  customer_faq: {
-    responsible: ["ops"],
-    accountable: ["exec"],
-    consulted: ["press"],
-    informed: ["internal-all"],
-  },
-};
 
 export const RACI_LABELS: Record<RaciLevel, string> = {
   responsible: "Responsible",
@@ -183,53 +76,238 @@ export const RACI_DESCRIPTIONS: Record<RaciLevel, string> = {
   informed: "Kept in the loop after sending",
 };
 
-export function loadResponsibilityMatrix(): ResponsibilityMatrix {
-  try {
-    const raw = localStorage.getItem(RACI_KEY);
-    if (!raw) return { ...DEFAULT_MATRIX };
-    const parsed = JSON.parse(raw);
-    return { ...DEFAULT_MATRIX, ...parsed };
-  } catch {
-    return { ...DEFAULT_MATRIX };
-  }
+/** The lists a workspace starts with, created on first visit to the editor. */
+const STARTER_LISTS: Array<{ name: string; description: string }> = [
+  { name: "Executive Team", description: "C-level and crisis decision makers" },
+  { name: "Press & Media", description: "Journalists, PR agencies, media outlets" },
+  { name: "Operations & Frontline", description: "On-the-ground operations and customer-facing staff" },
+  { name: "Regulators & Authorities", description: "Regulators, government contacts" },
+  { name: "All Employees", description: "Company-wide internal distribution" },
+];
+
+// ─────────────────────────────────────────────────────────────
+// Lists
+// ─────────────────────────────────────────────────────────────
+
+export async function fetchEmailLists(): Promise<EmailList[]> {
+  const { data, error } = await supabase
+    .from("email_lists")
+    .select("id, name, description, emails")
+    .order("name");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((l) => ({
+    id: l.id,
+    name: l.name,
+    description: l.description ?? undefined,
+    emails: l.emails ?? [],
+  }));
 }
 
-export function saveResponsibilityMatrix(matrix: ResponsibilityMatrix) {
-  localStorage.setItem(RACI_KEY, JSON.stringify(matrix));
+export async function createEmailList(name: string, description: string): Promise<EmailList> {
+  const { data, error } = await supabase
+    .from("email_lists")
+    .insert({ name, description: description || null, emails: [] })
+    .select("id, name, description, emails")
+    .single();
+  if (error) throw new Error(error.message);
+  return { id: data.id, name: data.name, description: data.description ?? undefined, emails: data.emails ?? [] };
 }
 
-export function getMatrixFor(assetType: string): Record<RaciLevel, string[]> {
-  const matrix = loadResponsibilityMatrix();
-  return matrix[assetType] ?? { ...EMPTY_RACI };
+export async function setEmailListAddresses(id: string, emails: string[]): Promise<void> {
+  const { data, error } = await supabase
+    .from("email_lists")
+    .update({ emails })
+    .eq("id", id)
+    .select("id");
+  if (error) throw new Error(error.message);
+  // An RLS refusal is silent, and a silently discarded address list is worse
+  // than an error message: the team believes people will be told.
+  if (!data?.length) throw new Error("not-permitted");
+}
+
+export async function deleteEmailList(id: string): Promise<void> {
+  const { error } = await supabase.from("email_lists").delete().eq("id", id);
+  if (error) throw new Error(error.message);
 }
 
 /**
- * Recommended email lists for a given asset type, ordered by priority
- * (responsible → accountable → consulted → informed).
+ * Create the starter lists if this workspace has none.
+ *
+ * Returns whatever the workspace has afterwards. Only an administrator can
+ * write, so for anyone else this is just a read.
  */
-export function getRecommendedLists(
+export async function ensureEmailLists(isAdmin: boolean): Promise<EmailList[]> {
+  const existing = await fetchEmailLists();
+  if (existing.length || !isAdmin) return existing;
+
+  const imported = await importLocalListsOnce();
+  if (imported.length) return imported;
+
+  const { error } = await supabase
+    .from("email_lists")
+    .insert(STARTER_LISTS.map((l) => ({ ...l, emails: [] })));
+  if (error) return existing;
+  return await fetchEmailLists();
+}
+
+// ─────────────────────────────────────────────────────────────
+// Responsibility matrix
+// ─────────────────────────────────────────────────────────────
+
+export async function fetchResponsibilityMatrix(): Promise<ResponsibilityMatrix> {
+  const { data, error } = await supabase
+    .from("responsibility_matrix")
+    .select("asset_type, level, list_id");
+  if (error) throw new Error(error.message);
+  const matrix: ResponsibilityMatrix = {};
+  for (const row of data ?? []) {
+    matrix[row.asset_type] ??= EMPTY_RACI();
+    matrix[row.asset_type][row.level as RaciLevel].push(row.list_id);
+  }
+  return matrix;
+}
+
+/**
+ * Replace the whole matrix.
+ *
+ * It is a small set of rows describing one decision, so it is written as one:
+ * clear it, then insert what the editor is showing. Anything else leaves the
+ * stored matrix half-way between two intentions.
+ */
+export async function saveResponsibilityMatrix(matrix: ResponsibilityMatrix): Promise<void> {
+  const rows: Array<{ asset_type: string; level: RaciLevel; list_id: string }> = [];
+  for (const [assetType, levels] of Object.entries(matrix)) {
+    for (const level of RACI_LEVELS) {
+      for (const listId of levels?.[level] ?? []) {
+        rows.push({ asset_type: assetType, level, list_id: listId });
+      }
+    }
+  }
+
+  const { error: clearErr } = await supabase
+    .from("responsibility_matrix")
+    .delete()
+    .not("asset_type", "is", null);
+  if (clearErr) throw new Error(clearErr.message);
+
+  if (!rows.length) return;
+  const { data, error } = await supabase.from("responsibility_matrix").insert(rows).select("list_id");
+  if (error) throw new Error(error.message);
+  if (!data?.length) throw new Error("not-permitted");
+}
+
+export async function getMatrixFor(assetType: string): Promise<Record<RaciLevel, string[]>> {
+  const matrix = await fetchResponsibilityMatrix();
+  return matrix[assetType] ?? EMPTY_RACI();
+}
+
+// ─────────────────────────────────────────────────────────────
+// The old browser storage
+// ─────────────────────────────────────────────────────────────
+
+const LEGACY_LISTS_KEY = "sevra.email_lists.v1";
+const LEGACY_RACI_KEY = "sevra.responsibility_matrix.v1";
+const LEGACY_RECIPIENTS_KEY = "sevra.distribution_lists.v1";
+const IMPORTED_FLAG = "sevra.distribution.imported.v1";
+
+/**
+ * Carry a browser's lists and matrix into the workspace, once.
+ *
+ * Whoever configured these did real work — collecting press contacts, agreeing
+ * who signs off on what — and it was stored where only their own browser could
+ * see it. The old list ids were local strings, so the matrix is remapped onto
+ * the ids the workspace assigns.
+ */
+async function importLocalListsOnce(): Promise<EmailList[]> {
+  let legacy: EmailList[] = [];
+  try {
+    if (localStorage.getItem(IMPORTED_FLAG)) return [];
+    const raw = localStorage.getItem(LEGACY_LISTS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || !parsed.length) return [];
+    legacy = parsed as EmailList[];
+  } catch {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("email_lists")
+    .insert(
+      legacy.map((l) => ({
+        name: l.name,
+        description: l.description || null,
+        emails: (l.emails ?? []).filter(isValidEmail),
+      })),
+    )
+    .select("id, name, description, emails");
+  if (error || !data?.length) return [];
+
+  const idByName = new Map(data.map((l) => [l.name, l.id]));
+  try {
+    const rawMatrix = localStorage.getItem(LEGACY_RACI_KEY);
+    if (rawMatrix) {
+      const oldMatrix = JSON.parse(rawMatrix) as ResponsibilityMatrix;
+      const nameByOldId = new Map(legacy.map((l) => [l.id, l.name]));
+      const remapped: ResponsibilityMatrix = {};
+      for (const [assetType, levels] of Object.entries(oldMatrix)) {
+        remapped[assetType] = EMPTY_RACI();
+        for (const level of RACI_LEVELS) {
+          for (const oldId of levels?.[level] ?? []) {
+            const newId = idByName.get(nameByOldId.get(oldId) ?? "");
+            if (newId) remapped[assetType][level].push(newId);
+          }
+        }
+      }
+      await saveResponsibilityMatrix(remapped);
+    }
+  } catch {
+    // The lists made it across; a matrix that cannot be parsed is not worth
+    // failing the import for.
+  }
+
+  try {
+    localStorage.setItem(IMPORTED_FLAG, new Date().toISOString());
+    localStorage.removeItem(LEGACY_RECIPIENTS_KEY);
+  } catch {
+    // Private browsing. The flag is a convenience, not a correctness guard:
+    // the import only runs when the workspace has no lists at all.
+  }
+
+  return data.map((l) => ({
+    id: l.id,
+    name: l.name,
+    description: l.description ?? undefined,
+    emails: l.emails ?? [],
+  }));
+}
+
+/**
+ * The lists a communication should go to, in the order the matrix implies:
+ * whoever does the work first, then who signs it off, then the rest.
+ */
+export function recommendedLists(
+  matrix: ResponsibilityMatrix,
+  lists: EmailList[],
   assetType: string,
 ): Array<{ list: EmailList; level: RaciLevel }> {
-  const matrix = getMatrixFor(assetType);
-  const lists = loadEmailLists();
+  const forType = matrix[assetType] ?? EMPTY_RACI();
   const byId = new Map(lists.map((l) => [l.id, l]));
   const out: Array<{ list: EmailList; level: RaciLevel }> = [];
   const seen = new Set<string>();
-  (["responsible", "accountable", "consulted", "informed"] as RaciLevel[]).forEach(
-    (level) => {
-      for (const id of matrix[level] ?? []) {
-        if (seen.has(id)) continue;
-        const list = byId.get(id);
-        if (!list) continue;
-        seen.add(id);
-        out.push({ list, level });
-      }
-    },
-  );
+  for (const level of RACI_LEVELS) {
+    for (const id of forType[level] ?? []) {
+      if (seen.has(id)) continue;
+      const list = byId.get(id);
+      if (!list) continue;
+      seen.add(id);
+      out.push({ list, level });
+    }
+  }
   return out;
 }
 
-// Social network URLs for "copy + open" flow
+// Social network URLs for the "copy + open" flow.
 export function socialNetworkUrl(assetType: string, content: string): string {
   const text = encodeURIComponent(content);
   switch (assetType) {
@@ -276,21 +354,21 @@ export function socialNetworkKey(assetType: string): "x" | "facebook" | null {
 }
 
 // The starter lists' Spanish names. A list someone has renamed keeps the name
-// they gave it; only an untouched default is shown translated.
-const DEFAULT_LIST_ES: Record<string, { name: string; description: string }> = {
-  exec: { name: "Equipo directivo", description: "Dirección y responsables de decisión en la crisis" },
-  press: { name: "Prensa y medios", description: "Periodistas, agencias de comunicación y medios" },
-  ops: { name: "Operaciones y primera línea", description: "Personal de operaciones y de atención al cliente" },
-  regulators: { name: "Reguladores y autoridades", description: "Reguladores y contactos gubernamentales" },
-  "internal-all": { name: "Toda la plantilla", description: "Distribución interna a toda la empresa" },
+// they gave it; only an untouched starter is shown translated.
+const STARTER_LIST_ES: Record<string, { name: string; description: string }> = {
+  "Executive Team": { name: "Equipo directivo", description: "Dirección y responsables de decisión en la crisis" },
+  "Press & Media": { name: "Prensa y medios", description: "Periodistas, agencias de comunicación y medios" },
+  "Operations & Frontline": { name: "Operaciones y primera línea", description: "Personal de operaciones y de atención al cliente" },
+  "Regulators & Authorities": { name: "Reguladores y autoridades", description: "Reguladores y contactos gubernamentales" },
+  "All Employees": { name: "Toda la plantilla", description: "Distribución interna a toda la empresa" },
 };
 
 export function listDisplay(list: EmailList, lang: "en" | "es"): { name: string; description?: string } {
-  const def = DEFAULT_NAMED_LISTS.find((d) => d.id === list.id);
-  const es = DEFAULT_LIST_ES[list.id];
-  if (lang !== "es" || !def || !es) return { name: list.name, description: list.description };
+  const es = STARTER_LIST_ES[list.name];
+  const starter = STARTER_LISTS.find((d) => d.name === list.name);
+  if (lang !== "es" || !es) return { name: list.name, description: list.description };
   return {
-    name: list.name === def.name ? es.name : list.name,
-    description: list.description === def.description || list.description === "Aviation authorities, government contacts" ? es.description : list.description,
+    name: es.name,
+    description: !list.description || list.description === starter?.description ? es.description : list.description,
   };
 }

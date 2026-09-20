@@ -8,17 +8,16 @@ import { toast } from "@/hooks/use-toast";
 import { useLang, useMessages } from "@/i18n";
 import { distributionMessages } from "@/i18n/messages/distribution";
 import {
+  createEmailList,
+  deleteEmailList,
   EmailList,
+  ensureEmailLists,
   isValidEmail,
-  loadEmailLists,
-  saveEmailLists,
+  setEmailListAddresses,
 } from "@/lib/distribution";
 import { listDisplay } from "@/lib/distribution";
+import { supabase } from "@/integrations/supabase/client";
 import { Plus, Trash2, X, Users } from "lucide-react";
-
-function uid() {
-  return `lst_${Math.random().toString(36).slice(2, 9)}`;
-}
 
 export default function EmailListsManager() {
   const [lists, setLists] = useState<EmailList[]>([]);
@@ -27,53 +26,77 @@ export default function EmailListsManager() {
   const [inputs, setInputs] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    setLists(loadEmailLists());
+    void (async () => {
+      const { data } = await supabase.auth.getUser();
+      let admin = false;
+      if (data.user?.id) {
+        const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id);
+        admin = (roles ?? []).some((r) => r.role === "admin");
+      }
+      try {
+        // The lists live in the workspace now; a browser that still has the
+        // old local ones hands them over here, once.
+        setLists(await ensureEmailLists(admin));
+      } catch (e) {
+        toast({ title: (e as Error).message, variant: "destructive" });
+      }
+    })();
   }, []);
 
   const t = useMessages(distributionMessages);
   const { lang } = useLang();
 
-  function persist(next: EmailList[]) {
-    setLists(next);
-    saveEmailLists(next);
+  /** Write the addresses of one list, and say so if the workspace refused. */
+  async function persistAddresses(listId: string, emails: string[]) {
+    const before = lists;
+    setLists(lists.map((l) => (l.id === listId ? { ...l, emails } : l)));
+    try {
+      await setEmailListAddresses(listId, emails);
+    } catch (e) {
+      setLists(before);
+      const message = (e as Error).message === "not-permitted" ? t.adminOnly : (e as Error).message;
+      toast({ title: message, variant: "destructive" });
+    }
   }
 
-  function addList() {
+  async function addList() {
     const name = newName.trim();
     if (!name) return toast({ title: t.nameRequired, variant: "destructive" });
-    persist([...lists, { id: uid(), name, description: newDesc.trim(), emails: [] }]);
-    setNewName("");
-    setNewDesc("");
+    try {
+      const created = await createEmailList(name, newDesc.trim());
+      setLists([...lists, created].sort((a, b) => a.name.localeCompare(b.name)));
+      setNewName("");
+      setNewDesc("");
+    } catch (e) {
+      toast({ title: (e as Error).message, variant: "destructive" });
+    }
   }
 
-  function deleteList(id: string) {
-    persist(lists.filter((l) => l.id !== id));
+  async function deleteList(id: string) {
+    const before = lists;
+    setLists(lists.filter((l) => l.id !== id));
+    try {
+      await deleteEmailList(id);
+    } catch (e) {
+      setLists(before);
+      toast({ title: (e as Error).message, variant: "destructive" });
+    }
   }
 
   function addEmail(listId: string) {
     const raw = (inputs[listId] ?? "").trim().toLowerCase();
     if (!raw) return;
     if (!isValidEmail(raw)) return toast({ title: t.invalidEmail, variant: "destructive" });
-    persist(
-      lists.map((l) =>
-        l.id === listId && !l.emails.includes(raw)
-          ? { ...l, emails: [...l.emails, raw] }
-          : l,
-      ),
-    );
+    const list = lists.find((l) => l.id === listId);
+    if (!list || list.emails.includes(raw)) return;
+    void persistAddresses(listId, [...list.emails, raw]);
     setInputs((s) => ({ ...s, [listId]: "" }));
   }
 
   function removeEmail(listId: string, email: string) {
-    persist(
-      lists.map((l) =>
-        l.id === listId ? { ...l, emails: l.emails.filter((e) => e !== email) } : l,
-      ),
-    );
-  }
-
-  function renameList(id: string, name: string) {
-    persist(lists.map((l) => (l.id === id ? { ...l, name } : l)));
+    const list = lists.find((l) => l.id === listId);
+    if (!list) return;
+    void persistAddresses(listId, list.emails.filter((e) => e !== email));
   }
 
   return (
@@ -103,7 +126,7 @@ export default function EmailListsManager() {
                 placeholder={t.descriptionPlaceholder}
               />
             </div>
-            <Button onClick={addList}>
+            <Button onClick={() => void addList()}>
               <Plus className="h-4 w-4 mr-2" /> {t.createListButton}
             </Button>
           </div>
@@ -118,11 +141,9 @@ export default function EmailListsManager() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-primary shrink-0" />
-                    <Input
-                      value={listDisplay(list, lang).name}
-                      onChange={(e) => renameList(list.id, e.target.value)}
-                      className="h-7 text-sm font-semibold border-0 px-1 focus-visible:ring-1"
-                    />
+                    <span className="text-sm font-semibold truncate">
+                      {listDisplay(list, lang).name}
+                    </span>
                   </div>
                   {list.description && (
                     <p className="text-xs text-muted-foreground mt-1 ml-6">
@@ -134,7 +155,7 @@ export default function EmailListsManager() {
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7"
-                  onClick={() => deleteList(list.id)}
+                  onClick={() => void deleteList(list.id)}
                   aria-label={t.deleteList(listDisplay(list, lang).name)}
                 >
                   <Trash2 className="h-4 w-4 text-destructive" />

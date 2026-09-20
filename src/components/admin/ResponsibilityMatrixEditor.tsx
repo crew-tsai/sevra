@@ -9,8 +9,8 @@ import {
   RaciLevel,
   listDisplay,
   ResponsibilityMatrix,
-  loadEmailLists,
-  loadResponsibilityMatrix,
+  fetchEmailLists,
+  fetchResponsibilityMatrix,
   saveResponsibilityMatrix,
 } from "@/lib/distribution";
 import { Save } from "lucide-react";
@@ -30,13 +30,21 @@ const LEVEL_COLORS: Record<RaciLevel, string> = {
 export default function ResponsibilityMatrixEditor() {
   const [lists, setLists] = useState<EmailList[]>([]);
   const [matrix, setMatrix] = useState<ResponsibilityMatrix>({});
+  const [saving, setSaving] = useState(false);
   const t = useMessages(distributionMessages);
   const common = useMessages(commonMessages);
   const { lang } = useLang();
 
   useEffect(() => {
-    setLists(loadEmailLists());
-    setMatrix(loadResponsibilityMatrix());
+    void (async () => {
+      try {
+        const [l, m] = await Promise.all([fetchEmailLists(), fetchResponsibilityMatrix()]);
+        setLists(l);
+        setMatrix(m);
+      } catch (e) {
+        toast({ title: (e as Error).message, variant: "destructive" });
+      }
+    })();
   }, []);
 
   function toggle(assetType: string, level: RaciLevel, listId: string) {
@@ -57,9 +65,17 @@ export default function ResponsibilityMatrixEditor() {
     });
   }
 
-  function save() {
-    saveResponsibilityMatrix(matrix);
-    toast({ title: t.saved, description: t.matrixUpdated });
+  async function save() {
+    setSaving(true);
+    try {
+      await saveResponsibilityMatrix(matrix);
+      toast({ title: t.saved, description: t.matrixUpdated });
+    } catch (e) {
+      const message = (e as Error).message === "not-permitted" ? t.adminOnly : (e as Error).message;
+      toast({ title: message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (lists.length === 0) {
@@ -153,7 +169,7 @@ export default function ResponsibilityMatrixEditor() {
       </div>
 
       <div className="flex justify-end">
-        <Button onClick={save}>
+        <Button onClick={() => void save()} disabled={saving}>
           <Save className="h-4 w-4 mr-2" /> {t.saveMatrix}
         </Button>
       </div>

@@ -3,6 +3,7 @@ import { identifyCaller, unauthorized } from "../_shared/caller.ts";
 import { INCIDENT_TYPES, profileFor } from "../_shared/industries.ts";
 import { chatCompletion, MODELS } from "../_shared/ai.ts";
 import { crisisLevel } from "../_shared/crisis-level.ts";
+import { runWorkflows } from "../_shared/workflow-engine.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -356,7 +357,35 @@ Deno.serve(async (req) => {
     // overwrite a package that already exists, so an escalating incident is
     // drafted once.
     const threshold = settings?.auto_package_level ?? null;
-    const autoPackage = incidentId !== null && typeof threshold === "number" && level >= threshold;
+    const baselineDraft = incidentId !== null && typeof threshold === "number" && level >= threshold;
+
+    // The administrator's own rules, on top of that baseline. A rule can only
+    // bring drafting forward for a classification the workspace cares about —
+    // it can never stop the baseline from drafting a catastrophe.
+    let fired: string[] = [];
+    let ruleDraft = false;
+    if (incidentId) {
+      const { data: incidentRow } = await admin
+        .from("incidents")
+        .select("*")
+        .eq("id", incidentId)
+        .maybeSingle();
+      if (incidentRow) {
+        const run = await runWorkflows({
+          admin,
+          supabaseUrl,
+          serviceKey,
+          incident: incidentRow,
+          crisisLevel: level,
+          lang: packageLanguage(settings?.monitor_languages),
+          companyName: settings?.company_name ?? null,
+        });
+        fired = run.fired;
+        ruleDraft = run.draftRequested;
+      }
+    }
+
+    const autoPackage = baselineDraft || ruleDraft;
     if (autoPackage) {
       await requestPackage(
         supabaseUrl,
@@ -374,6 +403,7 @@ Deno.serve(async (req) => {
         crisis_level: level,
         deduped: !!dedupedTo,
         auto_package: autoPackage,
+        workflows_fired: fired,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

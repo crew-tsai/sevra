@@ -10,7 +10,10 @@ export interface TemplateEntry {
 }
 
 import { template as crisisCommunication } from './crisis-communication.tsx'
+import { template as crisisAlert } from './crisis-alert.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'crisis-communication': crisisCommunication,
+  // Sent by a workflow rule when a crisis is detected; see _shared/workflow-engine.ts.
+  'crisis-alert': crisisAlert,
 }

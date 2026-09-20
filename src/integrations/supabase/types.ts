@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       bootstrap_config: {
@@ -46,6 +71,8 @@ export type Database = {
           id: string
           industry: string | null
           logo_url: string | null
+          monitor_active: boolean
+          monitor_auto_incident_threshold: number
           monitor_countries: string[]
           monitor_exclude_terms: string[]
           monitor_languages: string[]
@@ -72,6 +99,8 @@ export type Database = {
           id?: string
           industry?: string | null
           logo_url?: string | null
+          monitor_active?: boolean
+          monitor_auto_incident_threshold?: number
           monitor_countries?: string[]
           monitor_exclude_terms?: string[]
           monitor_languages?: string[]
@@ -98,6 +127,8 @@ export type Database = {
           id?: string
           industry?: string | null
           logo_url?: string | null
+          monitor_active?: boolean
+          monitor_auto_incident_threshold?: number
           monitor_countries?: string[]
           monitor_exclude_terms?: string[]
           monitor_languages?: string[]
@@ -110,6 +141,66 @@ export type Database = {
           singleton?: boolean
           updated_at?: string
           x_handle?: string | null
+        }
+        Relationships: []
+      }
+      distribution_lists: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          emails: string[]
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          emails?: string[]
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          emails?: string[]
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      email_lists: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          emails: string[]
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          emails?: string[]
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          emails?: string[]
+          id?: string
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -506,6 +597,35 @@ export type Database = {
         }
         Relationships: []
       }
+      raci_assignments: {
+        Row: {
+          asset_type: string
+          id: string
+          level: string
+          list_id: string
+        }
+        Insert: {
+          asset_type: string
+          id?: string
+          level: string
+          list_id: string
+        }
+        Update: {
+          asset_type?: string
+          id?: string
+          level?: string
+          list_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "raci_assignments_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "distribution_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       response_plan: {
         Row: {
           created_at: string
@@ -552,6 +672,32 @@ export type Database = {
             columns: ["incident_id"]
             isOneToOne: true
             referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      responsibility_matrix: {
+        Row: {
+          asset_type: string
+          level: string
+          list_id: string
+        }
+        Insert: {
+          asset_type: string
+          level: string
+          list_id: string
+        }
+        Update: {
+          asset_type?: string
+          level?: string
+          list_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "responsibility_matrix_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "email_lists"
             referencedColumns: ["id"]
           },
         ]
@@ -857,6 +1003,90 @@ export type Database = {
         }
         Relationships: []
       }
+      workflow_runs: {
+        Row: {
+          fired_at: string
+          id: string
+          incident_id: string
+          result: Json
+          workflow_id: string
+        }
+        Insert: {
+          fired_at?: string
+          id?: string
+          incident_id: string
+          result?: Json
+          workflow_id: string
+        }
+        Update: {
+          fired_at?: string
+          id?: string
+          incident_id?: string
+          result?: Json
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_runs_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_runs_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflows: {
+        Row: {
+          actions: Json
+          created_at: string
+          created_by: string | null
+          criteria: Json
+          enabled: boolean
+          id: string
+          incident_type: string | null
+          min_crisis_level: number
+          name: string
+          next_status: string | null
+          sub_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          actions?: Json
+          created_at?: string
+          created_by?: string | null
+          criteria?: Json
+          enabled?: boolean
+          id?: string
+          incident_type?: string | null
+          min_crisis_level?: number
+          name: string
+          next_status?: string | null
+          sub_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actions?: Json
+          created_at?: string
+          created_by?: string | null
+          criteria?: Json
+          enabled?: boolean
+          id?: string
+          incident_type?: string | null
+          min_crisis_level?: number
+          name?: string
+          next_status?: string | null
+          sub_type?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -870,6 +1100,78 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      get_assets_by_month: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: {
+          approved: number
+          month: string
+          pending: number
+          rejected: number
+          total: number
+        }[]
+      }
+      get_crisis_pressure: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: Json
+      }
+      get_dashboard_summary: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: Json
+      }
+      get_incidents_by_month: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: {
+          critical: number
+          high: number
+          low: number
+          medium: number
+          month: string
+          total: number
+        }[]
+      }
+      get_incidents_by_source: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: {
+          count: number
+          source: string
+        }[]
+      }
+      get_incidents_by_type: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: {
+          count: number
+          incident_type: string
+        }[]
+      }
+      get_mention_channel_stats: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: {
+          channel: string
+          count: number
+          influencer_count: number
+          negative_pct: number
+          reach: number
+        }[]
+      }
+      get_mention_risk_mix: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: Json
+      }
+      get_mentions_by_month: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: {
+          count: number
+          month: string
+        }[]
+      }
+      get_reach_weighted_sentiment: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: Json
+      }
+      get_report_kpis: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: Json
       }
       get_social_monitor_status: {
         Args: never
@@ -1056,6 +1358,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["admin", "coordinador", "manager", "ejecutivo", "soporte"],

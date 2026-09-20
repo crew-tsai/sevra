@@ -33,7 +33,10 @@ if (app !== fns) {
 }
 
 // These are whole-file mirrors: same module, two toolchains.
-const MIRRORS = [["src/lib/crisis-level.ts", "supabase/functions/_shared/crisis-level.ts"]];
+const MIRRORS = [
+  ["src/lib/crisis-level.ts", "supabase/functions/_shared/crisis-level.ts"],
+  ["src/lib/workflows.ts", "supabase/functions/_shared/workflows.ts"],
+];
 
 for (const [from, to] of MIRRORS) {
   if (fs.readFileSync(from, "utf8") !== fs.readFileSync(to, "utf8")) {

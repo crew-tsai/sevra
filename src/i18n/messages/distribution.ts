@@ -78,6 +78,8 @@ export const distributionMessages = defineMessages({
 
     // Responsibility matrix (Admin)
     saved: "Saved",
+    adminOnly: "Only an administrator can change the lists and the matrix.",
+    defaultsFromMatrix: "Recipients are suggested from the responsibility matrix in Admin › Responsibilities.",
     matrixUpdated: "Responsibility matrix updated.",
     needList: "Create at least one email list first to build the matrix.",
     matrixTitle: "Responsibility matrix (RACI)",
@@ -158,6 +160,8 @@ export const distributionMessages = defineMessages({
     contacts: (n: number) => `${n} contacto${n === 1 ? "" : "s"}`,
 
     saved: "Guardado",
+    adminOnly: "Solo un administrador puede cambiar las listas y la matriz.",
+    defaultsFromMatrix: "Los destinatarios se sugieren desde la matriz de responsabilidades en Administración › Responsabilidades.",
     matrixUpdated: "Matriz de responsabilidades actualizada.",
     needList: "Crea primero al menos una lista de correo para construir la matriz.",
     matrixTitle: "Matriz de responsabilidades (RACI)",

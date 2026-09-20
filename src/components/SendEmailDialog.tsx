@@ -15,12 +15,12 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   RaciLevel,
   EmailList,
-  getListFor,
-  getRecommendedLists,
+  fetchEmailLists,
+  fetchResponsibilityMatrix,
   isValidEmail,
   listDisplay,
-  loadDistributionLists,
-  saveDistributionLists,
+  recommendedLists,
+  type ResponsibilityMatrix,
 } from "@/lib/distribution";
 import { Loader2, Mail, Plus, Send, Sparkles, Users, X } from "lucide-react";
 import { toast } from "sonner";
@@ -51,8 +51,11 @@ type Props = {
 export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
   const [recipients, setRecipients] = useState<string[]>([]);
   const [newEmail, setNewEmail] = useState("");
-  const [persistToList, setPersistToList] = useState(false);
   const [sending, setSending] = useState(false);
+  // Lists and the matrix are workspace data now, so they are read when the
+  // dialog opens rather than from this browser's storage.
+  const [lists, setLists] = useState<EmailList[]>([]);
+  const [matrix, setMatrix] = useState<ResponsibilityMatrix>({});
   const t = useMessages(distributionMessages);
   const common = useMessages(commonMessages);
   const { lang } = useLang();
@@ -60,21 +63,29 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
   const typeLabel = asset ? common.assetType[asset.asset_type] ?? asset.asset_type : "";
 
   const recommended = useMemo(
-    () => (asset ? getRecommendedLists(asset.asset_type) : []),
-    [asset, open],
+    () => (asset ? recommendedLists(matrix, lists, asset.asset_type) : []),
+    [asset, lists, matrix],
   );
 
   useEffect(() => {
-    if (open && asset) {
-      // Pre-fill with the saved per-asset list AND every "responsible" list from the matrix.
-      const base = new Set<string>(getListFor(asset.asset_type));
-      for (const { list, level } of getRecommendedLists(asset.asset_type)) {
-        if (level === "responsible") list.emails.forEach((e) => base.add(e));
+    if (!open || !asset) return;
+    void (async () => {
+      try {
+        const [l, m] = await Promise.all([fetchEmailLists(), fetchResponsibilityMatrix()]);
+        setLists(l);
+        setMatrix(m);
+        // Start with whoever the matrix holds responsible for this kind of
+        // communication — that is what the matrix is for.
+        const base = new Set<string>();
+        for (const { list, level } of recommendedLists(m, l, asset.asset_type)) {
+          if (level === "responsible") list.emails.forEach((e) => base.add(e));
+        }
+        setRecipients(Array.from(base));
+      } catch (e) {
+        toast.error((e as Error).message);
       }
-      setRecipients(Array.from(base));
       setNewEmail("");
-      setPersistToList(false);
-    }
+    })();
   }, [open, asset]);
 
   if (!asset) return null;
@@ -120,12 +131,6 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
       return;
     }
     setSending(true);
-
-    if (persistToList) {
-      const lists = loadDistributionLists();
-      lists[asset.asset_type] = recipients;
-      saveDistributionLists(lists);
-    }
 
     let success = 0;
     let failed = 0;
@@ -264,15 +269,9 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
             </Button>
           </div>
 
-          <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
-            <input
-              type="checkbox"
-              checked={persistToList}
-              onChange={(e) => setPersistToList(e.target.checked)}
-              className="rounded border-border"
-            />
-            {t.saveAsDefault(typeLabel)}
-          </label>
+          {/* Defaults come from the responsibility matrix in Admin, which the
+              whole team shares — not from a per-browser "save as default". */}
+          <p className="text-xs text-muted-foreground">{t.defaultsFromMatrix}</p>
         </div>
 
         <DialogFooter>

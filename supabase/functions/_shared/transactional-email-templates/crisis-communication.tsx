@@ -139,6 +139,108 @@ const CrisisCommunicationEmail = ({
   )
 }
 
+// These style objects were referenced by the markup above but never defined —
+// the template has thrown a ReferenceError on every render since it was first
+// committed, which nobody noticed because no crisis communication has ever been
+// emailed from this workspace. Plain, printable, and safe in mail clients that
+// strip anything clever.
+const main: React.CSSProperties = {
+  backgroundColor: '#f6f7f9',
+  fontFamily:
+    "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+  padding: '24px 0',
+}
+
+const container: React.CSSProperties = {
+  backgroundColor: '#ffffff',
+  border: '1px solid #e5e7eb',
+  borderRadius: '8px',
+  margin: '0 auto',
+  maxWidth: '600px',
+  padding: '32px',
+}
+
+const badge: React.CSSProperties = {
+  marginBottom: '12px',
+}
+
+const badgeText: React.CSSProperties = {
+  backgroundColor: '#0f172a',
+  borderRadius: '4px',
+  color: '#ffffff',
+  display: 'inline-block',
+  fontSize: '11px',
+  fontWeight: 700,
+  letterSpacing: '0.08em',
+  margin: 0,
+  padding: '4px 10px',
+}
+
+const h1: React.CSSProperties = {
+  color: '#0f172a',
+  fontSize: '22px',
+  fontWeight: 700,
+  lineHeight: '30px',
+  margin: '0 0 8px',
+}
+
+const refLine: React.CSSProperties = {
+  color: '#64748b',
+  fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+  fontSize: '12px',
+  letterSpacing: '0.04em',
+  margin: '0',
+}
+
+const refSep: React.CSSProperties = {
+  color: '#cbd5e1',
+}
+
+const hr: React.CSSProperties = {
+  border: 'none',
+  borderTop: '1px solid #e5e7eb',
+  margin: '20px 0',
+}
+
+const greetingStyle: React.CSSProperties = {
+  color: '#0f172a',
+  fontSize: '15px',
+  lineHeight: '24px',
+  margin: '0 0 12px',
+}
+
+const contentBlock: React.CSSProperties = {
+  margin: '0 0 8px',
+}
+
+const contentText: React.CSSProperties = {
+  color: '#1f2937',
+  fontSize: '15px',
+  lineHeight: '24px',
+  margin: '0 0 12px',
+  whiteSpace: 'pre-wrap',
+}
+
+const spacer: React.CSSProperties = {
+  fontSize: '8px',
+  lineHeight: '8px',
+  margin: 0,
+}
+
+const signoff: React.CSSProperties = {
+  color: '#0f172a',
+  fontSize: '15px',
+  fontWeight: 600,
+  margin: '0 0 16px',
+}
+
+const footer: React.CSSProperties = {
+  color: '#64748b',
+  fontSize: '12px',
+  lineHeight: '18px',
+  margin: 0,
+}
+
 export const template = {
   component: CrisisCommunicationEmail,
   subject: (data: Record<string, any>) => {
