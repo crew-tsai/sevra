@@ -1,4 +1,4 @@
-import { LayoutDashboard, Plus, FileText, CheckCircle, LogOut, Radio, BarChart3, Settings, History, Home, Workflow } from "lucide-react";
+import { LayoutDashboard, Plus, FileText, CheckCircle, LifeBuoy, LogOut, Radio, BarChart3, Settings, History, Home, Workflow } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -151,6 +151,18 @@ export function AppSidebar() {
           </div>
         )}
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={isActive("/help")}>
+              <NavLink
+                to="/help"
+                state={{ from: location.pathname }}
+                activeClassName="bg-sidebar-accent text-foreground font-medium"
+              >
+                <LifeBuoy className="h-4 w-4" />
+                {!collapsed && <span>{m.help}</span>}
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={signOut}>
               <LogOut className="h-4 w-4" />

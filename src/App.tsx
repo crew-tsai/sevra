@@ -23,6 +23,7 @@ import Sevra from "@/pages/Sevra";
 import Reports from "@/pages/Reports";
 import Admin from "@/pages/Admin";
 import AuditLog from "@/pages/AuditLog";
+import Help from "./pages/Help";
 import Unsubscribe from "@/pages/Unsubscribe";
 import NotFound from "@/pages/NotFound";
 import MarketingLayout from "@/components/marketing/MarketingLayout";
@@ -71,6 +72,7 @@ const App = () => (
             <Route path="/reports" element={<Reports />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/audit-log" element={<AuditLog />} />
+            <Route path="/help" element={<Help />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

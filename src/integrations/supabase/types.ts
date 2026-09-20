@@ -925,6 +925,42 @@ export type Database = {
         }
         Relationships: []
       }
+      support_tickets: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          created_email: string | null
+          delivered: boolean
+          id: string
+          message: string
+          page: string | null
+          subject: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          created_email?: string | null
+          delivered?: boolean
+          id?: string
+          message: string
+          page?: string | null
+          subject: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          created_email?: string | null
+          delivered?: boolean
+          id?: string
+          message?: string
+          page?: string | null
+          subject?: string
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
