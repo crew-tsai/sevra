@@ -61,7 +61,7 @@ export const helpMessages = defineMessages({
     send: "Send to Sevra",
     sending: "Sending…",
     sent: "Sent — we have it",
-    sentDetail: "You will get a reply at the address on your account.",
+    sentDetail: "The answer appears below your question here, and at the address on your account.",
     notDelivered: "Saved, but it has not reached Sevra yet",
     notDeliveredDetail:
       "Your message is recorded here and nothing is lost. If it stays like this, email crew@thestellar.ai directly.",
@@ -73,6 +73,9 @@ export const helpMessages = defineMessages({
     delivered: "Delivered",
     retry: "Send again",
     pending: "Not delivered",
+    answered: "Answered",
+    awaitingReply: "With Sevra — the answer appears here.",
+    supportName: "Sevra support",
     by: (who: string) => `from ${who}`,
   },
   es: {
@@ -132,7 +135,7 @@ export const helpMessages = defineMessages({
     send: "Enviar a Sevra",
     sending: "Enviando…",
     sent: "Enviado — lo tenemos",
-    sentDetail: "Recibirás la respuesta en el correo de tu cuenta.",
+    sentDetail: "La respuesta aparece aquí debajo de tu pregunta, y en el correo de tu cuenta.",
     notDelivered: "Guardado, pero todavía no llegó a Sevra",
     notDeliveredDetail:
       "Tu mensaje queda registrado aquí y no se pierde nada. Si sigue así, escribe directamente a crew@thestellar.ai.",
@@ -144,6 +147,9 @@ export const helpMessages = defineMessages({
     delivered: "Entregado",
     retry: "Reenviar",
     pending: "Sin entregar",
+    answered: "Respondida",
+    awaitingReply: "En manos de Sevra — la respuesta aparece aquí.",
+    supportName: "Soporte de Sevra",
     by: (who: string) => `de ${who}`,
   },
 });

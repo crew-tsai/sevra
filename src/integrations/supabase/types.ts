@@ -925,8 +925,47 @@ export type Database = {
         }
         Relationships: []
       }
+      support_replies: {
+        Row: {
+          body: string
+          console_reply_id: string
+          created_at: string
+          from_name: string
+          id: string
+          sent_at: string
+          ticket_id: string
+        }
+        Insert: {
+          body: string
+          console_reply_id: string
+          created_at?: string
+          from_name?: string
+          id?: string
+          sent_at?: string
+          ticket_id: string
+        }
+        Update: {
+          body?: string
+          console_reply_id?: string
+          created_at?: string
+          from_name?: string
+          id?: string
+          sent_at?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_replies_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_tickets: {
         Row: {
+          answered_at: string | null
           category: string
           created_at: string
           created_by: string | null
@@ -938,6 +977,7 @@ export type Database = {
           subject: string
         }
         Insert: {
+          answered_at?: string | null
           category?: string
           created_at?: string
           created_by?: string | null
@@ -949,6 +989,7 @@ export type Database = {
           subject: string
         }
         Update: {
+          answered_at?: string | null
           category?: string
           created_at?: string
           created_by?: string | null

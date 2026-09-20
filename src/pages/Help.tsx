@@ -18,10 +18,23 @@ import { formatDistanceToNow } from "date-fns";
 type Ticket = {
   id: string;
   subject: string;
+  message: string;
   category: string;
   created_at: string;
   created_email: string | null;
   delivered: boolean;
+  answered_at: string | null;
+};
+
+// What Sevra answered, pushed back into this workspace by the control plane.
+// Nothing in the browser can write one, so a reply shown here was written by
+// Sevra.
+type Reply = {
+  id: string;
+  ticket_id: string;
+  body: string;
+  from_name: string;
+  sent_at: string;
 };
 
 export default function Help() {
@@ -34,6 +47,7 @@ export default function Help() {
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [replies, setReplies] = useState<Reply[]>([]);
   const [retrying, setRetrying] = useState<string | null>(null);
 
   // Where they came from. Someone who clicks Help from Approvals is almost
@@ -46,12 +60,19 @@ export default function Help() {
   }, []);
 
   async function loadTickets() {
-    const { data } = await supabase
-      .from("support_tickets")
-      .select("id, subject, category, created_at, created_email, delivered")
-      .order("created_at", { ascending: false })
-      .limit(20);
+    const [{ data }, { data: answers }] = await Promise.all([
+      supabase
+        .from("support_tickets")
+        .select("id, subject, message, category, created_at, created_email, delivered, answered_at")
+        .order("created_at", { ascending: false })
+        .limit(20),
+      supabase
+        .from("support_replies")
+        .select("id, ticket_id, body, from_name, sent_at")
+        .order("sent_at"),
+    ]);
     setTickets((data ?? []) as Ticket[]);
+    setReplies((answers ?? []) as Reply[]);
   }
 
   async function send() {
@@ -177,39 +198,76 @@ export default function Help() {
             <p className="text-sm text-muted-foreground">{t.historyEmpty}</p>
           ) : (
             <ul className="divide-y">
-              {tickets.map((ticket) => (
-                <li key={ticket.id} className="flex items-start justify-between gap-3 py-2.5">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{ticket.subject}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {t.categories[ticket.category] ?? ticket.category}
-                      {" · "}
-                      {formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true, locale })}
-                      {ticket.created_email ? ` · ${t.by(ticket.created_email)}` : ""}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <Badge variant={ticket.delivered ? "secondary" : "outline"} className="text-[10px]">
-                      {ticket.delivered ? t.delivered : t.pending}
-                    </Badge>
-                    {!ticket.delivered && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 text-xs"
-                        disabled={retrying === ticket.id}
-                        onClick={() => void retry(ticket.id)}
-                      >
-                        {retrying === ticket.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          t.retry
+              {tickets.map((ticket) => {
+                const answers = replies.filter((r) => r.ticket_id === ticket.id);
+                return (
+                  <li key={ticket.id} className="space-y-2 py-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{ticket.subject}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {t.categories[ticket.category] ?? ticket.category}
+                          {" · "}
+                          {formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true, locale })}
+                          {ticket.created_email ? ` · ${t.by(ticket.created_email)}` : ""}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Badge
+                          variant={answers.length ? "default" : ticket.delivered ? "secondary" : "outline"}
+                          className="text-[10px]"
+                        >
+                          {answers.length ? t.answered : ticket.delivered ? t.delivered : t.pending}
+                        </Badge>
+                        {!ticket.delivered && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs"
+                            disabled={retrying === ticket.id}
+                            onClick={() => void retry(ticket.id)}
+                          >
+                            {retrying === ticket.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              t.retry
+                            )}
+                          </Button>
                         )}
-                      </Button>
+                      </div>
+                    </div>
+
+                    {/* An answer on its own is half a conversation, so the
+                        question it answers comes back with it. */}
+                    {answers.length > 0 && (
+                      <>
+                        <p className="line-clamp-3 whitespace-pre-wrap text-xs text-muted-foreground">
+                          {ticket.message}
+                        </p>
+                        {answers.map((reply) => (
+                          <div
+                            key={reply.id}
+                            className="rounded-md border border-primary/20 bg-primary/5 p-3"
+                          >
+                            <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-primary">
+                              <LifeBuoy className="h-3.5 w-3.5" />
+                              {reply.from_name === "Sevra support" ? t.supportName : reply.from_name}
+                              <span className="font-normal text-muted-foreground">
+                                {formatDistanceToNow(new Date(reply.sent_at), { addSuffix: true, locale })}
+                              </span>
+                            </p>
+                            <p className="whitespace-pre-wrap text-sm leading-relaxed">{reply.body}</p>
+                          </div>
+                        ))}
+                      </>
                     )}
-                  </div>
-                </li>
-              ))}
+
+                    {answers.length === 0 && ticket.delivered && (
+                      <p className="text-xs text-muted-foreground">{t.awaitingReply}</p>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </CardContent>
