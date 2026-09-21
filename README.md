@@ -174,12 +174,16 @@ theirs yet: mail still sends, it just isn't branded to them.
 The client's Google Workspace (or whatever hosts their human mailboxes) is unaffected —
 only DKIM/SPF records on the sending **subdomain** are involved, never the root domain's MX.
 
-### Meta: verification and App Review
+### Platform reviews: what is approved and what is not
 
-Facebook and Instagram stay on the client's-own-app path until Sevra's Meta app passes
-Business Verification and App Review. That is paperwork, not engineering — the code is
-written and waits on two secrets. Step-by-step:
-[`docs/meta-verification-runbook.md`](docs/meta-verification-runbook.md).
+X needs no review. **Meta** and **TikTok** both do, and until those clear, each behaves as
+an unreviewed app: it works for people who hold a role on the app and fails for everyone
+else — which means a connection working in Sevra's own workspace proves nothing about a
+client's.
+
+What each platform allows today, what is gated, and exactly what to change when an
+approval lands: [`docs/platform-reviews.md`](docs/platform-reviews.md). Meta's paperwork
+has its own step-by-step: [`docs/meta-verification-runbook.md`](docs/meta-verification-runbook.md).
 
 ### One redirect URI for every client
 
@@ -216,7 +220,9 @@ Two sources, resolved in [`_shared/social-credentials.ts`](supabase/functions/_s
 
 The client's own app **always wins** when present. That ordering is deliberate: an admin who registered their own app did so for their own API quota and their own name on the OAuth consent screen, and must not be silently moved onto the shared app, whose rate limit is pooled across every client.
 
-Why both exist: the Meta scopes this product needs (`pages_manage_posts`, `pages_read_engagement`, `pages_read_user_content`) are Advanced Access. An **unreviewed** Meta app can only act on Pages belonging to people who hold a role on the app itself — so a client using their own app needs no App Review, while Sevra's shared app requires App Review and Business Verification before it works for anyone else. Until that review passes, leave `PLATFORM_META_*` unset and the UI falls back to asking for the client's own credentials.
+Why both exist: the Meta scopes this product needs (`pages_manage_posts`, `pages_read_engagement`, `pages_read_user_content`) are Advanced Access. An **unreviewed** Meta app can only act on Pages belonging to people who hold a role on the app itself — so a client using their own app needs no App Review, while Sevra's shared app requires App Review and Business Verification before it works for anyone else.
+
+While that review runs there are two defensible configurations, and the difference is visible to the client on their first day: leave `PLATFORM_META_*` **set** and add each new client's admin as a Tester on the app, or leave it **unset** so the UI falls back to asking for their own credentials, which needs no review at all. It is currently set on the control plane, and therefore inherited by every client provisioned from it. See [`docs/platform-reviews.md`](docs/platform-reviews.md).
 
 Changing the app for a network invalidates any account already connected through the old one — the stored tokens were issued to that app and cannot be refreshed or revoked by another. Saving or clearing credentials therefore flips that connection to `error` with a message telling the admin to reconnect, rather than letting it fail later mid-incident.
 
@@ -237,7 +243,9 @@ cost a debugging session:
 Scopes come from `PLATFORM_TIKTOK_SCOPE` and default to `user.info.basic`, which is what
 an unreviewed app may ask for. Publishing and comment reading need their own products
 approved by TikTok, and the Content Posting API takes a **video file** — not the script
-Sevra writes — so connecting an account is not the same as being able to post to it.
+Sevra writes — so connecting an account is not the same as being able to post to it. The
+review status and the two separate submissions it needs are tracked in
+[`docs/platform-reviews.md`](docs/platform-reviews.md).
 
 Nobody can monitor TikTok. There is no public search API for mentions outside TikTok's
 academic research programme, so the connection exists to act on the client's own account
