@@ -21,6 +21,7 @@ import ResponsibilityMatrixEditor from "@/components/admin/ResponsibilityMatrixE
 import SocialConnectionsManager from "@/components/admin/SocialConnectionsManager";
 import SendingDomainManager from "@/components/admin/SendingDomainManager";
 import { MonitoringFocus } from "@/components/admin/MonitoringFocus";
+import { Watchlist } from "@/components/admin/Watchlist";
 import { groupLabel, INDUSTRY_GROUPS, industryLabel } from "@/lib/industries";
 import { useLang, useMessages } from "@/i18n";
 import { adminMessages } from "@/i18n/messages/admin";
@@ -376,6 +377,8 @@ export default function Admin() {
                 onLanguages={setMonitorLanguages}
                 onExcludeTerms={setMonitorExcludeTerms}
               />
+
+              <Watchlist isAdmin={isAdmin} />
 
               <div className="space-y-2">
                 <Label>{t.manual}</Label>

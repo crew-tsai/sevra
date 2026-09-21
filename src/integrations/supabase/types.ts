@@ -955,6 +955,42 @@ export type Database = {
         }
         Relationships: []
       }
+      monitor_watchlist: {
+        Row: {
+          active: boolean
+          amplifies: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          label: string | null
+          network: string
+          value: string
+        }
+        Insert: {
+          active?: boolean
+          amplifies?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind: string
+          label?: string | null
+          network?: string
+          value: string
+        }
+        Update: {
+          active?: boolean
+          amplifies?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          label?: string | null
+          network?: string
+          value?: string
+        }
+        Relationships: []
+      }
       support_attachments: {
         Row: {
           created_at: string

@@ -157,6 +157,50 @@ export function buildXQuery(o: { companyName: string | null; handle: string; lan
   return q;
 }
 
+/**
+ * The X search for this company's watchlist.
+ *
+ * Deliberately a separate query from the brand one, not more terms inside it.
+ * The brand search narrows by language, because a bare company name otherwise
+ * matches half the internet; a watched account posts in whatever language it
+ * posts in, and filtering that out would defeat the reason for watching it.
+ *
+ * Accounts are searched as `from:` — posts *by* them. "Monitor this
+ * influencer" means what they say, not who mentions them; the latter is
+ * already covered when they mention the company.
+ */
+export function buildWatchQuery(items: Array<{ kind: string; value: string }>): string {
+  const terms: string[] = [];
+  for (const item of items) {
+    const raw = item.value.trim();
+    if (!raw) continue;
+    if (item.kind === "account") {
+      const handle = raw.replace(/^@/, "").replace(/[^A-Za-z0-9_]/g, "");
+      if (handle) terms.push(`from:${handle}`);
+    } else if (item.kind === "hashtag") {
+      const tag = raw.replace(/^#/, "").replace(/[^A-Za-z0-9_]/g, "");
+      if (tag) terms.push(`#${tag}`);
+    } else {
+      const phrase = raw.replace(/["()]/g, " ").replace(/\s+/g, " ").trim();
+      if (phrase) terms.push(phrase.includes(" ") ? `"${phrase}"` : phrase);
+    }
+  }
+  if (!terms.length) return "";
+
+  // X rejects queries over 512 characters. Drop from the end rather than
+  // returning nothing: watching most of the list beats watching none of it,
+  // and the list is ordered by when it was added.
+  let q = "";
+  const kept: string[] = [];
+  for (const term of terms) {
+    const candidate = `(${[...kept, term].join(" OR ")}) -is:retweet`;
+    if (candidate.length > 512) break;
+    kept.push(term);
+    q = candidate;
+  }
+  return q;
+}
+
 async function pullRealX(admin: any, companyName: string | null): Promise<{ rows: MentionRow[]; error?: string }> {
   const { data: connection } = await admin
     .from("social_connections")
@@ -182,10 +226,17 @@ async function pullRealX(admin: any, companyName: string | null): Promise<{ rows
     });
 
     // Nothing to look for is not a failure — it is a workspace that has not
-    // said who it is yet, and saying so on every tick would be noise.
+    // said who it is yet, and saying so on every tick would be noise. A
+    // watchlist counts as something to look for: a company can be watching an
+    // industry hashtag before it has finished filling in its own name.
     const handleTerm = handle ? `@${handle}` : null;
     const nameTerm = companyName ? `"${companyName}"` : null;
-    if (!handleTerm && !nameTerm) return { rows: [] };
+    const { count: watching } = await admin
+      .from("monitor_watchlist")
+      .select("id", { count: "exact", head: true })
+      .eq("network", "x")
+      .eq("active", true);
+    if (!handleTerm && !nameTerm && !(watching ?? 0)) return { rows: [] };
 
     let accessToken: string | null = null;
 
@@ -220,48 +271,123 @@ async function pullRealX(admin: any, companyName: string | null): Promise<{ rows
       };
     }
 
-    const params = new URLSearchParams({
-      query,
-      max_results: "10",
-      "tweet.fields": "created_at,public_metrics",
-      expansions: "author_id",
-      "user.fields": "username,name,profile_image_url,verified",
-    });
-    const res = await fetch(`https://api.twitter.com/2/tweets/search/recent?${params}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const msg = json?.detail || json?.title || `X search failed (${res.status})`;
-      return { rows: [], error: msg };
+    // Two searches, merged: what is said about the company, and what the
+    // accounts and hashtags they asked us to watch are saying. Kept apart
+    // because the brand query narrows by language and the watch query must
+    // not — see buildWatchQuery.
+    const brand = query ? await searchX(accessToken, query) : { rows: [] as MentionRow[] };
+    const watched = await pullWatchlistX(admin, accessToken);
+
+    // A post can match both. The first copy wins, and the watchlist runs
+    // second, so a merge must not lose the amplified flag it set.
+    const byId = new Map<string, MentionRow>();
+    const unkeyed: MentionRow[] = [];
+    for (const row of [...brand.rows, ...watched.rows]) {
+      const id = row.external_id;
+      if (!id) {
+        unkeyed.push(row);
+        continue;
+      }
+      const existing = byId.get(id);
+      if (existing) {
+        if (row.is_influencer) existing.is_influencer = true;
+        continue;
+      }
+      byId.set(id, row);
     }
 
-    const users = new Map((json.includes?.users ?? []).map((u: any) => [u.id, u]));
-    const tweets = Array.isArray(json.data) ? json.data : [];
-    const rows: MentionRow[] = tweets.map((t: any) => {
-      const author = users.get(t.author_id) as any;
-      return {
-        channel: "twitter",
-        external_id: t.id,
-        author_name: author?.name ?? null,
-        author_handle: author?.username ?? null,
-        author_avatar_url: author?.profile_image_url ?? null,
-        content: t.text,
-        post_url: author?.username ? `https://twitter.com/${author.username}/status/${t.id}` : null,
-        likes: t.public_metrics?.like_count ?? 0,
-        shares: t.public_metrics?.retweet_count ?? 0,
-        reach: t.public_metrics?.impression_count ?? 0,
-        is_verified: !!author?.verified,
-        is_influencer: false,
-        posted_at: t.created_at ?? new Date().toISOString(),
-        status: "pending",
-        created_by: null,
-      };
-    });
-    return { rows };
+    return {
+      rows: [...byId.values(), ...unkeyed],
+      error: brand.error ?? watched.error,
+    };
   } catch (e: any) {
     return { rows: [], error: e?.message ?? String(e) };
   }
+}
+
+/** One X search, mapped to mention rows. Shared by the brand and watch queries. */
+// deno-lint-ignore no-explicit-any
+async function searchX(accessToken: string, query: string): Promise<{ rows: MentionRow[]; error?: string }> {
+  const params = new URLSearchParams({
+    query,
+    max_results: "10",
+    "tweet.fields": "created_at,public_metrics",
+    expansions: "author_id",
+    "user.fields": "username,name,profile_image_url,verified",
+  });
+  const res = await fetch(`https://api.twitter.com/2/tweets/search/recent?${params}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = json?.detail || json?.title || `X search failed (${res.status})`;
+    return { rows: [], error: msg };
+  }
+
+  const users = new Map((json.includes?.users ?? []).map((u: any) => [u.id, u]));
+  const tweets = Array.isArray(json.data) ? json.data : [];
+  const rows: MentionRow[] = tweets.map((t: any) => {
+    const author = users.get(t.author_id) as any;
+    return {
+      channel: "twitter",
+      external_id: t.id,
+      author_name: author?.name ?? null,
+      author_handle: author?.username ?? null,
+      author_avatar_url: author?.profile_image_url ?? null,
+      content: t.text,
+      post_url: author?.username ? `https://twitter.com/${author.username}/status/${t.id}` : null,
+      likes: t.public_metrics?.like_count ?? 0,
+      shares: t.public_metrics?.retweet_count ?? 0,
+      reach: t.public_metrics?.impression_count ?? 0,
+      is_verified: !!author?.verified,
+      is_influencer: false,
+      posted_at: t.created_at ?? new Date().toISOString(),
+      status: "pending",
+      created_by: null,
+    };
+  });
+  return { rows };
+}
+
+/**
+ * The accounts and hashtags this company asked to be watched.
+ *
+ * Runs whether or not the brand query found anything, and marks a post as
+ * amplified when it came from a watched account that was set to amplify —
+ * which is what raises the crisis level for the same words said by someone
+ * with an audience. A hashtag hit is not amplified by default: anyone can use
+ * a hashtag.
+ */
+// deno-lint-ignore no-explicit-any
+async function pullWatchlistX(admin: any, accessToken: string): Promise<{ rows: MentionRow[]; error?: string }> {
+  const { data: items } = await admin
+    .from("monitor_watchlist")
+    .select("kind, value, amplifies")
+    .eq("network", "x")
+    .eq("active", true)
+    .order("created_at");
+
+  const list = (items ?? []) as Array<{ kind: string; value: string; amplifies: boolean }>;
+  if (!list.length) return { rows: [] };
+
+  const query = buildWatchQuery(list);
+  if (!query) return { rows: [] };
+
+  const { rows, error } = await searchX(accessToken, query);
+  if (error) return { rows: [], error };
+
+  const amplifying = new Set(
+    list
+      .filter((i) => i.kind === "account" && i.amplifies)
+      .map((i) => i.value.replace(/^@/, "").toLowerCase()),
+  );
+
+  return {
+    rows: rows.map((r) => ({
+      ...r,
+      is_influencer: r.author_handle ? amplifying.has(r.author_handle.toLowerCase()) : false,
+    })),
+  };
 }
 
 /**

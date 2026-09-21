@@ -89,6 +89,24 @@ export const adminMessages = defineMessages({
     status: "Status",
     active: "Active",
     pending: "Pending",
+    watchlist: {
+      title: "Accounts and hashtags to watch",
+      intro:
+        "Monitoring already looks for your own name. Add the accounts and hashtags that matter to you — a journalist who covers your sector, a campaigner, the hashtag from an ongoing incident — and Sevra collects what they post whether or not you are named.",
+      empty: "Nothing is being watched beyond your own name.",
+      kindAccount: "Account",
+      kindHashtag: "Hashtag",
+      kindKeyword: "Words",
+      keywordPlaceholder: "a phrase to watch",
+      labelPlaceholder: "why you are watching it",
+      active: "Collecting",
+      amplifies: "Raises the level",
+      amplifiesOff: "No extra weight",
+      amplifiesHint:
+        "A complaint from an account with an audience is a bigger event than the same words from nobody in particular. When this is on, an incident opened from their post starts one crisis level higher.",
+      platformNote:
+        "X only. Facebook and TikTok cannot be searched for posts by other people, and Instagram's hashtag search needs permissions Sevra has not been granted yet.",
+    },
     focus: {
       title: "Monitoring focus",
       intro: "Narrows what monitoring collects when your name is also a common word, or a word in another language.",
@@ -195,6 +213,24 @@ export const adminMessages = defineMessages({
     status: "Estado",
     active: "Activo",
     pending: "Pendiente",
+    watchlist: {
+      title: "Cuentas y hashtags a vigilar",
+      intro:
+        "La monitorización ya busca tu propio nombre. Añade las cuentas y los hashtags que te importan — un periodista que cubre tu sector, un activista, el hashtag de un incidente en curso — y Sevra recoge lo que publican te nombren o no.",
+      empty: "No se vigila nada más allá de tu propio nombre.",
+      kindAccount: "Cuenta",
+      kindHashtag: "Hashtag",
+      kindKeyword: "Palabras",
+      keywordPlaceholder: "una frase a vigilar",
+      labelPlaceholder: "por qué la vigilas",
+      active: "Recogiendo",
+      amplifies: "Sube el nivel",
+      amplifiesOff: "Sin peso extra",
+      amplifiesHint:
+        "Una queja de una cuenta con audiencia es un hecho mayor que las mismas palabras dichas por cualquiera. Con esto activado, un incidente abierto desde su publicación empieza un nivel de crisis más arriba.",
+      platformNote:
+        "Solo X. Facebook y TikTok no permiten buscar publicaciones de otras personas, y la búsqueda de hashtags de Instagram necesita permisos que Sevra aún no tiene.",
+    },
     focus: {
       title: "Enfoque de la monitorización",
       intro: "Reduce lo que se captura cuando el nombre de tu empresa es también una palabra común, o una palabra en otro idioma.",
