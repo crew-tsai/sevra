@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { RiskBadge } from "@/components/RiskBadge";
 import { CrisisLevelBadge } from "@/components/CrisisLevelBadge";
-import { TimeRangeFilter, DEFAULT_TIME_RANGE, isInRange, isInRangeOrUnfinished, type TimeRange } from "@/components/TimeRangeFilter";
+import { TimeRangeFilter, ALL_TIME, isInRangeOrUnfinished, type TimeRange } from "@/components/TimeRangeFilter";
 import { useIntlLocale, useLang, useMessages } from "@/i18n";
 import { useTranslations } from "@/i18n/useTranslations";
 import { sevraMessages } from "@/i18n/messages/sevra";
@@ -118,7 +118,7 @@ export default function Sevra() {
   const [monitorSchedule, setMonitorSchedule] = useState<string | null>(null);
   const [monitorLastRun, setMonitorLastRun] = useState<string | null>(null);
   const [monitorTogglePending, setMonitorTogglePending] = useState(false);
-  const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
+  const [timeRange, setTimeRange] = useState<TimeRange>(ALL_TIME);
   const t = useMessages(sevraMessages);
   const { lang } = useLang();
   const intl = useIntlLocale();

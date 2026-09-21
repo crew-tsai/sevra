@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { useDateLocale, useMessages } from "@/i18n";
 import { commonMessages } from "@/i18n/messages/common";
 
-export type TimeRangePreset = "today" | "this_week" | "custom";
+export type TimeRangePreset = "all" | "today" | "this_week" | "custom";
 
 export type TimeRange = {
   preset: TimeRangePreset;
@@ -15,9 +15,21 @@ export type TimeRange = {
   to: Date | null;
 };
 
+/**
+ * Everything, which is what a working view starts with.
+ *
+ * A calendar preset as the default empties the product on a boundary: "this
+ * week" at nine on a Monday morning means the last nine hours, so a workspace
+ * whose entire weekend of mentions is sitting in the database showed "No
+ * mentions yet" and offered to go and fetch some.
+ */
+export const ALL_TIME: TimeRange = { preset: "all", from: null, to: null };
+
+/** The reporting default, where a period is the point of the page. */
 export const DEFAULT_TIME_RANGE: TimeRange = { preset: "this_week", from: startOfWeek(new Date(), { weekStartsOn: 1 }), to: new Date() };
 
 export function presetRange(preset: Exclude<TimeRangePreset, "custom">): TimeRange {
+  if (preset === "all") return ALL_TIME;
   const to = new Date();
   let from = new Date();
   if (preset === "today") {
@@ -71,6 +83,7 @@ export function TimeRangeFilter({
   const locale = useDateLocale();
 
   const presets: { key: Exclude<TimeRangePreset, "custom">; label: string }[] = [
+    { key: "all", label: t.allTime },
     { key: "today", label: t.today },
     { key: "this_week", label: t.thisWeek },
   ];

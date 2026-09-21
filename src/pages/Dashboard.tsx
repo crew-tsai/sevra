@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { RiskBadge } from "@/components/RiskBadge";
 import { CrisisLevelBadge } from "@/components/CrisisLevelBadge";
 import { StatusBadge } from "@/components/StatusBadge";
-import { TimeRangeFilter, DEFAULT_TIME_RANGE, isInRange, isInRangeOrUnfinished, type TimeRange } from "@/components/TimeRangeFilter";
+import { TimeRangeFilter, ALL_TIME, isInRangeOrUnfinished, type TimeRange } from "@/components/TimeRangeFilter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
@@ -106,7 +106,7 @@ export default function Dashboard() {
   const [allIncidents, setAllIncidents] = useState<Incident[]>([]);
   const [allMentions, setAllMentions] = useState<Mention[]>([]);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
+  const [timeRange, setTimeRange] = useState<TimeRange>(ALL_TIME);
   const t = useMessages(dashboardMessages);
   const common = useMessages(commonMessages);
   const locale = useDateLocale();

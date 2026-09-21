@@ -14,7 +14,7 @@ import { profileFor } from "@/lib/industries";
 import { CheckCircle2, XCircle, FileText, Copy, Loader2, ExternalLink, Megaphone, MessageSquare, Users, HelpCircle, RefreshCw, LayoutDashboard, X, Filter, Mail, Send, ChevronDown, Film, Building2, Briefcase, Newspaper, Headphones, Pencil, MessageCircle, Lock, Upload, Sparkles, Image as ImageIcon, Video } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { TimeRangeFilter, DEFAULT_TIME_RANGE, isInRange, isInRangeOrUnfinished, type TimeRange } from "@/components/TimeRangeFilter";
+import { TimeRangeFilter, ALL_TIME, isInRangeOrUnfinished, type TimeRange } from "@/components/TimeRangeFilter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -115,7 +115,7 @@ export default function Approvals() {
   const [editResetToPending, setEditResetToPending] = useState(true);
   const [savingEdit, setSavingEdit] = useState(false);
   const [savingNewVersion, setSavingNewVersion] = useState(false);
-  const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
+  const [timeRange, setTimeRange] = useState<TimeRange>(ALL_TIME);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [isAdmin, setIsAdmin] = useState(false);
   const [mediaBusyId, setMediaBusyId] = useState<string | null>(null);
