@@ -259,16 +259,26 @@ a handful. But it means Meta's timeline need not block the first customers.
 
 ## Status
 
-- [ ] Business portfolio created **in The Stellar Crew's legal name** — **start the tenure clock**
-- [ ] Documents collected, all in The Stellar Crew's name, address identical across all
-- [ ] Business Verification submitted
+- [x] Business portfolio created **in The Stellar Crew's legal name** — **start the tenure clock**
+- [x] Documents collected, all in The Stellar Crew's name, address identical across all
+- [x] Business Verification submitted — **in review since 2026-09-19**
 - [ ] Business Verification approved
 - [ ] App linked to verified portfolio; privacy policy, ToS, relay URI set
 - [ ] Screencasts recorded — one per permission
 - [ ] App Review submitted
 - [ ] Advanced Access granted
-- [ ] `PLATFORM_META_*` set on both projects
+- [ ] `PLATFORM_META_*` promoted from bridge to general availability
 - [ ] One-click verified end to end on a test workspace
+
+**Where the secrets actually are, as of 2026-09-20.** `PLATFORM_META_CLIENT_ID`,
+`_SECRET`, `_CONFIG_ID` and `_IG_CONFIG_ID` are set on the control plane and on both
+client workspaces, deliberately, as the development-mode bridge described above: an
+unreviewed app works for people who hold a role on it, which covers the first few
+clients while review runs. Because a provisioned client inherits every `PLATFORM_*`
+secret from the control plane, **new clients now inherit this app too** — and for a
+client whose staff are not testers on it, Facebook and Instagram connect will fail
+rather than fall back. Either add each new client's admin as a tester, or clear the
+Meta pair from the control plane until Advanced Access is granted.
 
 ---
 

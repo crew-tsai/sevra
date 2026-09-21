@@ -27,12 +27,12 @@ The trade-off is that no single place shows the client portfolio. That is what t
 | Auth | Supabase GoTrue (email + password, JWT) — **invite-only** |
 | RBAC | `user_roles` table + RLS policies (`admin`, `coordinador`, `manager`, `ejecutivo`, `soporte`) |
 | REST API | Supabase PostgREST |
-| Edge Functions | Deno (19 functions) |
+| Edge Functions | Deno (23 functions) |
 | AI | Google Gemini direct — `gemini-3.8-flash`, `gemini-3.1-flash-image` (see [`_shared/ai.ts`](supabase/functions/_shared/ai.ts)) |
 | Email queue | pgmq + pg_cron + Resend |
 | Scheduler | pg_cron — `sevra-social-monitor-15min`, `process-email-queue-5s`, `sevra-deployment-heartbeat-15min` |
 
-> Only `admin` currently changes what a user can do. `coordinador`, `manager` and `ejecutivo` are recorded against each person but do not yet restrict anything, and every signed-in user can read the workspace. `soporte` marks Sevra staff (see [Support access](#support-access)).
+> Only `admin` currently changes what a user can do. `coordinador`, `manager` and `ejecutivo` are recorded against each person but do not yet restrict anything, and every signed-in user can read the workspace. `soporte` marks Sevra staff (see [Support](#support)).
 
 ---
 
@@ -40,15 +40,17 @@ The trade-off is that no single place shows the client portfolio. That is what t
 
 - **SEVRA Social Intel** — Pulls real mentions from connected X and Facebook accounts. AI classifies risk, suggests incident type, and deduplicates against existing incidents. Instagram and TikTok can be AI-simulated for demos, but `company_settings.simulation_enabled` defaults to **false**: synthetic mentions become real incident rows and are indistinguishable from genuine ones once created, which is not something a client should get by default
 - **Incident Management** — Create, update, and track incidents with crisis level (L0–L4), risk score, and approval status
-- **Assets** — Auto-generated communication assets: press releases, holding statements, social posts, internal memos, Q&As, FAQs. Instagram and TikTok assets can carry an uploaded image/video, or an AI-generated image
-- **Approvals** — Two-stage workflow: a team member sends a draft forward, an admin gives final approval. Approved assets unlock email, direct social publishing, and WhatsApp
+- **Assets** — Communication assets: press releases, holding statements, social posts, internal memos, Q&As, FAQs. Instagram and TikTok assets can carry an uploaded image/video, or an AI-generated image
+- **Automatic drafting** — When an incident reaches the crisis level set in Workflows, the whole package is drafted without anyone asking. It follows the client's own crisis communications manual when one is uploaded in Admin → Company, and recognised practice for their industry when there is none; the audit log records which of the two was used, and `incidents.package_requested_at` is claimed atomically so two mentions of the same crisis cannot produce two packages
+- **Approvals** — Two-stage workflow: a team member sends a draft forward, an admin gives final approval. Approved assets unlock email, direct social publishing, and WhatsApp. There is no automatic publishing anywhere in the product, by design — automation drafts, people send
 - **Social connections** — OAuth to the operator's own X, Facebook, Instagram and TikTok accounts. X and Facebook publish directly; Instagram and TikTok fall back to copy-and-open because those platforms require media on every post
 - **Reports** — Analytics and incident reporting
-- **Audit Log** — Append-only log of incident field changes, plus a record of every Sevra support access
+- **Workflows** — What the workspace does by itself, defined by its own admin: the baseline crisis level at which a package is drafted, plus rules matching on risk, type, level, network or amplification that can draft, notify, set status or lock public response. Rules are stored in `workflows`, executed server-side by `_shared/workflow-engine.ts`, and claimed once per incident through `workflow_runs` so a retry cannot fire them twice. Everyone can read them; only an admin can change them
+- **Response plan** — A RACI-grounded plan generated per incident from the client's manual and their responsibility matrix, shown on the incident page
+- **Audit Log** — Append-only log of incident field changes, naming the person who made each one, plus a record of every Sevra support access
+- **Help** — Q&A written from the product's own behaviour, and a way to write to Sevra from inside the workspace. Tickets carry the workspace, the company, who asked and the page they were on; Sevra's answer arrives back under the question (see [Support](#support))
 - **Admin Panel** — Company profile, branding, team & roles, email lists, responsibility matrix, social connections
 - **Agent Stripes** — AI assistant chat, grounded in the workspace's live data
-
-> **Workflows** (sidebar) is an unfinished preview. It operates on a hardcoded in-memory array: rules defined there are not persisted and nothing in the incident pipeline consults them.
 
 ---
 
@@ -62,7 +64,7 @@ src/
   hooks/          # Custom React hooks
   lib/            # Utilities, industry profiles, distribution helpers
 supabase/
-  functions/      # 19 Deno edge functions
+  functions/      # 23 Deno edge functions
   migrations/     # PostgreSQL migrations (chronological)
   seed.sql        # Optional demo data, airline-flavored — never runs automatically
 ```
@@ -72,6 +74,8 @@ supabase/
 ## Provisioning a new client
 
 **This is automated.** Staff create an invitation in the [control plane](https://github.com/crew-tsai/sevra-console); the client clicks the link and everything below happens on its own in about four minutes — Supabase project, schema, edge functions, secrets, cron wiring, Vercel frontend. The manual sequence is kept for reference and for deployments created by hand.
+
+**Staying current is automated too.** A client's frontend rebuilds from this repo on every push, because their Vercel project is connected to it. Their backend now follows the same branch: the control plane's `deployment-sync` job applies new migrations and redeploys changed functions to every active client, records the commit each one was built from, and shows it in the console. One workspace we own takes each update first and the rest follow after a soak. Nothing here needs a per-client deploy by hand — and if you do one anyway, **resync** that client afterwards so the record matches reality.
 
 Each client gets their own Supabase project. Run these in order; **step 4 is required** or nobody, including the client, can create an account.
 
@@ -111,19 +115,25 @@ An end-user walkthrough for the client's administrator is kept separately as the
 |---|---|---|
 | `GEMINI_API_KEY` | Yes | Google AI Studio key: analysis, asset generation, Agent Stripes, monitoring |
 | `RESEND_API_KEY` | Yes | Transactional email delivery |
-| `EMAIL_WEBHOOK_SECRET` | No | Verifies the provider's bounce/complaint webhook. Unset ⇒ the endpoint refuses everything |
+| `EMAIL_WEBHOOK_SECRET` | No | Verifies the provider's bounce/complaint webhook. Unset ⇒ the endpoint refuses everything. Per client and per webhook endpoint, so provisioning cannot seed it: it exists only once someone creates that client's endpoint at the provider |
 | `SITE_URL` | Yes | Public app origin; used to build the OAuth return URL |
 | `CONTROL_PLANE_URL` | No | Control plane project URL. Unset ⇒ the deployment does not report |
 | `HEARTBEAT_SECRET` | No | Shared secret authenticating the heartbeat |
 | `PLATFORM_X_CLIENT_ID` / `_SECRET` | No | Sevra's X app. Unset ⇒ X connects only with the client's own app |
 | `PLATFORM_META_CLIENT_ID` / `_SECRET` | No | Sevra's Meta app, shared by Facebook **and** Instagram |
 | `PLATFORM_TIKTOK_CLIENT_ID` / `_SECRET` | No | Sevra's TikTok app |
+| `PLATFORM_TIKTOK_SCOPE` | No | Space-separated TikTok scopes. Defaults to `user.info.basic`; widen only once the matching products pass TikTok's review |
 | `SENDER_DOMAIN` | No | Verified sending subdomain, e.g. `notify.client.com`. Unset ⇒ Sevra's |
 | `FROM_DOMAIN` | No | Domain in the `From:` header, e.g. `client.com` |
 | `SITE_NAME` | No | Overrides the `From:` display name; defaults to the workspace's company name |
 | `ANTHROPIC_API_KEY` | No | Only `generate-response-plan`, which runs on Claude. Unset ⇒ that one endpoint 500s; nothing else is affected |
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are injected by Supabase automatically.
+
+The `PLATFORM_*` pairs are not set per client by hand: a provisioned deployment inherits
+**every** secret matching `PLATFORM_*` from the control plane's own environment. Setting one
+only on a client workspace therefore works there and silently never reaches the next client —
+which is exactly how TikTok ended up live on one workspace and absent from provisioning.
 
 ### Who transactional email comes from
 
@@ -210,6 +220,29 @@ Why both exist: the Meta scopes this product needs (`pages_manage_posts`, `pages
 
 Changing the app for a network invalidates any account already connected through the old one — the stored tokens were issued to that app and cannot be refreshed or revoked by another. Saving or clearing credentials therefore flips that connection to `error` with a message telling the admin to reconnect, rather than letting it fail later mid-incident.
 
+### TikTok, specifically
+
+Three things about TikTok are not guessable from the other providers' code, and each one
+cost a debugging session:
+
+- **The v2 endpoints require their trailing slash.** `POST /v2/oauth/token` returns
+  `404 Unsupported path(Janus)`; `POST /v2/oauth/token/` works. Same for `revoke/` and
+  the authorize URL.
+- **`open_id` must be asked for by name** in the `fields` query parameter, or the profile
+  response simply does not contain it and the connection has no account to point at.
+- **Sandbox and production are separate apps** with separate credentials, separate URL
+  properties and separate Login Kit configuration. A sandbox only works for accounts
+  explicitly added as target users on it.
+
+Scopes come from `PLATFORM_TIKTOK_SCOPE` and default to `user.info.basic`, which is what
+an unreviewed app may ask for. Publishing and comment reading need their own products
+approved by TikTok, and the Content Posting API takes a **video file** — not the script
+Sevra writes — so connecting an account is not the same as being able to post to it.
+
+Nobody can monitor TikTok. There is no public search API for mentions outside TikTok's
+academic research programme, so the connection exists to act on the client's own account
+and the product says so rather than implying coverage it cannot deliver.
+
 ### Cron jobs
 
 `20260722160000_cron_jobs.sql` and `20260915160000_heartbeat_cron.sql` schedule the jobs but reference a Vault secret by name. Automated provisioning creates it; for a deployment set up by hand, create it once:
@@ -224,7 +257,28 @@ Those migrations also spell out a full function URL, and it is the *original* de
 
 ---
 
-## Support access
+## Support
+
+Two directions, deliberately separate: the client writing to Sevra, and Sevra entering
+the client's workspace.
+
+### Asking Sevra for help
+
+**Help** in the sidebar carries the Q&A and a form that reaches Sevra's staff.
+`support-ticket` records the request in this workspace first and *then* forwards it to
+the control plane, so a request that could not be delivered still exists here, marked
+undelivered, with a **Send again** button — rather than vanishing into a failed fetch.
+It travels with the context that otherwise costs an email round trip: which workspace,
+which company, who asked, what page they were on.
+
+The answer comes back the same way. `support-reply-inbox` accepts it from the control
+plane over the shared deployment secret and stores it against the ticket, so it appears
+under the question on the Help page as well as arriving by email — which is what survives
+a shared address, a colleague asking on someone's behalf, and a spam folder. That
+function is the only way a reply can be written: nothing a browser holds can insert one,
+so an answer shown there was written by Sevra.
+
+### Support access
 
 Sevra staff hold the `soporte` role on a client's deployment. Because the read policies on incidents, assets and mentions are `USING (true)`, that role can read the workspace — so it is made visible rather than implicit:
 
@@ -296,6 +350,12 @@ Applied in timestamp order. Key migrations:
 | `20260915130000` | `soporte` role (own migration — Postgres won't use a new enum value in the transaction that adds it) |
 | `20260915140000` | Support access log + logging RPC |
 | `20260915160000` | Deployment heartbeat cron |
+| `20260919150000` | `auto_package_level` baseline and `package_requested_at` — the atomic claim that stops one crisis producing two packages |
+| `20260920100000` | `workflows`, `workflow_runs`, `email_lists`, `responsibility_matrix` — automation and distribution moved out of the browser |
+| `20260920110000` | `log_incident_changes` trigger, with `change_source` so automated edits stop claiming to be manual |
+| `20260920120000` | The workspace owner gets a `team_members` row, so the audit log can name them |
+| `20260920130000` | `support_tickets` — what this workspace asked Sevra |
+| `20260920170000` | `support_replies` and `answered_at` — what Sevra answered, where the person who asked will look |
 
 > `20260701000000_grant_table_privileges` is required on any fresh project: PostgreSQL needs explicit `GRANT`s in addition to RLS policies.
 >
@@ -324,6 +384,12 @@ Applied in timestamp order. Key migrations:
 | `preview-transactional-email` | Returns rendered HTML preview of an email template |
 | `handle-email-unsubscribe` | Handles one-click unsubscribe tokens |
 | `handle-email-suppression` | Manages email suppression list (bounces, spam complaints) |
+| `generate-response-plan` | Per-incident response plan, grounded in the client's manual and responsibility matrix (runs on Claude) |
+| `translate-content` | Translates AI-written content between the workspace's two languages |
+| `support-ticket` | Records a client's request for help and forwards it to the control plane |
+| `support-reply-inbox` | Receives Sevra's answer from the control plane. Shared-secret only — nothing a browser holds can write a reply |
+| `account-recovery` | Finds which workspace an address belongs to, via the control plane |
+| `email-domain` | Relays sending-domain setup to the control plane, which holds the provider key |
 
 ---
 
@@ -331,8 +397,9 @@ Applied in timestamp order. Key migrations:
 
 Recorded rather than glossed over:
 
-- **Workflows** is a non-persisting prototype (see Features)
-- **Email lists** and the **responsibility matrix** save to `localStorage`, so they are per-browser and do not sync between admins or devices
 - **No real test coverage** — the tooling runs, but the only test asserts `true`
 - **No rate limiting** on any edge function or the public lead form
-- Instagram and TikTok **connect** but do not publish directly; both platforms require media on every post
+- Instagram and TikTok **connect** but do not publish directly; both platforms require media on every post, and the Content Posting API takes a video file rather than the script Sevra writes
+- **TikTok cannot be monitored at all.** Not a gap in this product: TikTok offers no way to search the platform for mentions outside its academic research programme, so the connection is for acting on the account, never for listening
+- Five edge functions still hand-roll their caller check instead of using [`_shared/caller.ts`](supabase/functions/_shared/caller.ts); they are correct, but the duplication is how the original gap happened
+- `preview-transactional-email` has no entry point in the UI
