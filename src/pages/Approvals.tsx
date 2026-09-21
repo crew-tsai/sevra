@@ -14,7 +14,7 @@ import { profileFor } from "@/lib/industries";
 import { CheckCircle2, XCircle, FileText, Copy, Loader2, ExternalLink, Megaphone, MessageSquare, Users, HelpCircle, RefreshCw, LayoutDashboard, X, Filter, Mail, Send, ChevronDown, Film, Building2, Briefcase, Newspaper, Headphones, Pencil, MessageCircle, Lock, Upload, Sparkles, Image as ImageIcon, Video } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { TimeRangeFilter, DEFAULT_TIME_RANGE, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
+import { TimeRangeFilter, DEFAULT_TIME_RANGE, isInRange, isInRangeOrUnfinished, type TimeRange } from "@/components/TimeRangeFilter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -423,7 +423,14 @@ export default function Approvals() {
 
 
   const baseScoped = focusIncidentId ? assets.filter((a) => a.incident_id === focusIncidentId) : assets;
-  const scoped = baseScoped.filter((a) => isInRange(a.created_at, timeRange));
+  // A communication waiting on somebody is not filtered out by a calendar.
+  // Only what has been approved or rejected is old news.
+  const scoped = baseScoped.filter((a) =>
+    isInRangeOrUnfinished(
+      a.created_at,
+      timeRange,
+      a.approval_status !== "approved" && a.approval_status !== "rejected",
+    ));
   const filtered = scoped.filter((a) => a.approval_status === tab);
 
   // Group by incident

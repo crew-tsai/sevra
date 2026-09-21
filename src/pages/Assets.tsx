@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { FileText, Users, MessageSquare, Megaphone, HelpCircle, ExternalLink, ChevronDown, AlertCircle, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { TimeRangeFilter, DEFAULT_TIME_RANGE, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
+import { TimeRangeFilter, DEFAULT_TIME_RANGE, isInRange, isInRangeOrUnfinished, type TimeRange } from "@/components/TimeRangeFilter";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RiskBadge } from "@/components/RiskBadge";
@@ -109,7 +109,12 @@ export default function Assets() {
 
   const grouped = useMemo(() => {
     const filtered = allAssets.filter(
-      (a) => isInRange(a.created_at, timeRange) && (typeFilter === "all" || a.asset_type === typeFilter)
+      (a) =>
+        isInRangeOrUnfinished(
+          a.created_at,
+          timeRange,
+          a.approval_status !== "approved" && a.approval_status !== "rejected",
+        ) && (typeFilter === "all" || a.asset_type === typeFilter)
     );
     const groups = new Map<string, Asset[]>();
     for (const a of filtered) {

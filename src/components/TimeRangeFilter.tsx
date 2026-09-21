@@ -29,6 +29,24 @@ export function presetRange(preset: Exclude<TimeRangePreset, "custom">): TimeRan
   return { preset, from, to };
 }
 
+/**
+ * Whether a row belongs in the current view.
+ *
+ * Unfinished work ignores the date filter entirely. The default range is "this
+ * week", which starts on Monday — so an incident opened on Friday and still
+ * unresolved vanished from the board over the weekend, and a communication
+ * waiting for approval disappeared with it. On a crisis tool that is not a
+ * filter, it is a way to lose a crisis.
+ *
+ * The range still does its job on everything that has been dealt with, which
+ * is what anyone scanning recent activity actually wants to narrow.
+ */
+export const isInRangeOrUnfinished = (
+  iso: string | null | undefined,
+  range: TimeRange,
+  unfinished: boolean,
+) => unfinished || isInRange(iso, range);
+
 export const isInRange = (iso: string | null | undefined, range: TimeRange) => {
   if (!range.from) return true;
   if (!iso) return false;

@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { RiskBadge } from "@/components/RiskBadge";
 import { CrisisLevelBadge } from "@/components/CrisisLevelBadge";
-import { TimeRangeFilter, DEFAULT_TIME_RANGE, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
+import { TimeRangeFilter, DEFAULT_TIME_RANGE, isInRange, isInRangeOrUnfinished, type TimeRange } from "@/components/TimeRangeFilter";
 import { useIntlLocale, useLang, useMessages } from "@/i18n";
 import { useTranslations } from "@/i18n/useTranslations";
 import { sevraMessages } from "@/i18n/messages/sevra";
@@ -244,7 +244,14 @@ export default function Sevra() {
     }
   };
 
-  const timeScoped = mentions.filter((m) => isInRange(m.posted_at ?? m.created_at, timeRange));
+  // Anything nobody has triaged yet outlives the date filter: an unread
+  // mention from last week is still unread this week.
+  const timeScoped = mentions.filter((m) =>
+    isInRangeOrUnfinished(
+      m.posted_at ?? m.created_at,
+      timeRange,
+      m.status === "pending" || m.status === "analyzing",
+    ));
   const filtered = timeScoped.filter(
     (m) =>
       (filter === "all" || m.channel === filter) &&

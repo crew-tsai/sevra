@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { RiskBadge } from "@/components/RiskBadge";
 import { CrisisLevelBadge } from "@/components/CrisisLevelBadge";
 import { StatusBadge } from "@/components/StatusBadge";
-import { TimeRangeFilter, DEFAULT_TIME_RANGE, isInRange, type TimeRange } from "@/components/TimeRangeFilter";
+import { TimeRangeFilter, DEFAULT_TIME_RANGE, isInRange, isInRangeOrUnfinished, type TimeRange } from "@/components/TimeRangeFilter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
@@ -69,6 +69,7 @@ type Mention = {
   author_avatar_url: string | null;
   is_influencer: boolean | null;
   is_verified: boolean | null;
+  status: string | null;
   reach: number | null;
   likes: number | null;
   shares: number | null;
@@ -122,7 +123,7 @@ export default function Dashboard() {
           .limit(300),
         supabase
           .from("social_mentions")
-          .select("id, content, channel, author_handle, author_name, author_avatar_url, is_influencer, is_verified, reach, likes, shares, ai_risk, ai_summary, ai_sentiment, incident_id, post_url, posted_at, created_at, translations")
+          .select("id, content, channel, author_handle, author_name, author_avatar_url, is_influencer, is_verified, reach, likes, shares, ai_risk, ai_summary, ai_sentiment, incident_id, post_url, posted_at, created_at, translations, status")
           .order("created_at", { ascending: false })
           .limit(500),
       ]);
@@ -142,11 +143,19 @@ export default function Dashboard() {
   }, []);
 
   const incidents = useMemo(
-    () => allIncidents.filter((i) => isInRange(i.created_at, timeRange)),
+    // An incident that is not resolved stays on the board whatever the date
+    // filter says. It is the open ones the board exists for.
+    () => allIncidents.filter((i) =>
+      isInRangeOrUnfinished(i.created_at, timeRange, i.status !== "resolved")),
     [allIncidents, timeRange],
   );
   const mentions = useMemo(
-    () => allMentions.filter((m) => isInRange(m.posted_at ?? m.created_at, timeRange)),
+    () => allMentions.filter((m) =>
+      isInRangeOrUnfinished(
+        m.posted_at ?? m.created_at,
+        timeRange,
+        m.status === "pending" || m.status === "analyzing",
+      )),
     [allMentions, timeRange],
   );
 
