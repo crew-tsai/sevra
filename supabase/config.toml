@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.support-reply-inbox]
 verify_jwt = false
+
+[functions.support-attachment-url]
+verify_jwt = false

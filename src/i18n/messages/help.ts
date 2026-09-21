@@ -77,6 +77,19 @@ export const helpMessages = defineMessages({
     awaitingReply: "With Sevra — the answer appears here.",
     supportName: "Sevra support",
     by: (who: string) => `from ${who}`,
+
+    // A thread, not a question and an answer.
+    reply: "Write back",
+    replyPlaceholder: "Anything else that helps — what you tried, what happened.",
+    sendReply: "Send",
+    attach: "Attach a file",
+    attachHint: "Screenshots help most. Up to 5 files, 10 MB each.",
+    remove: "Remove",
+    uploading: "Uploading…",
+    tooLarge: (name: string) => `${name} is larger than 10 MB`,
+    closed: "Closed",
+    waiting: "With Sevra",
+    you: "You",
   },
   es: {
     title: "Ayuda",
@@ -151,5 +164,17 @@ export const helpMessages = defineMessages({
     awaitingReply: "En manos de Sevra — la respuesta aparece aquí.",
     supportName: "Soporte de Sevra",
     by: (who: string) => `de ${who}`,
+
+    reply: "Responder",
+    replyPlaceholder: "Cualquier cosa que ayude: qué intentaste, qué pasó.",
+    sendReply: "Enviar",
+    attach: "Adjuntar un archivo",
+    attachHint: "Las capturas de pantalla son lo que más ayuda. Hasta 5 archivos de 10 MB.",
+    remove: "Quitar",
+    uploading: "Subiendo…",
+    tooLarge: (name: string) => `${name} supera los 10 MB`,
+    closed: "Cerrada",
+    waiting: "En manos de Sevra",
+    you: "Tú",
   },
 });

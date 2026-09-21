@@ -79,9 +79,16 @@ Deno.serve(async (req) => {
       );
     if (error) throw error;
 
+    const now = new Date().toISOString();
+    // answered, not finished: the client can write again, and doing so puts
+    // the thread back to waiting.
     await admin
       .from("support_tickets")
-      .update({ answered_at: new Date().toISOString() })
+      .update({ state: "answered", last_activity_at: now })
+      .eq("id", ticket.id);
+    await admin
+      .from("support_tickets")
+      .update({ answered_at: now })
       .eq("id", ticket.id)
       .is("answered_at", null);
 

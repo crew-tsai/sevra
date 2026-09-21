@@ -925,6 +925,72 @@ export type Database = {
         }
         Relationships: []
       }
+      support_messages: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          created_email: string | null
+          delivered: boolean
+          id: string
+          ticket_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          created_email?: string | null
+          delivered?: boolean
+          id?: string
+          ticket_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          created_email?: string | null
+          delivered?: boolean
+          id?: string
+          ticket_id?: string
+        }
+        Relationships: []
+      }
+      support_attachments: {
+        Row: {
+          created_at: string
+          filename: string
+          id: string
+          message_id: string | null
+          mime_type: string | null
+          path: string
+          size_bytes: number | null
+          ticket_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          filename: string
+          id?: string
+          message_id?: string | null
+          mime_type?: string | null
+          path: string
+          size_bytes?: number | null
+          ticket_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          filename?: string
+          id?: string
+          message_id?: string | null
+          mime_type?: string | null
+          path?: string
+          size_bytes?: number | null
+          ticket_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       support_replies: {
         Row: {
           body: string
@@ -967,6 +1033,8 @@ export type Database = {
         Row: {
           answered_at: string | null
           category: string
+          last_activity_at: string
+          state: string
           created_at: string
           created_by: string | null
           created_email: string | null
@@ -979,6 +1047,8 @@ export type Database = {
         Insert: {
           answered_at?: string | null
           category?: string
+          last_activity_at?: string
+          state?: string
           created_at?: string
           created_by?: string | null
           created_email?: string | null
@@ -991,6 +1061,8 @@ export type Database = {
         Update: {
           answered_at?: string | null
           category?: string
+          last_activity_at?: string
+          state?: string
           created_at?: string
           created_by?: string | null
           created_email?: string | null
