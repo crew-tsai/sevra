@@ -516,6 +516,50 @@ export type Database = {
           },
         ]
       }
+      incident_reviews: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          generated_by: string
+          id: string
+          incident_id: string
+          language: string
+          metrics: Json
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by?: string | null
+          generated_by?: string
+          id?: string
+          incident_id: string
+          language?: string
+          metrics?: Json
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          generated_by?: string
+          id?: string
+          incident_id?: string
+          language?: string
+          metrics?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_reviews_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: true
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incidents: {
         Row: {
           airline_name: string | null

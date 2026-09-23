@@ -38,6 +38,7 @@ import { incidentDetailMessages } from "@/i18n/messages/incident-detail";
 import { Switch } from "@/components/ui/switch";
 import { crisisLevel } from "@/lib/crisis-level";
 import { IncidentTimeline } from "@/components/IncidentTimeline";
+import { IncidentReview } from "@/components/IncidentReview";
 
 type Incident = {
   id: string;
@@ -481,6 +482,10 @@ export default function IncidentDetail() {
           {/* The sequence, which during a crisis is the information: what did
               we know, when, and what had we already said by then. */}
           <IncidentTimeline incidentId={incident.id} openedAt={incident.created_at} />
+
+          {/* Offered once it is over, which is when it is worth writing and
+              when the record has stopped moving. */}
+          <IncidentReview incidentId={incident.id} resolved={incident.status === "resolved"} />
 
           <Card className="p-4">
             <div className="flex items-center gap-2 mb-3">

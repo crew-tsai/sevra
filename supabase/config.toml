@@ -23,6 +23,10 @@ verify_jwt = false
 [functions.approval-escalation]
 verify_jwt = false
 
+# Resolves the signed-in person itself, like the other user-facing functions.
+[functions.incident-review]
+verify_jwt = false
+
 [functions.social-monitor-control]
 verify_jwt = false
 
