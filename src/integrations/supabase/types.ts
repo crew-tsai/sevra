@@ -957,6 +957,7 @@ export type Database = {
       }
       monitor_watchlist: {
         Row: {
+          only_mentions: boolean
           active: boolean
           amplifies: boolean
           created_at: string
@@ -968,6 +969,7 @@ export type Database = {
           value: string
         }
         Insert: {
+          only_mentions?: boolean
           active?: boolean
           amplifies?: boolean
           created_at?: string
@@ -979,6 +981,7 @@ export type Database = {
           value: string
         }
         Update: {
+          only_mentions?: boolean
           active?: boolean
           amplifies?: boolean
           created_at?: string

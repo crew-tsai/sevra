@@ -20,6 +20,7 @@ type Entry = {
   value: string;
   label: string | null;
   amplifies: boolean;
+  only_mentions: boolean;
   active: boolean;
 };
 
@@ -55,7 +56,7 @@ export function Watchlist({ isAdmin }: { isAdmin: boolean }) {
   async function load() {
     const { data } = await supabase
       .from("monitor_watchlist")
-      .select("id, network, kind, value, label, amplifies, active")
+      .select("id, network, kind, value, label, amplifies, only_mentions, active")
       .in("network", NETWORKS)
       .order("created_at");
     setRows((data ?? []) as Entry[]);
@@ -81,11 +82,13 @@ export function Watchlist({ isAdmin }: { isAdmin: boolean }) {
     void load();
   }
 
-  async function toggle(row: Entry, field: "active" | "amplifies") {
+  async function toggle(row: Entry, field: "active" | "amplifies" | "only_mentions") {
     // Spelled out rather than built from a variable key: the generated types
     // reject a computed property, and two lines are cheaper than a cast that
     // would also accept a column that does not exist.
-    const patch = field === "active" ? { active: !row.active } : { amplifies: !row.amplifies };
+    const patch = field === "active" ? { active: !row.active }
+      : field === "amplifies" ? { amplifies: !row.amplifies }
+      : { only_mentions: !row.only_mentions };
     const { error } = await supabase
       .from("monitor_watchlist")
       .update(patch)
@@ -137,6 +140,17 @@ export function Watchlist({ isAdmin }: { isAdmin: boolean }) {
                 </p>
                 {row.label && <p className="truncate text-xs text-muted-foreground">{row.label}</p>}
               </div>
+
+              {row.kind === "account" && row.network === "x" && (
+                <Badge
+                  variant="outline"
+                  className={`cursor-pointer text-[10px] ${isAdmin ? "" : "pointer-events-none"}`}
+                  title={t.scopeHint}
+                  onClick={() => isAdmin && void toggle(row, "only_mentions")}
+                >
+                  {row.only_mentions ? t.scopeMentions : t.scopeEverything}
+                </Badge>
+              )}
 
               {row.kind === "account" && (
                 <Badge

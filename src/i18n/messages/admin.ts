@@ -107,6 +107,10 @@ export const adminMessages = defineMessages({
       networks: { x: "X", facebook: "Facebook", instagram: "Instagram" } as Record<string, string>,
       behaviourSearch:
         "On X, Sevra searches the whole platform for this — you will see posts from people who have never mentioned you.",
+      scopeMentions: "Only about you",
+      scopeEverything: "Everything they post",
+      scopeHint:
+        "A news account publishes all day and almost none of it concerns you, so by default Sevra collects only their posts that name you. Switch it when you want the whole feed — a regulator, or a campaigner working your sector where you may not be named until the day you are.",
       behaviourFlag:
         "Facebook and Instagram cannot be searched by anyone, so this applies to what your own accounts already receive: a comment, tag or mention from a watched name is marked as amplified instead of being missed among the rest.",
       platformNote:
@@ -236,6 +240,10 @@ export const adminMessages = defineMessages({
       networks: { x: "X", facebook: "Facebook", instagram: "Instagram" } as Record<string, string>,
       behaviourSearch:
         "En X, Sevra busca esto en toda la plataforma: verás publicaciones de gente que nunca te ha mencionado.",
+      scopeMentions: "Solo sobre ti",
+      scopeEverything: "Todo lo que publiquen",
+      scopeHint:
+        "Una cuenta de noticias publica todo el día y casi nada te concierne, así que por defecto Sevra recoge solo sus publicaciones que te nombran. Cámbialo cuando quieras el feed entero: un regulador, o quien haga campaña sobre tu sector donde quizá no te nombren hasta el día en que lo hagan.",
       behaviourFlag:
         "Facebook e Instagram no permiten buscar a nadie, así que esto se aplica a lo que ya reciben tus propias cuentas: un comentario, etiqueta o mención de un nombre vigilado se marca como amplificado en lugar de perderse entre el resto.",
       platformNote:

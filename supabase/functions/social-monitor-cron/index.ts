@@ -166,83 +166,79 @@ export function buildXQuery(o: { companyName: string | null; handle: string; lan
  * posts in, and filtering that out would defeat the reason for watching it.
  *
  * Accounts are searched as `from:` — posts *by* them. "Monitor this
- * influencer" means what they say, not who mentions them; the latter is
+ * journalist" means what they say, not who mentions them; the latter is
  * already covered when they mention the company.
+ *
+ * Most account entries are narrowed to the posts that name the company.
+ * Watching a news outlet otherwise means collecting the news: a few hundred
+ * posts a day, almost none about this client, every one of them analysed. The
+ * exceptions — a regulator, a campaigner working the sector — are marked to
+ * collect everything, and say so in the UI.
+ *
+ * Hashtags and words are never narrowed. A crisis hashtag is watched precisely
+ * because the company is not named in it yet.
  */
-export function buildWatchQuery(items: Array<{ kind: string; value: string }>): string {
-  const terms: string[] = [];
+export function buildWatchQuery(
+  items: Array<{ kind: string; value: string; only_mentions?: boolean }>,
+  brand?: { companyName?: string | null; handle?: string | null },
+): string {
+  const cleanPhrase = (s: string) => s.replace(/["()]/g, " ").replace(/\s+/g, " ").trim();
+  const cleanHandle = (s: string) => s.replace(/^@/, "").replace(/[^A-Za-z0-9_]/g, "");
+
+  const name = brand?.companyName ? cleanPhrase(brand.companyName) : "";
+  const brandHandle = brand?.handle ? cleanHandle(brand.handle) : "";
+  const brandTerms = [
+    brandHandle ? `@${brandHandle}` : "",
+    name ? `"${name}"` : "",
+  ].filter(Boolean);
+  const brandClause = brandTerms.length > 1 ? `(${brandTerms.join(" OR ")})` : brandTerms[0] ?? "";
+
+  const narrowed: string[] = [];
+  const open: string[] = [];
+
   for (const item of items) {
     const raw = item.value.trim();
     if (!raw) continue;
     if (item.kind === "account") {
-      const handle = raw.replace(/^@/, "").replace(/[^A-Za-z0-9_]/g, "");
-      if (handle) terms.push(`from:${handle}`);
+      const handle = cleanHandle(raw);
+      if (!handle) continue;
+      // With nothing to match against, "only when they mention us" cannot be
+      // expressed — and collecting everything instead would be the opposite of
+      // what was asked for, so the entry waits until the company names itself.
+      if (item.only_mentions !== false) {
+        if (brandClause) narrowed.push(`from:${handle}`);
+      } else {
+        open.push(`from:${handle}`);
+      }
     } else if (item.kind === "hashtag") {
       const tag = raw.replace(/^#/, "").replace(/[^A-Za-z0-9_]/g, "");
-      if (tag) terms.push(`#${tag}`);
+      if (tag) open.push(`#${tag}`);
     } else {
-      const phrase = raw.replace(/["()]/g, " ").replace(/\s+/g, " ").trim();
-      if (phrase) terms.push(phrase.includes(" ") ? `"${phrase}"` : phrase);
+      const phrase = cleanPhrase(raw);
+      if (phrase) open.push(phrase.includes(" ") ? `"${phrase}"` : phrase);
     }
   }
-  if (!terms.length) return "";
 
-  // X rejects queries over 512 characters. Drop from the end rather than
-  // returning nothing: watching most of the list beats watching none of it,
-  // and the list is ordered by when it was added.
-  let q = "";
-  const kept: string[] = [];
-  for (const term of terms) {
-    const candidate = `(${[...kept, term].join(" OR ")}) -is:retweet`;
-    if (candidate.length > 512) break;
-    kept.push(term);
-    q = candidate;
+  // Built as groups so the two rules coexist in one request: these accounts
+  // only when they name us, everything else on its own terms.
+  const groups: string[] = [];
+  if (narrowed.length) {
+    groups.push(`((${narrowed.join(" OR ")}) ${brandClause})`);
   }
-  return q;
-}
+  if (open.length) {
+    groups.push(open.length > 1 ? `(${open.join(" OR ")})` : open[0]);
+  }
+  if (!groups.length) return "";
 
-/**
- * Apply the watchlist to mentions we did not go looking for.
- *
- * Facebook and Instagram cannot be searched: what arrives is comments, tags and
- * mentions on the client's own accounts, and no watchlist entry can widen that.
- * What an entry can do is change what happens when a watched name turns up in
- * it — the local MP commenting on your post is a different event from a
- * stranger doing the same, and is_influencer is what carries that into the
- * crisis level.
- *
- * So on X a watchlist entry is a search. Everywhere else it is a rule applied
- * to what already came in. The UI says which, per network, rather than
- * implying the two are the same.
- */
-// deno-lint-ignore no-explicit-any
-async function applyWatchlist(admin: any, rows: MentionRow[], network: string): Promise<MentionRow[]> {
-  if (!rows.length) return rows;
-
-  const { data } = await admin
-    .from("monitor_watchlist")
-    .select("kind, value, amplifies")
-    .eq("network", network)
-    .eq("active", true)
-    .eq("amplifies", true);
-
-  const items = (data ?? []) as Array<{ kind: string; value: string }>;
-  if (!items.length) return rows;
-
-  const handles = new Set(
-    items.filter((i) => i.kind === "account").map((i) => i.value.replace(/^@/, "").toLowerCase()),
-  );
-  const phrases = items
-    .filter((i) => i.kind !== "account")
-    .map((i) => (i.kind === "hashtag" ? `#${i.value.replace(/^#/, "")}` : i.value).toLowerCase())
-    .filter(Boolean);
-
-  return rows.map((row) => {
-    const handle = row.author_handle?.replace(/^@/, "").toLowerCase() ?? "";
-    const content = (row.content ?? "").toLowerCase();
-    const hit = (handle && handles.has(handle)) || phrases.some((p) => content.includes(p));
-    return hit ? { ...row, is_influencer: true } : row;
-  });
+  // X rejects queries over 512 characters. Drop whole groups from the end
+  // rather than returning nothing: watching most of the list beats watching
+  // none of it.
+  let q = `${groups.join(" OR ")} -is:retweet`;
+  while (q.length > 512 && groups.length > 1) {
+    groups.pop();
+    q = `${groups.join(" OR ")} -is:retweet`;
+  }
+  return q.length > 512 ? "" : q;
 }
 
 async function pullRealX(admin: any, companyName: string | null): Promise<{ rows: MentionRow[]; error?: string }> {
@@ -320,7 +316,7 @@ async function pullRealX(admin: any, companyName: string | null): Promise<{ rows
     // because the brand query narrows by language and the watch query must
     // not — see buildWatchQuery.
     const brand = query ? await searchX(accessToken, query) : { rows: [] as MentionRow[] };
-    const watched = await pullWatchlistX(admin, accessToken);
+    const watched = await pullWatchlistX(admin, accessToken, { companyName, handle });
 
     // A post can match both. The first copy wins, and the watchlist runs
     // second, so a merge must not lose the amplified flag it set.
@@ -403,18 +399,24 @@ async function searchX(accessToken: string, query: string): Promise<{ rows: Ment
  * a hashtag.
  */
 // deno-lint-ignore no-explicit-any
-async function pullWatchlistX(admin: any, accessToken: string): Promise<{ rows: MentionRow[]; error?: string }> {
+async function pullWatchlistX(
+  admin: any,
+  accessToken: string,
+  brand: { companyName: string | null; handle: string },
+): Promise<{ rows: MentionRow[]; error?: string }> {
   const { data: items } = await admin
     .from("monitor_watchlist")
-    .select("kind, value, amplifies")
+    .select("kind, value, amplifies, only_mentions")
     .eq("network", "x")
     .eq("active", true)
     .order("created_at");
 
-  const list = (items ?? []) as Array<{ kind: string; value: string; amplifies: boolean }>;
+  const list = (items ?? []) as Array<
+    { kind: string; value: string; amplifies: boolean; only_mentions: boolean }
+  >;
   if (!list.length) return { rows: [] };
 
-  const query = buildWatchQuery(list);
+  const query = buildWatchQuery(list, brand);
   if (!query) return { rows: [] };
 
   const { rows, error } = await searchX(accessToken, query);
