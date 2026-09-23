@@ -241,6 +241,50 @@ export function buildWatchQuery(
   return q.length > 512 ? "" : q;
 }
 
+/**
+ * Apply the watchlist to mentions we did not go looking for.
+ *
+ * Facebook and Instagram cannot be searched: what arrives is comments, tags and
+ * mentions on the client's own accounts, and no watchlist entry can widen that.
+ * What an entry can do is change what happens when a watched name turns up in
+ * it — the local MP commenting on your post is a different event from a
+ * stranger doing the same, and is_influencer is what carries that into the
+ * crisis level.
+ *
+ * So on X a watchlist entry is a search. Everywhere else it is a rule applied
+ * to what already came in. The UI says which, per network, rather than
+ * implying the two are the same.
+ */
+// deno-lint-ignore no-explicit-any
+async function applyWatchlist(admin: any, rows: MentionRow[], network: string): Promise<MentionRow[]> {
+  if (!rows.length) return rows;
+
+  const { data } = await admin
+    .from("monitor_watchlist")
+    .select("kind, value, amplifies")
+    .eq("network", network)
+    .eq("active", true)
+    .eq("amplifies", true);
+
+  const items = (data ?? []) as Array<{ kind: string; value: string }>;
+  if (!items.length) return rows;
+
+  const handles = new Set(
+    items.filter((i) => i.kind === "account").map((i) => i.value.replace(/^@/, "").toLowerCase()),
+  );
+  const phrases = items
+    .filter((i) => i.kind !== "account")
+    .map((i) => (i.kind === "hashtag" ? `#${i.value.replace(/^#/, "")}` : i.value).toLowerCase())
+    .filter(Boolean);
+
+  return rows.map((row) => {
+    const handle = row.author_handle?.replace(/^@/, "").toLowerCase() ?? "";
+    const content = (row.content ?? "").toLowerCase();
+    const hit = (handle && handles.has(handle)) || phrases.some((p) => content.includes(p));
+    return hit ? { ...row, is_influencer: true } : row;
+  });
+}
+
 async function pullRealX(admin: any, companyName: string | null): Promise<{ rows: MentionRow[]; error?: string }> {
   const { data: connection } = await admin
     .from("social_connections")
