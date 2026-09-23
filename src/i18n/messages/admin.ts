@@ -104,8 +104,13 @@ export const adminMessages = defineMessages({
       amplifiesOff: "No extra weight",
       amplifiesHint:
         "A complaint from an account with an audience is a bigger event than the same words from nobody in particular. When this is on, an incident opened from their post starts one crisis level higher.",
+      networks: { x: "X", facebook: "Facebook", instagram: "Instagram" } as Record<string, string>,
+      behaviourSearch:
+        "On X, Sevra searches the whole platform for this — you will see posts from people who have never mentioned you.",
+      behaviourFlag:
+        "Facebook and Instagram cannot be searched by anyone, so this applies to what your own accounts already receive: a comment, tag or mention from a watched name is marked as amplified instead of being missed among the rest.",
       platformNote:
-        "X only. Facebook and TikTok cannot be searched for posts by other people, and Instagram's hashtag search needs permissions Sevra has not been granted yet.",
+        "TikTok is not listed because nothing can be collected there at all — it offers no way to search for mentions outside its research programme.",
     },
     focus: {
       title: "Monitoring focus",
@@ -228,8 +233,13 @@ export const adminMessages = defineMessages({
       amplifiesOff: "Sin peso extra",
       amplifiesHint:
         "Una queja de una cuenta con audiencia es un hecho mayor que las mismas palabras dichas por cualquiera. Con esto activado, un incidente abierto desde su publicación empieza un nivel de crisis más arriba.",
+      networks: { x: "X", facebook: "Facebook", instagram: "Instagram" } as Record<string, string>,
+      behaviourSearch:
+        "En X, Sevra busca esto en toda la plataforma: verás publicaciones de gente que nunca te ha mencionado.",
+      behaviourFlag:
+        "Facebook e Instagram no permiten buscar a nadie, así que esto se aplica a lo que ya reciben tus propias cuentas: un comentario, etiqueta o mención de un nombre vigilado se marca como amplificado en lugar de perderse entre el resto.",
       platformNote:
-        "Solo X. Facebook y TikTok no permiten buscar publicaciones de otras personas, y la búsqueda de hashtags de Instagram necesita permisos que Sevra aún no tiene.",
+        "TikTok no aparece porque allí no se puede recoger nada: no ofrece ninguna forma de buscar menciones fuera de su programa de investigación.",
     },
     focus: {
       title: "Enfoque de la monitorización",

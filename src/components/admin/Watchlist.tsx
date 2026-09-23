@@ -11,14 +11,22 @@ import { AtSign, Hash, Loader2, Plus, Search, Trash2 } from "lucide-react";
 import { useMessages } from "@/i18n";
 import { adminMessages } from "@/i18n/messages/admin";
 
+type Network = "x" | "facebook" | "instagram";
+
 type Entry = {
   id: string;
+  network: Network;
   kind: "account" | "hashtag" | "keyword";
   value: string;
   label: string | null;
   amplifies: boolean;
   active: boolean;
 };
+
+// TikTok is absent on purpose: nothing is collected there at all, so an entry
+// would sit in the list doing nothing. The column accepts it for the day that
+// changes.
+const NETWORKS: Network[] = ["x", "facebook", "instagram"];
 
 /**
  * Accounts and hashtags to watch, beyond the company's own name.
@@ -34,6 +42,7 @@ type Entry = {
 export function Watchlist({ isAdmin }: { isAdmin: boolean }) {
   const t = useMessages(adminMessages).watchlist;
   const [rows, setRows] = useState<Entry[] | null>(null);
+  const [network, setNetwork] = useState<Network>("x");
   const [kind, setKind] = useState<Entry["kind"]>("account");
   const [value, setValue] = useState("");
   const [label, setLabel] = useState("");
@@ -46,8 +55,8 @@ export function Watchlist({ isAdmin }: { isAdmin: boolean }) {
   async function load() {
     const { data } = await supabase
       .from("monitor_watchlist")
-      .select("id, kind, value, label, amplifies, active")
-      .eq("network", "x")
+      .select("id, network, kind, value, label, amplifies, active")
+      .in("network", NETWORKS)
       .order("created_at");
     setRows((data ?? []) as Entry[]);
   }
@@ -57,7 +66,7 @@ export function Watchlist({ isAdmin }: { isAdmin: boolean }) {
     if (!clean) return;
     setBusy(true);
     const { error } = await supabase.from("monitor_watchlist").insert({
-      network: "x",
+      network,
       kind,
       value: clean,
       label: label.trim() || null,
@@ -99,6 +108,12 @@ export function Watchlist({ isAdmin }: { isAdmin: boolean }) {
 
   const prefix = (k: Entry["kind"]) => (k === "account" ? "@" : k === "hashtag" ? "#" : "");
 
+  // What an entry actually does differs by network, and saying so is the whole
+  // reason the selector is safe to offer. On X it is a search; on Facebook and
+  // Instagram nothing can be searched, so it marks what the client's own
+  // accounts already receive.
+  const behaviour = (n: Network) => (n === "x" ? t.behaviourSearch : t.behaviourFlag);
+
   return (
     <div className="space-y-3 rounded-lg border p-4">
       <div className="space-y-1">
@@ -114,6 +129,7 @@ export function Watchlist({ isAdmin }: { isAdmin: boolean }) {
         <ul className="divide-y rounded-md border">
           {rows.map((row) => (
             <li key={row.id} className="flex items-center gap-3 px-3 py-2">
+              <Badge variant="outline" className="shrink-0 text-[10px] uppercase">{t.networks[row.network]}</Badge>
               <span className="text-muted-foreground">{icon(row.kind)}</span>
               <div className="min-w-0 flex-1">
                 <p className={`truncate text-sm ${row.active ? "" : "text-muted-foreground line-through"}`}>
@@ -151,13 +167,29 @@ export function Watchlist({ isAdmin }: { isAdmin: boolean }) {
       )}
 
       {isAdmin && (
-        <div className="grid gap-2 sm:grid-cols-[130px_1fr_1fr_auto]">
+        <div className="grid gap-2 sm:grid-cols-[120px_120px_1fr_1fr_auto]">
+          <Select
+            value={network}
+            onValueChange={(v) => {
+              setNetwork(v as Network);
+              // Only X can be searched for words, so a keyword entry means
+              // nothing there; fall back to the kind every network supports.
+              if (v !== "x" && kind === "keyword") setKind("account");
+            }}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {NETWORKS.map((n) => (
+                <SelectItem key={n} value={n}>{t.networks[n]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={kind} onValueChange={(v) => setKind(v as Entry["kind"])}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="account">{t.kindAccount}</SelectItem>
               <SelectItem value="hashtag">{t.kindHashtag}</SelectItem>
-              <SelectItem value="keyword">{t.kindKeyword}</SelectItem>
+              {network === "x" && <SelectItem value="keyword">{t.kindKeyword}</SelectItem>}
             </SelectContent>
           </Select>
           <Input
@@ -179,6 +211,7 @@ export function Watchlist({ isAdmin }: { isAdmin: boolean }) {
         </div>
       )}
 
+      <p className="text-xs text-muted-foreground">{behaviour(network)}</p>
       <p className="text-xs text-muted-foreground">{t.platformNote}</p>
     </div>
   );
