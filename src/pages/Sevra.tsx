@@ -16,6 +16,7 @@ import { useIntlLocale, useLang, useMessages } from "@/i18n";
 import { useTranslations } from "@/i18n/useTranslations";
 import { sevraMessages } from "@/i18n/messages/sevra";
 import { humanizeSubType, INCIDENT_TYPES, typeLabel, type IncidentType } from "@/lib/industries";
+import { formatDateTime } from "@/lib/utils";
 import { crisisLevel } from "@/lib/crisis-level";
 
 // The badge on a mention and the level of the incident it opens come from the
@@ -71,18 +72,6 @@ const SENTIMENT_STYLE: Record<string, string> = {
   negative: "bg-risk-critical-bg text-risk-critical",
 };
 
-const formatDateTime = (iso: string | null | undefined, locale?: string) => {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return null;
-  return d.toLocaleString(locale, {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
 
 type Ago = typeof sevraMessages.en.ago;
 const formatRelative = (iso: string | null | undefined, ago: Ago) => {

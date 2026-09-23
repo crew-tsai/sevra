@@ -39,10 +39,17 @@ const RISK_COLORS: Record<string, string> = {
   low: "hsl(var(--risk-low))",
 };
 
+/** Minutes as a crisis team says them out loud. */
+function humanMinutes(minutes: number, t: { minutesShort: (n: number) => string; hoursShort: (n: number) => string }) {
+  if (minutes < 90) return t.minutesShort(Math.round(minutes));
+  return t.hoursShort(Math.round((minutes / 60) * 10) / 10);
+}
+
 export default function Reports() {
   const [allIncidents, setAllIncidents] = useState<Incident[]>([]);
   const [allAssets, setAllAssets] = useState<Asset[]>([]);
   const [allMentions, setAllMentions] = useState<Mention[]>([]);
+  const [firstSend, setFirstSend] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
   const t = useMessages(reportsMessages);
@@ -63,10 +70,16 @@ export default function Reports() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const [inc, ast, men] = await Promise.all([
+      const [inc, ast, men, snd] = await Promise.all([
         supabase.from("incidents").select("id, created_at, risk, status, source, incident_type").order("created_at", { ascending: false }).limit(1000),
         supabase.from("incident_assets").select("id, created_at, asset_type, approval_status").order("created_at", { ascending: false }).limit(1000),
         supabase.from("social_mentions").select("id, created_at, ai_risk").order("created_at", { ascending: false }).limit(1000),
+        supabase
+          .from("communication_sends")
+          .select("incident_id, sent_at")
+          .eq("status", "sent")
+          .order("sent_at", { ascending: true })
+          .limit(1000),
       ]);
       if (inc.error) toast.error(inc.error.message);
       if (ast.error) toast.error(ast.error.message);
@@ -74,9 +87,45 @@ export default function Reports() {
       setAllIncidents((inc.data ?? []) as Incident[]);
       setAllAssets((ast.data ?? []) as Asset[]);
       setAllMentions((men.data ?? []) as Mention[]);
+      // First successful send per incident. Ascending order above means the
+      // first row seen for an incident is the earliest one.
+      const first: Record<string, string> = {};
+      for (const row of (snd.data ?? []) as Array<{ incident_id: string; sent_at: string }>) {
+        if (!first[row.incident_id]) first[row.incident_id] = row.sent_at;
+      }
+      setFirstSend(first);
       setLoading(false);
     })();
   }, []);
+
+  /**
+   * How long from opening an incident to saying something in public.
+   *
+   * The number crisis communications is actually judged on, and until there
+   * was a record of sends it could not be computed at all. Incidents that have
+   * published nothing are excluded rather than counted as slow: "we have not
+   * spoken yet" is a different fact from "we were slow", and averaging the two
+   * together would flatter a workspace that has never published anything.
+   */
+  const speed = useMemo(() => {
+    const durations = incidents
+      .map((i) => {
+        const sent = firstSend[i.id];
+        if (!sent) return null;
+        return (new Date(sent).getTime() - new Date(i.created_at).getTime()) / 60_000;
+      })
+      .filter((v): v is number => v !== null && v >= 0)
+      .sort((a, b) => a - b);
+
+    if (!durations.length) return { median: null, fastest: null, spoken: 0, silent: incidents.length };
+    const median = durations[Math.floor(durations.length / 2)];
+    return {
+      median,
+      fastest: durations[0],
+      spoken: durations.length,
+      silent: incidents.length - durations.length,
+    };
+  }, [incidents, firstSend]);
 
   const months = useMemo(() => lastNMonths(6), []);
 
@@ -193,6 +242,39 @@ export default function Reports() {
           </div>
         ))}
       </div>
+
+      {/* How fast this workspace actually speaks. Placed above the counts of
+          things, because it is the only number here a crisis lead is judged
+          on. */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t.speedTitle}</CardTitle>
+          <CardDescription>{t.speedIntro}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {speed.median === null ? (
+            <p className="text-sm text-muted-foreground">{t.speedNothing}</p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <p className="text-2xl font-bold text-foreground">{humanMinutes(speed.median, t)}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t.speedMedian}</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{humanMinutes(speed.fastest ?? 0, t)}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t.speedFastest}</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{speed.spoken}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t.speedSpoken(speed.spoken + speed.silent)}
+                  {speed.silent > 0 && <span className="block">{t.speedSilent(speed.silent)}</span>}
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Incidents by month */}
       <Card>

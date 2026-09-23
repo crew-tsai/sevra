@@ -30,12 +30,14 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { humanizeSubType, INCIDENT_TYPES, profileFor, typeLabel, type IncidentType } from "@/lib/industries";
+import { formatDateTime } from "@/lib/utils";
 import { useIntlLocale, useLang, useMessages } from "@/i18n";
 import { useTranslations } from "@/i18n/useTranslations";
 import { commonMessages } from "@/i18n/messages/common";
 import { incidentDetailMessages } from "@/i18n/messages/incident-detail";
 import { Switch } from "@/components/ui/switch";
 import { crisisLevel } from "@/lib/crisis-level";
+import { IncidentTimeline } from "@/components/IncidentTimeline";
 
 type Incident = {
   id: string;
@@ -89,18 +91,6 @@ const CHANNEL_ICON: Record<string, typeof Twitter> = {
   tiktok: Music2,
 };
 
-const formatDateTime = (iso: string | null | undefined, locale?: string) => {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return null;
-  return d.toLocaleString(locale, {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
 
 /** The four phases, in the order a crisis actually moves through them. */
 const PHASES = ["phase_immediate", "phase_short", "phase_medium", "phase_long"] as const;
@@ -487,6 +477,10 @@ export default function IncidentDetail() {
               ))}
             </ul>
           </Card>
+
+          {/* The sequence, which during a crisis is the information: what did
+              we know, when, and what had we already said by then. */}
+          <IncidentTimeline incidentId={incident.id} openedAt={incident.created_at} />
 
           <Card className="p-4">
             <div className="flex items-center gap-2 mb-3">
