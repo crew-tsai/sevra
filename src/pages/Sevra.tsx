@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -59,6 +60,7 @@ type Mention = {
   translations: unknown;
   // Why this is here. Null for a post found on the company's own name, which
   // is its own answer.
+  human_risk: string | null;
   monitor_sources?: { name: string; role: string } | null;
   monitor_topics?: { kind: string; value: string } | null;
 };
@@ -166,6 +168,30 @@ export default function Sevra() {
     } finally {
       setMonitorRunning(false);
     }
+  };
+
+  /**
+   * Record what a person thought the AI should have said.
+   *
+   * Not a thumbs up or down: the useful correction is the specific one — this
+   * was not a crisis, or it was worse than you called it. A verdict that names
+   * the right answer is a training example; a thumb is a mood. It changes
+   * nothing about the mention or any incident it opened, on purpose: this is
+   * evidence about the classifier, not a second way to edit the record.
+   */
+  const judge = async (mention: Mention, verdict: string) => {
+    const { data: user } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from("social_mentions")
+      .update({
+        human_risk: verdict,
+        human_risk_at: new Date().toISOString(),
+        human_risk_by: user.user?.id ?? null,
+      })
+      .eq("id", mention.id);
+    if (error) return toast.error(error.message);
+    setMentions((rows) => rows.map((r) => (r.id === mention.id ? { ...r, human_risk: verdict } : r)));
+    toast.success(t.verdictThanks);
   };
 
   const load = async () => {
@@ -560,6 +586,32 @@ export default function Sevra() {
                     )}
                     {m.status === "dismissed" && (
                       <Badge variant="outline" className="gap-1"><CheckCircle2 className="h-3 w-3" /> {t.noiseBadge}</Badge>
+                    )}
+                    {/* Was this call right? Offered only once the AI has
+                        actually made a call, and shown as settled once
+                        somebody has answered. */}
+                    {m.status !== "pending" && m.status !== "analyzing" && (
+                      m.human_risk ? (
+                        <Badge variant="outline" className="text-[10px]" title={t.verdictHint}>
+                          {t.verdictRecorded(t.verdictOptions[m.human_risk] ?? m.human_risk)}
+                        </Badge>
+                      ) : (
+                        <Select onValueChange={(v) => void judge(m, v)}>
+                          <SelectTrigger
+                            className="h-7 w-auto gap-1 border-dashed px-2 text-[11px] text-muted-foreground"
+                            title={t.verdictHint}
+                          >
+                            {t.verdictAsk}
+                          </SelectTrigger>
+                          <SelectContent>
+                            {["none", "low", "medium", "high", "critical"].map((v) => (
+                              <SelectItem key={v} value={v} className="text-xs">
+                                {t.verdictOptions[v]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )
                     )}
                     {m.post_url && (
                       <a href={m.post_url} target="_blank" rel="noreferrer" className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">

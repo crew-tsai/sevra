@@ -1039,6 +1039,9 @@ export type Database = {
           created_at: string
           created_by: string | null
           external_id: string | null
+          human_risk: string | null
+          human_risk_at: string | null
+          human_risk_by: string | null
           id: string
           incident_id: string | null
           is_influencer: boolean | null
@@ -1071,6 +1074,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           external_id?: string | null
+          human_risk?: string | null
+          human_risk_at?: string | null
+          human_risk_by?: string | null
           id?: string
           incident_id?: string | null
           is_influencer?: boolean | null
@@ -1103,6 +1109,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           external_id?: string | null
+          human_risk?: string | null
+          human_risk_at?: string | null
+          human_risk_by?: string | null
           id?: string
           incident_id?: string | null
           is_influencer?: boolean | null
@@ -1503,6 +1512,15 @@ export type Database = {
     }
     Functions: {
       claim_first_admin: { Args: never; Returns: string }
+      classification_agreement: {
+        Args: { _since?: string }
+        Returns: {
+          agreed: number
+          judged: number
+          overcalled: number
+          undercalled: number
+        }[]
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean

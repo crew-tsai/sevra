@@ -50,6 +50,7 @@ export default function Reports() {
   const [allAssets, setAllAssets] = useState<Asset[]>([]);
   const [allMentions, setAllMentions] = useState<Mention[]>([]);
   const [firstSend, setFirstSend] = useState<Record<string, string>>({});
+  const [agreement, setAgreement] = useState<{ judged: number; agreed: number; overcalled: number; undercalled: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
   const t = useMessages(reportsMessages);
@@ -94,6 +95,11 @@ export default function Reports() {
         if (!first[row.incident_id]) first[row.incident_id] = row.sent_at;
       }
       setFirstSend(first);
+      // Only judged mentions count. Treating silence as assent is how an
+      // accuracy number becomes a lie, so the function returns the sample
+      // size alongside and the panel refuses to show a percentage without one.
+      const { data: agree } = await supabase.rpc("classification_agreement");
+      setAgreement((agree?.[0] as typeof agreement) ?? null);
       setLoading(false);
     })();
   }, []);
@@ -270,6 +276,37 @@ export default function Reports() {
                   {t.speedSpoken(speed.spoken + speed.silent)}
                   {speed.silent > 0 && <span className="block">{t.speedSilent(speed.silent)}</span>}
                 </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Whether the AI is getting it right, according to the people who
+          would know. Empty until somebody has said so. */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t.accuracyTitle}</CardTitle>
+          <CardDescription>{t.accuracyIntro}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!agreement || agreement.judged === 0 ? (
+            <p className="text-sm text-muted-foreground">{t.accuracyEmpty}</p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <p className="text-2xl font-bold text-foreground">
+                  {Math.round((agreement.agreed / agreement.judged) * 100)}%
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">{t.accuracyAgreed(agreement.judged)}</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{agreement.overcalled}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t.accuracyOver}</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{agreement.undercalled}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t.accuracyUnder}</p>
               </div>
             </div>
           )}
