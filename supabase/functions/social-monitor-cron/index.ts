@@ -3,7 +3,7 @@
 // there yet). All new rows run through SEVRA analysis afterward.
 // Triggered by pg_cron every 15 minutes (or on-demand).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { refreshXToken, META_GRAPH } from "../_shared/social-providers.ts";
+import { refreshXToken, META_GRAPH, MONITOR_REACH } from "../_shared/social-providers.ts";
 import { resolveCredentials } from "../_shared/social-credentials.ts";
 import { profileFor } from "../_shared/industries.ts";
 import { chatCompletion, MODELS } from "../_shared/ai.ts";
@@ -709,13 +709,22 @@ Deno.serve(async (req) => {
       insertedIds = insertedIds.concat((data ?? []).map((r: any) => r.id));
     }
 
-    // X rows are already marked by the watch query that found them; the other
-    // networks are marked here, against what their own accounts received.
-    const realRows = [
-      ...xResult.rows,
-      ...(await applyWatchlist(admin, fbResult.rows, "facebook")),
-      ...(await applyWatchlist(admin, igResult.rows, "instagram")),
+    // Which treatment a network gets is read from MONITOR_REACH, not hardcoded
+    // here: a network that can be searched has already had its watchlist
+    // applied by the query that found the rows, and one that cannot gets the
+    // list applied to whatever its own account received. The day a platform
+    // opens up, that table is the only thing that changes.
+    const byNetwork: Array<{ network: string; rows: MentionRow[] }> = [
+      { network: "x", rows: xResult.rows },
+      { network: "facebook", rows: fbResult.rows },
+      { network: "instagram", rows: igResult.rows },
     ];
+
+    const realRows: MentionRow[] = [];
+    for (const { network, rows } of byNetwork) {
+      const reach = MONITOR_REACH[network as keyof typeof MONITOR_REACH];
+      realRows.push(...(reach?.search ? rows : await applyWatchlist(admin, rows, network)));
+    }
     if (realRows.length) {
       const { data, error } = await admin
         .from("social_mentions")

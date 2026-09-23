@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { chatCompletion, MODELS } from "../_shared/ai.ts";
-import { PRODUCT_FACTS } from "../_shared/product-facts.ts";
+import { productFacts } from "../_shared/product-facts.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -156,7 +156,7 @@ serve(async (req) => {
       model: MODELS.reasoning,
       messages: [
         { role: "system", content: buildSystemPrompt(companyName, industry) },
-        { role: "system", content: PRODUCT_FACTS },
+        { role: "system", content: productFacts() },
         { role: "system", content: platformContext },
         { role: "system", content: languageRule },
         ...messages,

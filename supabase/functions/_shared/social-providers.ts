@@ -47,6 +47,37 @@ export type ProviderConfig = {
 // Client ID/Secret are NOT configured here — each client's admin enters
 // their own via Admin -> Social connections (see social-oauth-credentials),
 // stored in the social_app_credentials table.
+/**
+ * What monitoring can actually reach on each network.
+ *
+ * Load-bearing, not documentation: social-monitor-cron consults `search` to
+ * decide whether a watchlist entry is a query or a rule applied to what
+ * arrives, and the assistant generates its explanation from the same table.
+ * A platform that opens up gets changed here once.
+ */
+export const MONITOR_REACH: Record<Network, { search: boolean; ownAccount: boolean; why: string }> = {
+  x: {
+    search: true,
+    ownAccount: true,
+    why: "searched across the whole platform with Sevra's own application token, so the client needs no connection and no credentials — only their handle",
+  },
+  facebook: {
+    search: false,
+    ownAccount: true,
+    why: "comments, tags and mentions on the client's own Pages only; Facebook serves no post search without a session",
+  },
+  instagram: {
+    search: false,
+    ownAccount: true,
+    why: "comments, tags and mentions on the client's own account only; the official hashtag search needs permissions still in review with Meta",
+  },
+  tiktok: {
+    search: false,
+    ownAccount: false,
+    why: "cannot be monitored at all — TikTok offers no way to search for mentions outside its academic research programme. An account is connected so Sevra can act on it, never to listen",
+  },
+};
+
 export const PROVIDERS: Record<Network, ProviderConfig> = {
   x: {
     authorizeUrl: "https://twitter.com/i/oauth2/authorize",

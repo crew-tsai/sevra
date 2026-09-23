@@ -22,27 +22,64 @@ export type CrisisInput = {
   amplified?: boolean | null;
 };
 
+/**
+ * The rules, as data.
+ *
+ * They live here rather than inside the function because two things need them:
+ * the calculation, and the assistant that has to explain the calculation to a
+ * client. A prose description kept beside the code drifts from it silently —
+ * the first person to notice is a user who was told the wrong thing about
+ * their own crisis. Generating the explanation from the same table the
+ * arithmetic reads makes that impossible.
+ */
+export const CRISIS_RULES = {
+  labels: ["routine", "localized", "significant", "major", "catastrophic"] as const,
+
+  /** Risk word to level. */
+  byRisk: { critical: 4, high: 3, medium: 2, low: 1 } as Record<string, number>,
+
+  /** Score to level: the first band whose minimum the score reaches. */
+  byScore: [
+    { min: 80, level: 4 },
+    { min: 60, level: 3 },
+    { min: 40, level: 2 },
+    { min: 20, level: 1 },
+  ],
+
+  /**
+   * Facts that set a floor under the level, never a ceiling. Harm to a person
+   * is catastrophic whatever the model scored it, and a regulator in the room
+   * is at least a major crisis.
+   */
+  floors: [
+    { field: "injuryFatality", atLeast: 4, says: "someone was hurt or killed" },
+    { field: "regulatorInvolved", atLeast: 3, says: "a regulator is involved" },
+  ],
+
+  /**
+   * Reach escalates a crisis that already exists; it does not turn a routine
+   * post into one, which is why it only lifts a level already above L0.
+   */
+  amplification: { adds: 1, onlyAboveLevel: 0, cap: 4 },
+} as const;
+
 /** The L0–L4 level for an incident or a mention. */
 export function crisisLevel(input: CrisisInput): number {
   const risk = (input.risk ?? "").toLowerCase();
-  let level =
-    risk === "critical" ? 4 : risk === "high" ? 3 : risk === "medium" ? 2 : risk === "low" ? 1 : 0;
+  let level = CRISIS_RULES.byRisk[risk] ?? 0;
 
   const score = input.riskScore;
   if (typeof score === "number") {
-    const byScore = score >= 80 ? 4 : score >= 60 ? 3 : score >= 40 ? 2 : score >= 20 ? 1 : 0;
-    if (byScore > level) level = byScore;
+    const band = CRISIS_RULES.byScore.find((b) => score >= b.min);
+    if (band && band.level > level) level = band.level;
   }
 
-  // Harm to a person is catastrophic whatever the model scored it, and a
-  // regulator in the room is at least a major crisis: both are floors, never
-  // reductions.
-  if (input.injuryFatality) level = Math.max(level, 4);
-  if (input.regulatorInvolved) level = Math.max(level, 3);
+  for (const floor of CRISIS_RULES.floors) {
+    if (input[floor.field as keyof CrisisInput]) level = Math.max(level, floor.atLeast);
+  }
 
-  // Reach escalates a crisis that already exists; it does not turn a routine
-  // post into one, so this only lifts a level that is already above L0.
-  if (input.amplified && level >= 1) level = Math.min(level + 1, 4);
+  const amp = CRISIS_RULES.amplification;
+  if (input.amplified && level > amp.onlyAboveLevel) level = Math.min(level + amp.adds, amp.cap);
 
   return Math.max(0, Math.min(4, level));
 }
