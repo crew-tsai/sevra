@@ -127,9 +127,19 @@ An end-user walkthrough for the client's administrator is kept separately as the
 | `SENDER_DOMAIN` | No | Verified sending subdomain, e.g. `notify.client.com`. Unset ⇒ Sevra's |
 | `FROM_DOMAIN` | No | Domain in the `From:` header, e.g. `client.com` |
 | `SITE_NAME` | No | Overrides the `From:` display name; defaults to the workspace's company name |
-| `ANTHROPIC_API_KEY` | No | Only `generate-response-plan`, which runs on Claude. Unset ⇒ that one endpoint 500s; nothing else is affected |
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are injected by Supabase automatically.
+
+This table is the whole list the product reads. `ANTHROPIC_API_KEY` was here until
+`generate-response-plan` moved onto the shared AI provider with everything else; a
+workspace still holding it is holding nothing. Deleting a row here without deleting the
+secret leaves a credential nobody can account for, which is worse than either.
+
+**A missing secret disables a capability without failing anything visible**, so each
+deployment reports the ones it lacks — by name, never by value — in its heartbeat, and the
+control plane shows them beside the health chip. That is how Lessence was found rejecting
+every bounce webhook with a 503 for want of `EMAIL_WEBHOOK_SECRET`, months after it was
+provisioned.
 
 The `PLATFORM_*` pairs are not set per client by hand: a provisioned deployment inherits
 **every** secret matching `PLATFORM_*` from the control plane's own environment. Setting one
