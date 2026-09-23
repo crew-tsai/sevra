@@ -26,6 +26,7 @@ import { humanizeSubType, INCIDENT_TYPES, profileFor, typeLabel, type IncidentTy
 import {
   Bot,
   CircleDot,
+  Clock,
   Filter,
   Lock,
   Loader2,
@@ -64,6 +65,8 @@ export default function Workflows() {
   const [baseline, setBaseline] = useState<number | null>(3);
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [sla, setSla] = useState<number | null>(null);
+  const [slaLevel, setSlaLevel] = useState(3);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
@@ -100,7 +103,7 @@ export default function Workflows() {
         .order("created_at", { ascending: true }),
       supabase.from("workflow_runs").select("workflow_id"),
       supabase.from("email_lists").select("id, name").order("name"),
-      supabase.from("company_settings").select("id, industry, auto_package_level").maybeSingle(),
+      supabase.from("company_settings").select("id, industry, auto_package_level, approval_sla_minutes, approval_sla_min_level").maybeSingle(),
     ]);
 
     if (user.user?.id) {
@@ -117,6 +120,8 @@ export default function Workflows() {
     setLists((listRows.data ?? []) as EmailList[]);
     setIndustry(settings.data?.industry ?? null);
     setBaseline(settings.data?.auto_package_level ?? null);
+    setSla(settings.data?.approval_sla_minutes ?? null);
+    setSlaLevel(settings.data?.approval_sla_min_level ?? 3);
     setSettingsId(settings.data?.id ?? null);
     setLoading(false);
   }
@@ -127,6 +132,25 @@ export default function Workflows() {
     const { data, error } = await supabase
       .from("company_settings")
       .update({ auto_package_level: value })
+      .eq("id", settingsId)
+      .select();
+    if (error || !data?.length) {
+      return toast({ title: error?.message ?? t.adminOnly, variant: "destructive" });
+    }
+    toast({ title: t.saved });
+  }
+
+  /**
+   * How long a communication may sit unapproved before someone is told.
+   *
+   * Lives here rather than in Admin because it is the same decision as the
+   * baseline above it: what the workspace does when nobody is watching.
+   */
+  async function saveSla(patch: { approval_sla_minutes?: number | null; approval_sla_min_level?: number }) {
+    if (!settingsId) return;
+    const { data, error } = await supabase
+      .from("company_settings")
+      .update(patch)
       .eq("id", settingsId)
       .select();
     if (error || !data?.length) {
@@ -268,6 +292,59 @@ export default function Workflows() {
                 ))}
               </SelectContent>
             </Select>
+          )}
+        </div>
+      </Card>
+
+      {/* The clock on an approval. Two approvals is the right rule; two
+          approvals with nobody awake is the failure this covers. */}
+      <Card className="p-5">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="h-9 w-9 rounded-md bg-primary/15 flex items-center justify-center text-primary shrink-0">
+              <Clock className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-base font-semibold">{t.slaTitle}</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {sla === null ? t.slaOff : t.slaOn(sla, common.level[slaLevel])}
+              </p>
+              <p className="text-xs text-muted-foreground/80 mt-1">{t.slaHint}</p>
+            </div>
+          </div>
+          {isAdmin && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <Select
+                value={sla === null ? "off" : String(sla)}
+                onValueChange={(v) => {
+                  const next = v === "off" ? null : Number(v);
+                  setSla(next);
+                  void saveSla({ approval_sla_minutes: next });
+                }}
+              >
+                <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="off">{t.slaOffOption}</SelectItem>
+                  {[15, 30, 60, 120, 240].map((m) => (
+                    <SelectItem key={m} value={String(m)}>{t.slaMinutesOption(m)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={String(slaLevel)}
+                onValueChange={(v) => {
+                  setSlaLevel(Number(v));
+                  void saveSla({ approval_sla_min_level: Number(v) });
+                }}
+              >
+                <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {[0, 1, 2, 3, 4].map((l) => (
+                    <SelectItem key={l} value={String(l)}>{t.slaLevelOption(common.level[l])}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           )}
         </div>
       </Card>

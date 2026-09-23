@@ -18,6 +18,11 @@ verify_jwt = false
 [functions.social-monitor-cron]
 verify_jwt = false
 
+# Cron-driven, and it classifies its caller itself — the gateway accepts the
+# publishable key as a valid JWT, so verify_jwt proves nothing either way.
+[functions.approval-escalation]
+verify_jwt = false
+
 [functions.social-monitor-control]
 verify_jwt = false
 

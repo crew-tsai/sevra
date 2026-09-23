@@ -94,6 +94,28 @@ function tabFor(assetType: string): TabKey | "other" {
   return "other";
 }
 
+/**
+ * How long an unapproved communication has been sitting.
+ *
+ * Deliberately blunt past an hour: "waiting 3 h" is a different sentence from
+ * "waiting 47 min", and a crisis team reading a list of twelve drafts needs
+ * the one that has gone stale to look different, not to be computed.
+ */
+function WaitingFor({ since, label }: { since: string; label: (human: string) => string }) {
+  const minutes = Math.floor((Date.now() - new Date(since).getTime()) / 60_000);
+  if (minutes < 15) return null;
+  const human = minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h`;
+  const stale = minutes >= 60;
+  return (
+    <Badge
+      variant="outline"
+      className={`text-[10px] ${stale ? "border-risk-medium/50 text-risk-medium" : "text-muted-foreground"}`}
+    >
+      {label(human)}
+    </Badge>
+  );
+}
+
 export default function Approvals() {
   const [searchParams, setSearchParams] = useSearchParams();
   const focusIncidentId = searchParams.get("incident");
@@ -507,6 +529,10 @@ export default function Approvals() {
               {isRejected && (
                 <Badge className="text-[10px] border-0 bg-risk-critical-bg text-risk-critical">{t.rejectedBadge}</Badge>
               )}
+              {/* How long this has been waiting. The number the escalation
+                  sweep acts on, shown before it acts, so a team can see a
+                  package going stale rather than be told about it by email. */}
+              {!isApproved && !isRejected && <WaitingFor since={item.created_at} label={t.waiting} />}
             </div>
             {!isExpanded ? (
               <p className="text-xs text-muted-foreground truncate mt-0.5">

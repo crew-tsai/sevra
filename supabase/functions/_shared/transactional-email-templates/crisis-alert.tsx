@@ -27,6 +27,15 @@ interface CrisisAlertProps {
   summary?: string
   /** The rule that fired, so the recipient knows why they were told. */
   workflowName?: string
+  /**
+   * Set when this is an approval that has been waiting, rather than a new
+   * incident. It changes what the mail is asking for: a new incident is
+   * information, an unapproved package at L4 is a request to go and press a
+   * button, and telling someone their package is "being drafted" when it has
+   * been drafted and ignored for an hour is worse than not writing at all.
+   */
+  waitingMinutes?: number
+  waitingFor?: string
   companyName?: string
   lang?: 'en' | 'es'
 }
@@ -63,6 +72,9 @@ const WORDS = {
       'The communication package for this incident is being drafted and will be waiting in Approvals. Nothing is published until your team approves it.',
     rule: (name: string) => `You are receiving this because of the rule "${name}".`,
     fallbackTitle: 'New incident',
+    waitingHeading: 'Waiting for approval',
+    waiting: (minutes: number, what: string) =>
+      `${what} has been waiting ${minutes} minutes for approval and has not been published. Nothing goes out until someone approves it.`,
   },
   es: {
     detected: 'Crisis detectada',
@@ -73,6 +85,9 @@ const WORDS = {
       'El paquete de comunicación de este incidente se está redactando y quedará esperando en Aprobaciones. No se publica nada hasta que tu equipo lo apruebe.',
     rule: (name: string) => `Recibes este aviso por la regla "${name}".`,
     fallbackTitle: 'Incidente nuevo',
+    waitingHeading: 'Pendiente de aprobación',
+    waiting: (minutes: number, what: string) =>
+      `${what} lleva ${minutes} minutos esperando aprobación y no se ha publicado. No sale nada hasta que alguien lo apruebe.`,
   },
 }
 
@@ -85,6 +100,8 @@ const CrisisAlertEmail = ({
   risk = 'medium',
   summary = '',
   workflowName,
+  waitingMinutes,
+  waitingFor,
   companyName,
   lang,
 }: CrisisAlertProps) => {
@@ -133,7 +150,11 @@ const CrisisAlertEmail = ({
             </Section>
           )}
 
-          <Text style={draftsText}>{w.drafts}</Text>
+          <Text style={draftsText}>
+            {typeof waitingMinutes === 'number'
+              ? w.waiting(waitingMinutes, waitingFor || w.waitingHeading)
+              : w.drafts}
+          </Text>
 
           <Hr style={hr} />
 
@@ -241,7 +262,13 @@ export const template = {
   subject: (data: Record<string, any>) => {
     const l = pickLang(data?.lang)
     const level = LEVELS[l][data?.crisisLevel ?? 0] ?? ''
-    return `[${level.split(' · ')[0]}] ${data?.incidentTitle || WORDS[l].fallbackTitle}`
+    const tag = level.split(' · ')[0]
+    // An unapproved package needs to be distinguishable in an inbox from the
+    // alert that opened the incident an hour earlier.
+    if (typeof data?.waitingMinutes === 'number') {
+      return `[${tag}] ${WORDS[l].waitingHeading} — ${data?.incidentTitle || WORDS[l].fallbackTitle}`
+    }
+    return `[${tag}] ${data?.incidentTitle || WORDS[l].fallbackTitle}`
   },
   displayName: 'Crisis alert',
   previewData: {

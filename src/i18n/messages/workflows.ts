@@ -19,6 +19,15 @@ export const workflowsMessages = defineMessages({
     baselineHint: "Rules can draft earlier for the cases you care about. None of them can switch this off.",
     baselineOffOption: "Only when someone asks",
     baselineLevelOption: (level: string) => `${level} and above`,
+    slaTitle: "Unapproved communications",
+    slaOff: "Nobody is told when a communication sits unapproved.",
+    slaOn: (minutes: number, level: string) =>
+      `After ${minutes} minutes unapproved, on an incident of ${level} or above, the people responsible for that communication are emailed.`,
+    slaHint:
+      "Sevra drafts without being asked because a crisis does not wait for office hours. Everything after that waits for a person — this is what happens when that person is asleep.",
+    slaOffOption: "Never chase anyone",
+    slaMinutesOption: (minutes: number) => (minutes >= 60 ? `After ${minutes / 60} h` : `After ${minutes} min`),
+    slaLevelOption: (level: string) => `${level} or above`,
     saved: "Saved",
 
     newWorkflow: "New rule",
@@ -161,6 +170,15 @@ export const workflowsMessages = defineMessages({
     baselineHint: "Las reglas pueden redactar antes en los casos que te importen. Ninguna puede desactivar esto.",
     baselineOffOption: "Solo cuando alguien lo pida",
     baselineLevelOption: (level: string) => `${level} o superior`,
+    slaTitle: "Comunicaciones sin aprobar",
+    slaOff: "No se avisa a nadie cuando una comunicación se queda sin aprobar.",
+    slaOn: (minutes: number, level: string) =>
+      `Tras ${minutes} minutos sin aprobar, en un incidente de ${level} o superior, se avisa por correo a los responsables de esa comunicación.`,
+    slaHint:
+      "Sevra redacta sin que nadie lo pida porque una crisis no espera al horario de oficina. Todo lo que viene después espera a una persona — esto es lo que ocurre cuando esa persona está dormida.",
+    slaOffOption: "No avisar a nadie",
+    slaMinutesOption: (minutes: number) => (minutes >= 60 ? `Tras ${minutes / 60} h` : `Tras ${minutes} min`),
+    slaLevelOption: (level: string) => `${level} o superior`,
     saved: "Guardado",
 
     newWorkflow: "Nueva regla",

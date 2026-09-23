@@ -128,6 +128,8 @@ export type Database = {
       }
       company_settings: {
         Row: {
+          approval_sla_min_level: number
+          approval_sla_minutes: number | null
           auto_package_level: number | null
           brand_primary: string | null
           brand_secondary: string | null
@@ -156,6 +158,8 @@ export type Database = {
           x_handle: string | null
         }
         Insert: {
+          approval_sla_min_level?: number
+          approval_sla_minutes?: number | null
           auto_package_level?: number | null
           brand_primary?: string | null
           brand_secondary?: string | null
@@ -184,6 +188,8 @@ export type Database = {
           x_handle?: string | null
         }
         Update: {
+          approval_sla_min_level?: number
+          approval_sla_minutes?: number | null
           auto_package_level?: number | null
           brand_primary?: string | null
           brand_secondary?: string | null
@@ -408,6 +414,7 @@ export type Database = {
           content: string
           created_at: string
           created_by: string | null
+          escalated_at: string | null
           id: string
           incident_id: string
           language: string | null
@@ -426,6 +433,7 @@ export type Database = {
           content: string
           created_at?: string
           created_by?: string | null
+          escalated_at?: string | null
           id?: string
           incident_id: string
           language?: string | null
@@ -444,6 +452,7 @@ export type Database = {
           content?: string
           created_at?: string
           created_by?: string | null
+          escalated_at?: string | null
           id?: string
           incident_id?: string
           language?: string | null
