@@ -11,22 +11,21 @@ export const META_GRAPH_VERSION = "v23.0";
 export const META_GRAPH = `https://graph.facebook.com/${META_GRAPH_VERSION}`;
 export const META_DIALOG = `https://www.facebook.com/${META_GRAPH_VERSION}/dialog/oauth`;
 
-export type Network = "x" | "instagram" | "tiktok" | "facebook";
-
-export const NETWORKS: Network[] = ["x", "instagram", "tiktok", "facebook"];
-
-export function isNetwork(value: unknown): value is Network {
-  return typeof value === "string" && (NETWORKS as string[]).includes(value);
-}
-
-// How each network is named in messages shown to an admin. Kept here so the
-// edge functions and the Admin UI don't drift on what to call X.
-export const NETWORK_LABELS: Record<Network, string> = {
-  x: "X (Twitter)",
-  instagram: "Instagram",
-  tiktok: "TikTok",
-  facebook: "Facebook",
-};
+// The network vocabulary and what monitoring can reach live in
+// watched-sources.ts, which the app mirrors; re-exported here so the many
+// callers that already import them from this module keep working, and so the
+// two facts about a network — how it is connected, and what it lets us see —
+// stay one import apart.
+export {
+  MONITOR_REACH,
+  NETWORK_LABELS,
+  NETWORKS,
+  isNetwork,
+} from "./watched-sources.ts";
+export type { Network } from "./watched-sources.ts";
+// Imported as well as re-exported: a re-export forwards the name, it does not
+// bring it into this module's own scope, and PROVIDERS below is typed by it.
+import type { Network } from "./watched-sources.ts";
 
 export type ProviderConfig = {
   authorizeUrl: string;
@@ -47,36 +46,6 @@ export type ProviderConfig = {
 // Client ID/Secret are NOT configured here — each client's admin enters
 // their own via Admin -> Social connections (see social-oauth-credentials),
 // stored in the social_app_credentials table.
-/**
- * What monitoring can actually reach on each network.
- *
- * Load-bearing, not documentation: social-monitor-cron consults `search` to
- * decide whether a watchlist entry is a query or a rule applied to what
- * arrives, and the assistant generates its explanation from the same table.
- * A platform that opens up gets changed here once.
- */
-export const MONITOR_REACH: Record<Network, { search: boolean; ownAccount: boolean; why: string }> = {
-  x: {
-    search: true,
-    ownAccount: true,
-    why: "searched across the whole platform with Sevra's own application token, so the client needs no connection and no credentials — only their handle",
-  },
-  facebook: {
-    search: false,
-    ownAccount: true,
-    why: "comments, tags and mentions on the client's own Pages only; Facebook serves no post search without a session",
-  },
-  instagram: {
-    search: false,
-    ownAccount: true,
-    why: "comments, tags and mentions on the client's own account only; the official hashtag search needs permissions still in review with Meta",
-  },
-  tiktok: {
-    search: false,
-    ownAccount: false,
-    why: "cannot be monitored at all — TikTok offers no way to search for mentions outside its academic research programme. An account is connected so Sevra can act on it, never to listen",
-  },
-};
 
 export const PROVIDERS: Record<Network, ProviderConfig> = {
   x: {

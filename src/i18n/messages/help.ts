@@ -31,6 +31,18 @@ export const helpMessages = defineMessages({
         a: "X today, and Facebook and Instagram for comments, tags and mentions on your own accounts. TikTok can be connected so Sevra can act on the account, but nobody can monitor TikTok: TikTok offers no way to search the platform for mentions outside its academic research programme.",
       },
       {
+        q: "Can Sevra watch someone other than us?",
+        a: "Yes — in Workflows, under Watched sources and topics. A source is a person or an organisation: a newsroom that covers you, your regulator, a campaigner, a competitor. Give them a name, say what they are, and add their handle on whichever networks they use. A topic is a hashtag or a phrase, useful when a crisis is moving before anyone has named you. What each source can actually collect differs by network, and Sevra says so on the source itself: X can be searched, so it finds their posts wherever they are; Facebook and Instagram cannot be searched by anyone, so a source there is marked when it turns up in what your own accounts already receive; TikTok collects nothing at all. A source that cannot reach anything says so rather than looking configured.",
+      },
+      {
+        q: "Why is this mention in my feed?",
+        a: "If Sevra went looking for it, the mention says so: a badge names the watched source or topic that brought it in. Mentions without one were found on your own name.",
+      },
+      {
+        q: "Why does a post from a newsroom raise the crisis level?",
+        a: "Because the same words from an account with an audience are a bigger event than from nobody in particular. A watched source set to raise the level starts an incident opened from its post one crisis level higher. You can turn that off per source. Watching a newsroom also defaults to collecting only their posts that name you — they publish all day and almost none of it concerns you — while a regulator or a campaigner defaults to being read in full.",
+      },
+      {
         q: "Why is a post about us marked as no risk?",
         a: "Sevra separates a crisis from a mention that is merely about you — praise, questions, neutral news — and from posts that use your name as an ordinary word. Only a crisis opens an incident. If something was classified wrongly, send it to us with the link and we will look at it.",
       },
@@ -116,6 +128,18 @@ export const helpMessages = defineMessages({
       {
         q: "¿Qué redes monitorea Sevra?",
         a: "X hoy, y Facebook e Instagram para comentarios, etiquetas y menciones en tus propias cuentas. TikTok se puede conectar para que Sevra actúe sobre la cuenta, pero nadie puede monitorear TikTok: TikTok no ofrece ninguna forma de buscar menciones en la plataforma fuera de su programa de investigación académica.",
+      },
+      {
+        q: "¿Puede Sevra vigilar a alguien que no seamos nosotros?",
+        a: "Sí — en Flujos, en Fuentes y temas vigilados. Una fuente es una persona o una organización: un medio que te cubre, tu regulador, un activista, la competencia. Ponle nombre, di qué es y añade su cuenta en las redes que realmente use. Un tema es un hashtag o una frase, útil cuando una crisis ya se mueve y todavía no te nombra. Lo que cada fuente puede recoger cambia según la red, y Sevra lo dice en la propia fuente: X se puede buscar, así que encuentra sus publicaciones estén donde estén; Facebook e Instagram no los puede buscar nadie, así que ahí la fuente se marca cuando aparece en lo que ya reciben tus propias cuentas; en TikTok no se recoge nada. Una fuente que no alcanza nada lo dice, en vez de parecer configurada.",
+      },
+      {
+        q: "¿Por qué tengo esta mención delante?",
+        a: "Si Sevra fue a buscarla, la mención lo dice: una etiqueta nombra la fuente o el tema vigilado que la trajo. Las menciones sin etiqueta se encontraron por tu propio nombre.",
+      },
+      {
+        q: "¿Por qué una publicación de un medio sube el nivel de crisis?",
+        a: "Porque las mismas palabras dichas por una cuenta con audiencia son un hecho mayor que dichas por nadie en particular. Una fuente vigilada marcada para subir el nivel hace que un incidente abierto desde su publicación empiece un nivel de crisis más arriba. Puedes desactivarlo en cada fuente. Vigilar a un medio además recoge por defecto solo sus publicaciones que te nombran — publican todo el día y casi nada te concierne — mientras que un regulador o un activista se leen enteros por defecto.",
       },
       {
         q: "¿Por qué una publicación sobre nosotros aparece como sin riesgo?",

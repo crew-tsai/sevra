@@ -15,7 +15,8 @@
 //   ACTION_TYPES      workflows.ts         what a rule may do
 //   CRITERIA_FIELDS   workflows.ts         what a rule may test
 //   INCIDENT_STATUSES workflows.ts         the statuses a rule may set
-//   MONITOR_REACH     social-providers.ts  what each network permits
+//   MONITOR_REACH     watched-sources.ts   what each network permits
+//   SOURCE_ROLES      watched-sources.ts   the kinds of actor worth watching
 //
 // Change a rule and the explanation changes with it, in the same commit, or the
 // build fails because the constant no longer exists.
@@ -26,7 +27,7 @@
 
 import { CRISIS_RULES } from "./crisis-level.ts";
 import { ACTION_TYPES, CRITERIA_FIELDS, CRITERIA_OPS, INCIDENT_STATUSES } from "./workflows.ts";
-import { MONITOR_REACH, NETWORK_LABELS, NETWORKS } from "./social-providers.ts";
+import { MONITOR_REACH, NETWORK_LABELS, NETWORKS, SOURCE_ROLES } from "./watched-sources.ts";
 
 const ACTION_MEANING: Record<string, string> = {
   draft_package: "draft the full communication package",
@@ -80,14 +81,37 @@ function workflowsSection(): string {
 
 function monitoringSection(): string {
   const lines = NETWORKS.map((n) => `- ${NETWORK_LABELS[n]}: ${MONITOR_REACH[n].why}.`);
+  const roles = SOURCE_ROLES.map((r) => {
+    const scope = r.watchesEverything ? "read whole" : "read only for what names the company";
+    return `${r.id} (${r.speaks}; by default ${scope}${r.amplifies ? ", raises the crisis level" : ""})`;
+  }).join("; ");
+  const searchable = NETWORKS.filter((n) => MONITOR_REACH[n].search).map((n) => NETWORK_LABELS[n]);
+
   return `MONITORING — what can and cannot be seen
 ${lines.join("\n")}
-- Watchlist (Admin › Company): accounts, hashtags and phrases to watch beyond
-  the company's own name. Where a network can be searched the entry becomes a
-  query; where it cannot, the entry marks what the client's own accounts
-  already receive. A watched account can be set to raise the crisis level of
-  what it posts, and by default is read only for the posts that name the
-  company.`;
+
+WATCHED SOURCES AND TOPICS (Workflows)
+- A SOURCE is an actor, not a search term: a newspaper, a regulator, a
+  campaigner, a competitor. It has a name, a role, and a handle on each network
+  it uses — all optional.
+- The roles, one list for every industry: ${roles}. Both defaults can be
+  overruled per source.
+- A TOPIC is a hashtag or a phrase, belonging to nobody. A topic is never
+  narrowed to "only when they name us": a crisis hashtag is watched precisely
+  because the company is not named in it yet.
+- What a source turns into depends on the network, and Sevra says so per
+  source rather than making the client work it out: ${searchable.join(", ")} can be
+  searched, so the source becomes a query and finds posts from people who never
+  mentioned the company; the rest cannot be searched by anyone, so the source
+  becomes a rule applied to what the client's own accounts already receive.
+- A source with handles only on networks that cannot be searched, or on a
+  network this workspace has not connected, is reported as watching nothing
+  yet. It is not quietly counted as configured.
+- Every mention records which source or topic brought it in, so the team can
+  see why it is in front of them.
+- When a watched source raised an incident, its role reaches the AI that
+  drafts the communications — as context for who is speaking, never as an
+  instruction, and it changes nothing about the approvals.`;
 }
 
 // Hand-written: no single module encodes these.

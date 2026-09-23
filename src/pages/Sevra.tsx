@@ -56,6 +56,10 @@ type Mention = {
   created_at: string;
   updated_at: string;
   translations: unknown;
+  // Why this is here. Null for a post found on the company's own name, which
+  // is its own answer.
+  monitor_sources?: { name: string; role: string } | null;
+  monitor_topics?: { kind: string; value: string } | null;
 };
 
 /** A mention that is, or may be, a risk: not yet analyzed, or analyzed as one. */
@@ -179,7 +183,7 @@ export default function Sevra() {
     setLoading(true);
     const { data, error } = await supabase
       .from("social_mentions")
-      .select("*")
+      .select("*, monitor_sources(name, role), monitor_topics(kind, value)")
       .order("created_at", { ascending: false })
       .limit(100);
     if (error) toast.error(error.message);
@@ -461,6 +465,23 @@ export default function Sevra() {
                       <span className="text-sm text-muted-foreground break-all">@{m.author_handle}</span>
                       {m.is_verified && <Badge variant="secondary" className="text-[10px]">{t.verified}</Badge>}
                       {m.is_influencer && <Badge variant="secondary" className="text-[10px]">{t.influencer}</Badge>}
+                      {/* Provenance: the product went looking for this on
+                          someone's instruction, and until now nothing said so
+                          once the post arrived. */}
+                      {m.monitor_sources?.name && (
+                        <Badge variant="outline" className="text-[10px]" title={t.broughtInHint}>
+                          {t.broughtIn(m.monitor_sources.name)}
+                        </Badge>
+                      )}
+                      {m.monitor_topics?.value && (
+                        <Badge variant="outline" className="text-[10px]" title={t.broughtInHint}>
+                          {t.broughtIn(
+                            m.monitor_topics.kind === "hashtag"
+                              ? `#${m.monitor_topics.value.replace(/^#/, "")}`
+                              : m.monitor_topics.value,
+                          )}
+                        </Badge>
+                      )}
                       <span className="text-xs text-muted-foreground">· {meta.label}</span>
                       {(m.posted_at || m.created_at) && (
                         <span

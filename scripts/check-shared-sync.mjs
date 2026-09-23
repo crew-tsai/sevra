@@ -36,6 +36,7 @@ if (app !== fns) {
 const MIRRORS = [
   ["src/lib/crisis-level.ts", "supabase/functions/_shared/crisis-level.ts"],
   ["src/lib/workflows.ts", "supabase/functions/_shared/workflows.ts"],
+  ["src/lib/watched-sources.ts", "supabase/functions/_shared/watched-sources.ts"],
 ];
 
 for (const [from, to] of MIRRORS) {

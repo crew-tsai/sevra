@@ -8,6 +8,7 @@
     "build": "node scripts/check-shared-sync.mjs && tsc --noEmit -p tsconfig.app.json && vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
+    "check:functions": "npx --yes deno-bin@2.2.7 check --no-lock --node-modules-dir=auto supabase/functions/*/index.ts",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"

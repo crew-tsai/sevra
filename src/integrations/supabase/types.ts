@@ -567,6 +567,146 @@ export type Database = {
         }
         Relationships: []
       }
+      monitor_source_accounts: {
+        Row: {
+          created_at: string
+          handle: string
+          id: string
+          network: string
+          source_id: string
+        }
+        Insert: {
+          created_at?: string
+          handle: string
+          id?: string
+          network: string
+          source_id: string
+        }
+        Update: {
+          created_at?: string
+          handle?: string
+          id?: string
+          network?: string
+          source_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitor_source_accounts_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monitor_sources: {
+        Row: {
+          active: boolean
+          amplifies: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          note: string | null
+          role: string
+          watch_everything: boolean
+        }
+        Insert: {
+          active?: boolean
+          amplifies?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          note?: string | null
+          role: string
+          watch_everything?: boolean
+        }
+        Update: {
+          active?: boolean
+          amplifies?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          note?: string | null
+          role?: string
+          watch_everything?: boolean
+        }
+        Relationships: []
+      }
+      monitor_topics: {
+        Row: {
+          active: boolean
+          amplifies: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          note: string | null
+          value: string
+        }
+        Insert: {
+          active?: boolean
+          amplifies?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind: string
+          note?: string | null
+          value: string
+        }
+        Update: {
+          active?: boolean
+          amplifies?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          note?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
+      monitor_watchlist: {
+        Row: {
+          active: boolean
+          amplifies: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          label: string | null
+          network: string
+          only_mentions: boolean
+          value: string
+        }
+        Insert: {
+          active?: boolean
+          amplifies?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind: string
+          label?: string | null
+          network?: string
+          only_mentions?: boolean
+          value: string
+        }
+        Update: {
+          active?: boolean
+          amplifies?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          label?: string | null
+          network?: string
+          only_mentions?: boolean
+          value?: string
+        }
+        Relationships: []
+      }
       oauth_states: {
         Row: {
           code_verifier: string | null
@@ -826,6 +966,8 @@ export type Database = {
           is_influencer: boolean | null
           is_verified: boolean | null
           likes: number | null
+          matched_source_id: string | null
+          matched_topic_id: string | null
           post_url: string | null
           posted_at: string | null
           reach: number | null
@@ -856,6 +998,8 @@ export type Database = {
           is_influencer?: boolean | null
           is_verified?: boolean | null
           likes?: number | null
+          matched_source_id?: string | null
+          matched_topic_id?: string | null
           post_url?: string | null
           posted_at?: string | null
           reach?: number | null
@@ -886,6 +1030,8 @@ export type Database = {
           is_influencer?: boolean | null
           is_verified?: boolean | null
           likes?: number | null
+          matched_source_id?: string | null
+          matched_topic_id?: string | null
           post_url?: string | null
           posted_at?: string | null
           reach?: number | null
@@ -900,6 +1046,20 @@ export type Database = {
             columns: ["incident_id"]
             isOneToOne: false
             referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_mentions_matched_source_id_fkey"
+            columns: ["matched_source_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_mentions_matched_topic_id_fkey"
+            columns: ["matched_topic_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_topics"
             referencedColumns: ["id"]
           },
         ]
@@ -922,75 +1082,6 @@ export type Database = {
           id?: string
           user_email?: string | null
           user_id?: string | null
-        }
-        Relationships: []
-      }
-      support_messages: {
-        Row: {
-          body: string
-          created_at: string
-          created_by: string | null
-          created_email: string | null
-          delivered: boolean
-          id: string
-          ticket_id: string
-        }
-        Insert: {
-          body: string
-          created_at?: string
-          created_by?: string | null
-          created_email?: string | null
-          delivered?: boolean
-          id?: string
-          ticket_id: string
-        }
-        Update: {
-          body?: string
-          created_at?: string
-          created_by?: string | null
-          created_email?: string | null
-          delivered?: boolean
-          id?: string
-          ticket_id?: string
-        }
-        Relationships: []
-      }
-      monitor_watchlist: {
-        Row: {
-          only_mentions: boolean
-          active: boolean
-          amplifies: boolean
-          created_at: string
-          created_by: string | null
-          id: string
-          kind: string
-          label: string | null
-          network: string
-          value: string
-        }
-        Insert: {
-          only_mentions?: boolean
-          active?: boolean
-          amplifies?: boolean
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          kind: string
-          label?: string | null
-          network?: string
-          value: string
-        }
-        Update: {
-          only_mentions?: boolean
-          active?: boolean
-          amplifies?: boolean
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          kind?: string
-          label?: string | null
-          network?: string
-          value?: string
         }
         Relationships: []
       }
@@ -1028,7 +1119,60 @@ export type Database = {
           ticket_id?: string
           uploaded_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "support_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "support_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_attachments_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_messages: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          created_email: string | null
+          delivered: boolean
+          id: string
+          ticket_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          created_email?: string | null
+          delivered?: boolean
+          id?: string
+          ticket_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          created_email?: string | null
+          delivered?: boolean
+          id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       support_replies: {
         Row: {
@@ -1072,43 +1216,43 @@ export type Database = {
         Row: {
           answered_at: string | null
           category: string
-          last_activity_at: string
-          state: string
           created_at: string
           created_by: string | null
           created_email: string | null
           delivered: boolean
           id: string
+          last_activity_at: string
           message: string
           page: string | null
+          state: string
           subject: string
         }
         Insert: {
           answered_at?: string | null
           category?: string
-          last_activity_at?: string
-          state?: string
           created_at?: string
           created_by?: string | null
           created_email?: string | null
           delivered?: boolean
           id?: string
+          last_activity_at?: string
           message: string
           page?: string | null
+          state?: string
           subject: string
         }
         Update: {
           answered_at?: string | null
           category?: string
-          last_activity_at?: string
-          state?: string
           created_at?: string
           created_by?: string | null
           created_email?: string | null
           delivered?: boolean
           id?: string
+          last_activity_at?: string
           message?: string
           page?: string | null
+          state?: string
           subject?: string
         }
         Relationships: []

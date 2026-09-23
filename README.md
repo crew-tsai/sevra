@@ -38,13 +38,14 @@ The trade-off is that no single place shows the client portfolio. That is what t
 
 ## Features
 
-- **SEVRA Social Intel** — Pulls real mentions from connected X and Facebook accounts. AI classifies risk, suggests incident type, and deduplicates against existing incidents. Instagram and TikTok can be AI-simulated for demos, but `company_settings.simulation_enabled` defaults to **false**: synthetic mentions become real incident rows and are indistinguishable from genuine ones once created, which is not something a client should get by default
+- **SEVRA Social Intel** — Pulls real mentions from connected X and Facebook accounts, and searches X for the company's own name with Sevra's application token, so monitoring needs no connection at all. Every mention records which watched source or topic brought it in. AI classifies risk, suggests incident type, and deduplicates against existing incidents. Instagram and TikTok can be AI-simulated for demos, but `company_settings.simulation_enabled` defaults to **false**: synthetic mentions become real incident rows and are indistinguishable from genuine ones once created, which is not something a client should get by default
 - **Incident Management** — Create, update, and track incidents with crisis level (L0–L4), risk score, and approval status
 - **Assets** — Communication assets: press releases, holding statements, social posts, internal memos, Q&As, FAQs. Instagram and TikTok assets can carry an uploaded image/video, or an AI-generated image
 - **Automatic drafting** — When an incident reaches the crisis level set in Workflows, the whole package is drafted without anyone asking. It follows the client's own crisis communications manual when one is uploaded in Admin → Company, and recognised practice for their industry when there is none; the audit log records which of the two was used, and `incidents.package_requested_at` is claimed atomically so two mentions of the same crisis cannot produce two packages
 - **Approvals** — Two-stage workflow: a team member sends a draft forward, an admin gives final approval. Approved assets unlock email, direct social publishing, and WhatsApp. There is no automatic publishing anywhere in the product, by design — automation drafts, people send
 - **Social connections** — OAuth to the operator's own X, Facebook, Instagram and TikTok accounts. X and Facebook publish directly; Instagram and TikTok fall back to copy-and-open because those platforms require media on every post
 - **Reports** — Analytics and incident reporting
+- **Watched sources and topics** (Workflows) — Who the workspace listens to beyond its own name. A **source** is an actor — press, regulator, activist, competitor, partner, community — with a handle on whichever networks they use; a **topic** is a hashtag or a phrase. The role sets how the source is watched and reaches the AI as context for who is speaking. Every source reports what it actually collects per network, including "not watching anything yet" when its only handles are on networks Sevra cannot reach
 - **Workflows** — What the workspace does by itself, defined by its own admin: the baseline crisis level at which a package is drafted, plus rules matching on risk, type, level, network or amplification that can draft, notify, set status or lock public response. Rules are stored in `workflows`, executed server-side by `_shared/workflow-engine.ts`, and claimed once per incident through `workflow_runs` so a retry cannot fire them twice. Everyone can read them; only an admin can change them
 - **Response plan** — A RACI-grounded plan generated per incident from the client's manual and their responsibility matrix, shown on the incident page
 - **Audit Log** — Append-only log of incident field changes, naming the person who made each one, plus a record of every Sevra support access
@@ -249,7 +250,9 @@ review status and the two separate submissions it needs are tracked in
 
 Nobody can monitor TikTok. There is no public search API for mentions outside TikTok's
 academic research programme, so the connection exists to act on the client's own account
-and the product says so rather than implying coverage it cannot deliver.
+and the product says so rather than implying coverage it cannot deliver. A watched source
+whose only handle is on TikTok is shown as watching nothing, rather than sitting in the
+list looking configured.
 
 ### Cron jobs
 
@@ -331,8 +334,14 @@ supabase db query --linked < supabase/seed.sql
 npx tsc --noEmit -p tsconfig.app.json
 npx eslint src
 npm run build
+npm run check:functions   # typechecks the edge functions with Deno
 npm test          # vitest — infrastructure exists, but there is no real coverage yet
 ```
+
+`check:functions` exists because `supabase functions deploy` bundles without type
+checking. A function that calls something nothing defines deploys clean and then throws
+at runtime — which is exactly how monitoring spent an hour returning
+`applyWatchlist is not defined` on every tick. Run it before deploying a function.
 
 ---
 
@@ -364,6 +373,8 @@ Applied in timestamp order. Key migrations:
 | `20260920120000` | The workspace owner gets a `team_members` row, so the audit log can name them |
 | `20260920130000` | `support_tickets` — what this workspace asked Sevra |
 | `20260920170000` | `support_replies` and `answered_at` — what Sevra answered, where the person who asked will look |
+| `20260921130000` | `support_messages`, `support_attachments` — a ticket is a thread, not one question |
+| `20260923140000` | `monitor_sources`, `monitor_source_accounts`, `monitor_topics` and the `matched_*` provenance columns; supersedes `monitor_watchlist`, which is left in place to be dropped once every deployment is past this migration |
 
 > `20260701000000_grant_table_privileges` is required on any fresh project: PostgreSQL needs explicit `GRANT`s in addition to RLS policies.
 >

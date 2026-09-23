@@ -69,6 +69,11 @@ type MentionRow = {
   reach?: number;
   is_verified?: boolean;
   is_influencer?: boolean;
+  // Which watched source or topic brought this in. Null for a post the brand
+  // search found on the company's own name, which is its own answer to "why
+  // do I have this".
+  matched_source_id?: string | null;
+  matched_topic_id?: string | null;
   posted_at: string;
   status: string;
   created_by: null;
@@ -158,30 +163,31 @@ export function buildXQuery(o: { companyName: string | null; handle: string; lan
 }
 
 /**
- * The X search for this company's watchlist.
+ * The X search for this company's watched sources and topics.
  *
  * Deliberately a separate query from the brand one, not more terms inside it.
  * The brand search narrows by language, because a bare company name otherwise
- * matches half the internet; a watched account posts in whatever language it
+ * matches half the internet; a watched source posts in whatever language it
  * posts in, and filtering that out would defeat the reason for watching it.
  *
- * Accounts are searched as `from:` — posts *by* them. "Monitor this
- * journalist" means what they say, not who mentions them; the latter is
- * already covered when they mention the company.
+ * Sources are searched as `from:` — posts *by* them. "Watch this journalist"
+ * means what they say, not who mentions them; the latter is already covered
+ * when they mention the company.
  *
- * Most account entries are narrowed to the posts that name the company.
- * Watching a news outlet otherwise means collecting the news: a few hundred
- * posts a day, almost none about this client, every one of them analysed. The
- * exceptions — a regulator, a campaigner working the sector — are marked to
- * collect everything, and say so in the UI.
+ * Most sources are narrowed to the posts that name the company. Watching a
+ * newsroom otherwise means collecting the news: a few hundred posts a day,
+ * almost none about this client, every one of them analysed. The ones set to
+ * be read whole — a regulator, a campaigner working the sector — say so on
+ * their own row, and the role they were given sets that default.
  *
- * Hashtags and words are never narrowed. A crisis hashtag is watched precisely
- * because the company is not named in it yet.
+ * Topics are never narrowed. A crisis hashtag is watched precisely because the
+ * company is not named in it yet.
  */
-export function buildWatchQuery(
-  items: Array<{ kind: string; value: string; only_mentions?: boolean }>,
+export function buildSourceQuery(
+  sources: Array<{ handle: string; watchEverything: boolean }>,
+  topics: Array<{ kind: string; value: string }>,
   brand?: { companyName?: string | null; handle?: string | null },
-): string {
+): { query: string; dropped: string[] } {
   const cleanPhrase = (s: string) => s.replace(/["()]/g, " ").replace(/\s+/g, " ").trim();
   const cleanHandle = (s: string) => s.replace(/^@/, "").replace(/[^A-Za-z0-9_]/g, "");
 
@@ -196,21 +202,23 @@ export function buildWatchQuery(
   const narrowed: string[] = [];
   const open: string[] = [];
 
-  for (const item of items) {
-    const raw = item.value.trim();
-    if (!raw) continue;
-    if (item.kind === "account") {
-      const handle = cleanHandle(raw);
-      if (!handle) continue;
+  for (const source of sources) {
+    const handle = cleanHandle(source.handle ?? "");
+    if (!handle) continue;
+    if (source.watchEverything) {
+      open.push(`from:${handle}`);
+    } else if (brandClause) {
       // With nothing to match against, "only when they mention us" cannot be
       // expressed — and collecting everything instead would be the opposite of
-      // what was asked for, so the entry waits until the company names itself.
-      if (item.only_mentions !== false) {
-        if (brandClause) narrowed.push(`from:${handle}`);
-      } else {
-        open.push(`from:${handle}`);
-      }
-    } else if (item.kind === "hashtag") {
+      // what was asked for, so the source waits until the company names itself.
+      narrowed.push(`from:${handle}`);
+    }
+  }
+
+  for (const topic of topics) {
+    const raw = (topic.value ?? "").trim();
+    if (!raw) continue;
+    if (topic.kind === "hashtag") {
       const tag = raw.replace(/^#/, "").replace(/[^A-Za-z0-9_]/g, "");
       if (tag) open.push(`#${tag}`);
     } else {
@@ -219,70 +227,135 @@ export function buildWatchQuery(
     }
   }
 
-  // Built as groups so the two rules coexist in one request: these accounts
+  // Built as groups so the two rules coexist in one request: these sources
   // only when they name us, everything else on its own terms.
-  const groups: string[] = [];
-  if (narrowed.length) {
-    groups.push(`((${narrowed.join(" OR ")}) ${brandClause})`);
-  }
-  if (open.length) {
-    groups.push(open.length > 1 ? `(${open.join(" OR ")})` : open[0]);
-  }
-  if (!groups.length) return "";
+  const assemble = () => {
+    const groups: string[] = [];
+    if (narrowed.length) groups.push(`((${narrowed.join(" OR ")}) ${brandClause})`);
+    if (open.length) groups.push(open.length > 1 ? `(${open.join(" OR ")})` : open[0]);
+    return groups.length ? `${groups.join(" OR ")} -is:retweet` : "";
+  };
 
-  // X rejects queries over 512 characters. Drop whole groups from the end
-  // rather than returning nothing: watching most of the list beats watching
-  // none of it.
-  let q = `${groups.join(" OR ")} -is:retweet`;
-  while (q.length > 512 && groups.length > 1) {
-    groups.pop();
-    q = `${groups.join(" OR ")} -is:retweet`;
+  // X rejects queries over 512 characters. Drop one term at a time from the
+  // longer list, and say which ones went.
+  //
+  // The version this replaces dropped whole groups and then, if the result was
+  // still too long, returned an empty string — so a workspace watching thirty
+  // accounts watched none of them, and nothing anywhere said so. Watching most
+  // of the list beats watching none of it, and knowing which ones were left
+  // out beats finding out during a crisis.
+  const dropped: string[] = [];
+  let q = assemble();
+  while (q.length > 512 && (narrowed.length || open.length)) {
+    const from = open.length >= narrowed.length ? open : narrowed;
+    const gone = from.pop();
+    if (gone) dropped.push(gone);
+    q = assemble();
   }
-  return q.length > 512 ? "" : q;
+
+  return { query: q.length > 512 ? "" : q, dropped };
 }
 
 /**
- * Apply the watchlist to mentions we did not go looking for.
+ * The watched sources and topics, loaded once per run.
  *
- * Facebook and Instagram cannot be searched: what arrives is comments, tags and
- * mentions on the client's own accounts, and no watchlist entry can widen that.
- * What an entry can do is change what happens when a watched name turns up in
- * it — the local MP commenting on your post is a different event from a
- * stranger doing the same, and is_influencer is what carries that into the
- * crisis level.
- *
- * So on X a watchlist entry is a search. Everywhere else it is a rule applied
- * to what already came in. The UI says which, per network, rather than
- * implying the two are the same.
+ * Sources arrive flattened per network — one row per handle — because that is
+ * how both callers use them: the X query wants this network's handles, and the
+ * rule applied to Facebook and Instagram wants that network's. The source id
+ * rides along so whatever matches can say which entry brought it in.
  */
 // deno-lint-ignore no-explicit-any
-async function applyWatchlist(admin: any, rows: MentionRow[], network: string): Promise<MentionRow[]> {
-  if (!rows.length) return rows;
+async function loadWatched(admin: any, network: string) {
+  const [{ data: accounts }, { data: topics }] = await Promise.all([
+    admin
+      .from("monitor_source_accounts")
+      .select("handle, network, monitor_sources!inner(id, name, role, amplifies, watch_everything, active)")
+      .eq("network", network),
+    admin.from("monitor_topics").select("id, kind, value, amplifies").eq("active", true),
+  ]);
 
-  const { data } = await admin
-    .from("monitor_watchlist")
-    .select("kind, value, amplifies")
-    .eq("network", network)
-    .eq("active", true)
-    .eq("amplifies", true);
+  const sources = ((accounts ?? []) as any[])
+    .map((a) => ({
+      id: a.monitor_sources?.id as string,
+      name: a.monitor_sources?.name as string,
+      role: a.monitor_sources?.role as string,
+      handle: String(a.handle ?? ""),
+      amplifies: !!a.monitor_sources?.amplifies,
+      watchEverything: !!a.monitor_sources?.watch_everything,
+      active: !!a.monitor_sources?.active,
+    }))
+    .filter((s) => s.active && s.handle);
 
-  const items = (data ?? []) as Array<{ kind: string; value: string }>;
-  if (!items.length) return rows;
+  return {
+    sources,
+    topics: ((topics ?? []) as any[]).map((t) => ({
+      id: t.id as string,
+      kind: String(t.kind),
+      value: String(t.value ?? ""),
+      amplifies: !!t.amplifies,
+    })),
+  };
+}
 
-  const handles = new Set(
-    items.filter((i) => i.kind === "account").map((i) => i.value.replace(/^@/, "").toLowerCase()),
-  );
-  const phrases = items
-    .filter((i) => i.kind !== "account")
-    .map((i) => (i.kind === "hashtag" ? `#${i.value.replace(/^#/, "")}` : i.value).toLowerCase())
-    .filter(Boolean);
+type Watched = Awaited<ReturnType<typeof loadWatched>>;
+
+/**
+ * Stamp each row with what brought it in.
+ *
+ * Provenance was the thing this feature was missing: once a post arrived,
+ * nothing recorded that the product had gone looking for it on someone's
+ * instruction, so a team reading a mention could not tell why they had it.
+ * Both columns can end up set — a watched journalist using a watched hashtag
+ * matched twice, and saying so is more useful than picking one.
+ *
+ * Amplification is the same decision it always was, now carried by the source
+ * or the topic that matched: it is what raises the crisis level for the same
+ * words said by someone with an audience.
+ */
+function attribute(rows: MentionRow[], watched: Watched): MentionRow[] {
+  const byHandle = new Map(watched.sources.map((s) => [s.handle.replace(/^@/, "").toLowerCase(), s]));
+  const topics = watched.topics
+    .map((t) => ({
+      ...t,
+      needle: (t.kind === "hashtag" ? `#${t.value.replace(/^#/, "")}` : t.value).toLowerCase(),
+    }))
+    .filter((t) => t.needle.length > 1);
 
   return rows.map((row) => {
     const handle = row.author_handle?.replace(/^@/, "").toLowerCase() ?? "";
+    const source = handle ? byHandle.get(handle) : undefined;
     const content = (row.content ?? "").toLowerCase();
-    const hit = (handle && handles.has(handle)) || phrases.some((p) => content.includes(p));
-    return hit ? { ...row, is_influencer: true } : row;
+    const topic = topics.find((t) => content.includes(t.needle));
+    if (!source && !topic) return row;
+    return {
+      ...row,
+      matched_source_id: source?.id ?? row.matched_source_id ?? null,
+      matched_topic_id: topic?.id ?? row.matched_topic_id ?? null,
+      is_influencer: row.is_influencer || !!source?.amplifies || !!topic?.amplifies,
+    };
   });
+}
+
+/**
+ * Apply the watched sources to mentions we did not go looking for.
+ *
+ * Facebook and Instagram cannot be searched: what arrives is comments, tags
+ * and mentions on the client's own accounts, and no watched source can widen
+ * that. What a source can do is change what happens when its name turns up in
+ * what did arrive — the local MP commenting on your post is a different event
+ * from a stranger doing the same, and is_influencer is what carries that into
+ * the crisis level.
+ *
+ * So on X a source is a search. Everywhere else it is a rule applied to what
+ * already came in. The UI says which, per source, rather than implying the two
+ * are the same.
+ */
+// deno-lint-ignore no-explicit-any
+async function applyWatchedSources(admin: any, rows: MentionRow[], network: string): Promise<MentionRow[]> {
+  if (!rows.length) return rows;
+  const watched = await loadWatched(admin, network);
+  if (!watched.sources.length && !watched.topics.length) return rows;
+  return attribute(rows, watched);
 }
 
 async function pullRealX(admin: any, companyName: string | null): Promise<{ rows: MentionRow[]; error?: string }> {
@@ -311,16 +384,20 @@ async function pullRealX(admin: any, companyName: string | null): Promise<{ rows
 
     // Nothing to look for is not a failure — it is a workspace that has not
     // said who it is yet, and saying so on every tick would be noise. A
-    // watchlist counts as something to look for: a company can be watching an
-    // industry hashtag before it has finished filling in its own name.
+    // watched source or topic counts as something to look for: a company can
+    // be watching an industry hashtag before it has finished filling in its
+    // own name.
     const handleTerm = handle ? `@${handle}` : null;
     const nameTerm = companyName ? `"${companyName}"` : null;
-    const { count: watching } = await admin
-      .from("monitor_watchlist")
-      .select("id", { count: "exact", head: true })
-      .eq("network", "x")
-      .eq("active", true);
-    if (!handleTerm && !nameTerm && !(watching ?? 0)) return { rows: [] };
+    const [{ count: sourcesOnX }, { count: topicsWatched }] = await Promise.all([
+      admin
+        .from("monitor_source_accounts")
+        .select("id", { count: "exact", head: true })
+        .eq("network", "x"),
+      admin.from("monitor_topics").select("id", { count: "exact", head: true }).eq("active", true),
+    ]);
+    const watching = (sourcesOnX ?? 0) + (topicsWatched ?? 0);
+    if (!handleTerm && !nameTerm && !watching) return { rows: [] };
 
     let accessToken: string | null = null;
 
@@ -356,13 +433,13 @@ async function pullRealX(admin: any, companyName: string | null): Promise<{ rows
     }
 
     // Two searches, merged: what is said about the company, and what the
-    // accounts and hashtags they asked us to watch are saying. Kept apart
+    // sources and topics they asked us to watch are saying. Kept apart
     // because the brand query narrows by language and the watch query must
-    // not — see buildWatchQuery.
+    // not — see buildSourceQuery.
     const brand = query ? await searchX(accessToken, query) : { rows: [] as MentionRow[] };
-    const watched = await pullWatchlistX(admin, accessToken, { companyName, handle });
+    const watched = await pullWatchedX(admin, accessToken, { companyName, handle });
 
-    // A post can match both. The first copy wins, and the watchlist runs
+    // A post can match both. The first copy wins, and the watched search runs
     // second, so a merge must not lose the amplified flag it set.
     const byId = new Map<string, MentionRow>();
     const unkeyed: MentionRow[] = [];
@@ -374,7 +451,12 @@ async function pullRealX(admin: any, companyName: string | null): Promise<{ rows
       }
       const existing = byId.get(id);
       if (existing) {
+        // The brand search runs first and knows nothing about who posted, so a
+        // post found twice keeps whichever copy carries the amplification and
+        // the provenance.
         if (row.is_influencer) existing.is_influencer = true;
+        if (row.matched_source_id) existing.matched_source_id = row.matched_source_id;
+        if (row.matched_topic_id) existing.matched_topic_id = row.matched_topic_id;
         continue;
       }
       byId.set(id, row);
@@ -434,50 +516,36 @@ async function searchX(accessToken: string, query: string): Promise<{ rows: Ment
 }
 
 /**
- * The accounts and hashtags this company asked to be watched.
+ * The sources and topics this company asked to be watched, on X.
  *
- * Runs whether or not the brand query found anything, and marks a post as
- * amplified when it came from a watched account that was set to amplify —
- * which is what raises the crisis level for the same words said by someone
- * with an audience. A hashtag hit is not amplified by default: anyone can use
- * a hashtag.
+ * Runs whether or not the brand query found anything. Every row comes back
+ * knowing which source or topic brought it in, and amplified when that entry
+ * carries an audience — which is what raises the crisis level for the same
+ * words said by someone people listen to.
  */
 // deno-lint-ignore no-explicit-any
-async function pullWatchlistX(
+async function pullWatchedX(
   admin: any,
   accessToken: string,
   brand: { companyName: string | null; handle: string },
 ): Promise<{ rows: MentionRow[]; error?: string }> {
-  const { data: items } = await admin
-    .from("monitor_watchlist")
-    .select("kind, value, amplifies, only_mentions")
-    .eq("network", "x")
-    .eq("active", true)
-    .order("created_at");
+  const watched = await loadWatched(admin, "x");
+  if (!watched.sources.length && !watched.topics.length) return { rows: [] };
 
-  const list = (items ?? []) as Array<
-    { kind: string; value: string; amplifies: boolean; only_mentions: boolean }
-  >;
-  if (!list.length) return { rows: [] };
-
-  const query = buildWatchQuery(list, brand);
+  const { query, dropped } = buildSourceQuery(watched.sources, watched.topics, brand);
   if (!query) return { rows: [] };
+  if (dropped.length) {
+    // Recorded rather than swallowed: the workspace is watching more than one
+    // X query can carry, and somebody needs to be able to find that out.
+    console.warn(
+      `social-monitor-cron: watch query too long, ${dropped.length} left out: ${dropped.join(", ")}`,
+    );
+  }
 
   const { rows, error } = await searchX(accessToken, query);
   if (error) return { rows: [], error };
 
-  const amplifying = new Set(
-    list
-      .filter((i) => i.kind === "account" && i.amplifies)
-      .map((i) => i.value.replace(/^@/, "").toLowerCase()),
-  );
-
-  return {
-    rows: rows.map((r) => ({
-      ...r,
-      is_influencer: r.author_handle ? amplifying.has(r.author_handle.toLowerCase()) : false,
-    })),
-  };
+  return { rows: attribute(rows, watched) };
 }
 
 /**
@@ -754,9 +822,9 @@ Deno.serve(async (req) => {
     }
 
     // Which treatment a network gets is read from MONITOR_REACH, not hardcoded
-    // here: a network that can be searched has already had its watchlist
-    // applied by the query that found the rows, and one that cannot gets the
-    // list applied to whatever its own account received. The day a platform
+    // here: a network that can be searched has already had its watched
+    // sources applied by the query that found the rows, and one that cannot
+    // gets them applied to whatever its own account received. The day a platform
     // opens up, that table is the only thing that changes.
     const byNetwork: Array<{ network: string; rows: MentionRow[] }> = [
       { network: "x", rows: xResult.rows },
@@ -767,7 +835,7 @@ Deno.serve(async (req) => {
     const realRows: MentionRow[] = [];
     for (const { network, rows } of byNetwork) {
       const reach = MONITOR_REACH[network as keyof typeof MONITOR_REACH];
-      realRows.push(...(reach?.search ? rows : await applyWatchlist(admin, rows, network)));
+      realRows.push(...(reach?.search ? rows : await applyWatchedSources(admin, rows, network)));
     }
     if (realRows.length) {
       const { data, error } = await admin

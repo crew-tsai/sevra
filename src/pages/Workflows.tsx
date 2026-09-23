@@ -11,6 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { useLang, useMessages } from "@/i18n";
 import { commonMessages } from "@/i18n/messages/common";
 import { workflowsMessages } from "@/i18n/messages/workflows";
+import { WatchedSources } from "@/components/workflows/WatchedSources";
 import {
   ACTION_TYPES,
   CRITERIA_FIELDS,
@@ -369,6 +370,11 @@ export default function Workflows() {
           </Card>
         ))}
       </div>
+
+      {/* Who the workspace listens to. Here rather than in Admin because it is
+          the same decision as the rules above — what the product does on its
+          own — not part of the company profile. */}
+      <WatchedSources isAdmin={isAdmin} />
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">

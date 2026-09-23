@@ -89,33 +89,6 @@ export const adminMessages = defineMessages({
     status: "Status",
     active: "Active",
     pending: "Pending",
-    watchlist: {
-      title: "Accounts and hashtags to watch",
-      intro:
-        "Monitoring already looks for your own name. Add the accounts and hashtags that matter to you — a journalist who covers your sector, a campaigner, the hashtag from an ongoing incident — and Sevra collects what they post whether or not you are named.",
-      empty: "Nothing is being watched beyond your own name.",
-      kindAccount: "Account",
-      kindHashtag: "Hashtag",
-      kindKeyword: "Words",
-      keywordPlaceholder: "a phrase to watch",
-      labelPlaceholder: "why you are watching it",
-      active: "Collecting",
-      amplifies: "Raises the level",
-      amplifiesOff: "No extra weight",
-      amplifiesHint:
-        "A complaint from an account with an audience is a bigger event than the same words from nobody in particular. When this is on, an incident opened from their post starts one crisis level higher.",
-      networks: { x: "X", facebook: "Facebook", instagram: "Instagram" } as Record<string, string>,
-      behaviourSearch:
-        "On X, Sevra searches the whole platform for this — you will see posts from people who have never mentioned you.",
-      scopeMentions: "Only about you",
-      scopeEverything: "Everything they post",
-      scopeHint:
-        "A news account publishes all day and almost none of it concerns you, so by default Sevra collects only their posts that name you. Switch it when you want the whole feed — a regulator, or a campaigner working your sector where you may not be named until the day you are.",
-      behaviourFlag:
-        "Facebook and Instagram cannot be searched by anyone, so this applies to what your own accounts already receive: a comment, tag or mention from a watched name is marked as amplified instead of being missed among the rest.",
-      platformNote:
-        "TikTok is not listed because nothing can be collected there at all — it offers no way to search for mentions outside its research programme.",
-    },
     focus: {
       title: "Monitoring focus",
       intro: "Narrows what monitoring collects when your name is also a common word, or a word in another language.",
@@ -222,33 +195,6 @@ export const adminMessages = defineMessages({
     status: "Estado",
     active: "Activo",
     pending: "Pendiente",
-    watchlist: {
-      title: "Cuentas y hashtags a vigilar",
-      intro:
-        "La monitorización ya busca tu propio nombre. Añade las cuentas y los hashtags que te importan — un periodista que cubre tu sector, un activista, el hashtag de un incidente en curso — y Sevra recoge lo que publican te nombren o no.",
-      empty: "No se vigila nada más allá de tu propio nombre.",
-      kindAccount: "Cuenta",
-      kindHashtag: "Hashtag",
-      kindKeyword: "Palabras",
-      keywordPlaceholder: "una frase a vigilar",
-      labelPlaceholder: "por qué la vigilas",
-      active: "Recogiendo",
-      amplifies: "Sube el nivel",
-      amplifiesOff: "Sin peso extra",
-      amplifiesHint:
-        "Una queja de una cuenta con audiencia es un hecho mayor que las mismas palabras dichas por cualquiera. Con esto activado, un incidente abierto desde su publicación empieza un nivel de crisis más arriba.",
-      networks: { x: "X", facebook: "Facebook", instagram: "Instagram" } as Record<string, string>,
-      behaviourSearch:
-        "En X, Sevra busca esto en toda la plataforma: verás publicaciones de gente que nunca te ha mencionado.",
-      scopeMentions: "Solo sobre ti",
-      scopeEverything: "Todo lo que publiquen",
-      scopeHint:
-        "Una cuenta de noticias publica todo el día y casi nada te concierne, así que por defecto Sevra recoge solo sus publicaciones que te nombran. Cámbialo cuando quieras el feed entero: un regulador, o quien haga campaña sobre tu sector donde quizá no te nombren hasta el día en que lo hagan.",
-      behaviourFlag:
-        "Facebook e Instagram no permiten buscar a nadie, así que esto se aplica a lo que ya reciben tus propias cuentas: un comentario, etiqueta o mención de un nombre vigilado se marca como amplificado en lugar de perderse entre el resto.",
-      platformNote:
-        "TikTok no aparece porque allí no se puede recoger nada: no ofrece ninguna forma de buscar menciones fuera de su programa de investigación.",
-    },
     focus: {
       title: "Enfoque de la monitorización",
       intro: "Reduce lo que se captura cuando el nombre de tu empresa es también una palabra común, o una palabra en otro idioma.",

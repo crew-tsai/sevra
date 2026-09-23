@@ -1,7 +1,7 @@
 // Lets an admin self-serve their own X/Meta/TikTok developer app credentials
 // (Client ID/Secret) instead of requiring `supabase secrets set` access.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { isNetwork, NETWORKS } from "../_shared/social-providers.ts";
+import { isNetwork, NETWORKS, type Network } from "../_shared/social-providers.ts";
 import { featureReady, platformNetworks } from "../_shared/social-credentials.ts";
 
 const corsHeaders = {

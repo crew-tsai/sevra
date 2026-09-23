@@ -1,6 +1,19 @@
 import { providerConfigured, sendTransactional } from '../_shared/email-provider.ts'
 import { resolveFromAddress } from '../_shared/sender-identity.ts'
-import { createClient } from 'npm:@supabase/supabase-js@2'
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
+
+// The client this function actually builds. Named once because
+// `ReturnType<typeof createClient>` is a *different* generic instantiation
+// from `createClient(url, key)` — the helpers below take this one.
+// deno-lint-ignore no-explicit-any
+type Db = SupabaseClient<any, 'public', 'public', any, any>
+
+// A message as pgmq hands it back.
+type QueueMessage = {
+  msg_id: number
+  read_ct?: number
+  message: Record<string, unknown> & { message_id?: unknown }
+}
 
 const MAX_RETRIES = 5
 const DEFAULT_BATCH_SIZE = 10
@@ -55,7 +68,7 @@ function parseJwtClaims(token: string): Record<string, unknown> | null {
 
 // Move a message to the dead letter queue and log the reason.
 async function moveToDlq(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Db,
   queue: string,
   msg: { msg_id: number; message: Record<string, unknown> },
   reason: string
@@ -166,13 +179,13 @@ Deno.serve(async (req) => {
     // messages not attempted when a 429 stops processing early.
     const messageIds = Array.from(
       new Set(
-        messages
-          .map((msg) =>
+        (messages as QueueMessage[])
+          .map((msg: QueueMessage) =>
             msg?.message?.message_id && typeof msg.message.message_id === 'string'
               ? msg.message.message_id
               : null
           )
-          .filter((id): id is string => Boolean(id))
+          .filter((id: string | null): id is string => Boolean(id))
       )
     )
     const failedAttemptsByMessageId = new Map<string, number>()

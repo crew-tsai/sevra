@@ -3,6 +3,7 @@ import { identifyCaller, unauthorized } from "../_shared/caller.ts";
 import { profileFor } from "../_shared/industries.ts";
 import { chatCompletion, MODELS } from "../_shared/ai.ts";
 import { loadCommsManual } from "../_shared/comms-manual.ts";
+import { linkedMentionContext } from "../_shared/linked-mentions.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -142,11 +143,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const { data: mentions } = await admin
-      .from("social_mentions")
-      .select("channel, author_handle, content, ai_summary")
-      .eq("incident_id", incident_id)
-      .limit(10);
+    const mentionContext = await linkedMentionContext(admin, incident_id);
 
     const { data: settings } = await admin
       .from("company_settings")
@@ -172,8 +169,7 @@ Injury/fatality: ${incident.injury_fatality ? "yes" : "no"}
 Regulator involved: ${incident.regulator_involved ? "yes" : "no"}
 Description: ${incident.description ?? "n/a"}
 
-LINKED SOCIAL MENTIONS (${mentions?.length ?? 0}):
-${(mentions ?? []).map((m: any) => `- [${m.channel}] @${m.author_handle}: ${m.content}`).join("\n")}
+${mentionContext}
 `.trim();
 
     // Single AI call returning all assets via tool call

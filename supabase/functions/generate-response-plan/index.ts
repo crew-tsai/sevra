@@ -24,6 +24,7 @@ import { chatCompletion, MODELS } from "../_shared/ai.ts";
 import { profileFor } from "../_shared/industries.ts";
 import { identifyCaller, unauthorized } from "../_shared/caller.ts";
 import { loadCommsManual } from "../_shared/comms-manual.ts";
+import { linkedMentionContext } from "../_shared/linked-mentions.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -60,11 +61,7 @@ Deno.serve(async (req) => {
     if (incErr) throw incErr;
     if (!incident) throw new Error("Incident not found");
 
-    const { data: mentions } = await admin
-      .from("social_mentions")
-      .select("channel, author_handle, content, ai_summary")
-      .eq("incident_id", incident_id)
-      .limit(10);
+    const mentionContext = await linkedMentionContext(admin, incident_id);
 
     const { data: settings } = await admin
       .from("company_settings")
@@ -104,8 +101,7 @@ Injury/fatality: ${incident.injury_fatality ? "YES" : "no"}
 Regulator involved: ${incident.regulator_involved ? "YES" : "no"}
 Description: ${incident.description ?? "n/a"}
 
-LINKED SOCIAL MENTIONS (${mentions?.length ?? 0}):
-${(mentions ?? []).map((m: any) => `- [${m.channel}] @${m.author_handle}: ${m.content}`).join("\n")}
+${mentionContext}
 `.trim();
 
     // The shared AI provider, like every other AI feature. This one called
