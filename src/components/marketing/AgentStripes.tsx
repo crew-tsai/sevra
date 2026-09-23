@@ -43,6 +43,8 @@ function ZebraIcon({ className }: { className?: string }) {
 
 type Msg = { role: "user" | "assistant"; content: string };
 
+import { supabase } from "@/integrations/supabase/client";
+
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-stripes`;
 const PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
@@ -73,11 +75,26 @@ export default function AgentStripes() {
     setLoading(true);
 
     try {
+      // The person's own session, not the publishable key.
+      //
+      // agent-stripes resolves the caller with getUser(), and the publishable
+      // key is a valid JWT that names nobody — so every message came back 401
+      // and the panel said "something went wrong". The answer is grounded in
+      // this workspace's incidents, so it has to run as somebody who may read
+      // them; the key could never have done that.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        setMessages((m) => [...m, { role: "assistant", content: t.signedOut }]);
+        return;
+      }
+
       const resp = await fetch(CHAT_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${PUBLISHABLE_KEY}`,
+          apikey: PUBLISHABLE_KEY,
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ messages: next, lang }),
       });
@@ -87,6 +104,8 @@ export default function AgentStripes() {
           ? t.tooMany
           : resp.status === 402
           ? t.noCredits
+          : resp.status === 401
+          ? t.signedOut
           : t.failed;
         setMessages((m) => [...m, { role: "assistant", content: errText }]);
         return;
