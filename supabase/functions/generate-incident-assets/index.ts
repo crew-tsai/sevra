@@ -4,6 +4,7 @@ import { profileFor } from "../_shared/industries.ts";
 import { chatCompletion, MODELS } from "../_shared/ai.ts";
 import { loadCommsManual } from "../_shared/comms-manual.ts";
 import { linkedMentionContext } from "../_shared/linked-mentions.ts";
+import { holdingStatement, holdingStatementNote } from "../_shared/holding-statement.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -222,6 +223,66 @@ ${instructions}`,
 
     if (!aiResp.ok) {
       const txt = await aiResp.text();
+
+      // The model is unreachable, and the first hour of a crisis is exactly
+      // the hour a holding statement exists for. Rather than hand back an
+      // error and nothing, write the one communication that can be produced
+      // correctly without a model — from the incident's own facts — and say
+      // plainly that is what happened.
+      //
+      // Only when the whole package was asked for, or the holding statement
+      // itself. Someone regenerating a TikTok script has not asked for this
+      // and should get the honest failure.
+      if (!singleKey || singleKey === "holding_statement") {
+        const fallback = holdingStatement({
+          companyName,
+          title: incident.title,
+          description: incident.description,
+          crisisLevel: incident.crisis_level ?? 0,
+          injuryFatality: !!incident.injury_fatality,
+          regulatorInvolved: !!incident.regulator_involved,
+          location: incident.airport_code ?? incident.country ?? null,
+          lang: lang === "es" ? "es" : "en",
+          vocab,
+        });
+
+        // Nothing is deleted on this path. A package that already exists is
+        // worth more than a fallback, and replacing good drafts with this
+        // because the provider blipped would be the worst outcome available.
+        const { data: existing } = await admin
+          .from("incident_assets")
+          .select("id")
+          .eq("incident_id", incident_id)
+          .eq("asset_type", "holding_statement")
+          .maybeSingle();
+
+        if (!existing) {
+          const { error: insErr } = await admin.from("incident_assets").insert({
+            incident_id,
+            asset_type: "holding_statement",
+            channel: "press",
+            title: fallback.title,
+            content: `${fallback.content}\n\n---\n${holdingStatementNote(lang === "es" ? "es" : "en")}`,
+            language: lang,
+            approval_status: "pending",
+            created_by: userId,
+          });
+          if (insErr) console.error("generate-incident-assets: fallback insert failed", insErr.message);
+        }
+
+        console.warn(`generate-incident-assets: AI unreachable (${aiResp.status}), wrote the AI-free holding statement`);
+        return new Response(
+          JSON.stringify({
+            success: true,
+            degraded: true,
+            reason: aiResp.status === 429 ? "rate_limited" : "ai_unavailable",
+            generated: existing ? 0 : 1,
+            note: "The AI provider could not be reached. A holding statement was written from the incident's own facts so the first hour is not lost.",
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
       if (aiResp.status === 429) {
         return new Response(JSON.stringify({ error: "AI rate limit exceeded, try again later." }), {
           status: 429,

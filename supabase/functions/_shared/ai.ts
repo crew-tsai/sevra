@@ -49,6 +49,28 @@ export function aiKey(): string | null {
   return Deno.env.get("GEMINI_API_KEY")?.trim() || null;
 }
 
+/**
+ * A second key, used only when the first one is refused.
+ *
+ * Every client in the fleet is seeded with the same GEMINI_API_KEY from the
+ * control plane, which means one client's crisis can exhaust the quota during
+ * another client's crisis — the two events are independent and the failure is
+ * shared. A second key is the cheap half of the answer.
+ *
+ * It is not the whole answer, and this must not be mistaken for one: two keys
+ * at the same provider do not survive that provider being down. What survives
+ * that is holding-statement.ts, which needs no model at all.
+ */
+function fallbackKey(): string | null {
+  const key = Deno.env.get("GEMINI_API_KEY_FALLBACK")?.trim() || null;
+  return key && key !== aiKey() ? key : null;
+}
+
+/** Statuses worth trying again: the provider is busy, not the request wrong. */
+const RETRYABLE = new Set([408, 429, 500, 502, 503, 504]);
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 /** Thrown when the key is absent, so callers can report it distinctly. */
 export class MissingAIKey extends Error {
   constructor() {
@@ -63,17 +85,50 @@ export class MissingAIKey extends Error {
  * else the call sites already send keep working.
  */
 export async function chatCompletion(body: Record<string, unknown>): Promise<Response> {
-  const key = aiKey();
-  if (!key) throw new MissingAIKey();
+  const primary = aiKey();
+  if (!primary) throw new MissingAIKey();
 
-  return await fetch(OPENAI_COMPAT_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  const payload = JSON.stringify(body);
+  const attempt = (key: string) =>
+    fetch(OPENAI_COMPAT_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: payload,
+    });
+
+  // Two quick retries before giving up on the primary key. A crisis is exactly
+  // when everyone's traffic spikes, and a 429 that resolves in two seconds
+  // should not become a failed package. Short on purpose: a person is waiting.
+  let res: Response | null = null;
+  let lastError: unknown = null;
+  for (let i = 0; i < 3; i++) {
+    try {
+      res = await attempt(primary);
+      if (!RETRYABLE.has(res.status)) return res;
+      // The body has to be consumed or the connection leaks between retries.
+      await res.text().catch(() => "");
+    } catch (e) {
+      lastError = e;
+    }
+    if (i < 2) await sleep(400 * (i + 1));
+  }
+
+  const second = fallbackKey();
+  if (second) {
+    try {
+      const alt = await attempt(second);
+      if (!RETRYABLE.has(alt.status)) {
+        console.warn("chatCompletion: primary key exhausted, answered on the fallback key");
+        return alt;
+      }
+      return alt;
+    } catch (e) {
+      lastError = e;
+    }
+  }
+
+  if (res) return res;
+  throw lastError instanceof Error ? lastError : new Error("AI request failed");
 }
 
 /**
