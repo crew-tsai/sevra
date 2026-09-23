@@ -60,6 +60,31 @@ async function memberHashes(admin: any, secret: string): Promise<string[]> {
   }));
 }
 
+/**
+ * Secrets this deployment needs and does not have.
+ *
+ * Names only, never values. A missing secret does not crash anything — each of
+ * these disables one capability quietly, which is the problem: Lessence spent
+ * its whole life rejecting Resend's bounce webhooks with a 503 because
+ * EMAIL_WEBHOOK_SECRET was never set on it, and nothing anywhere said so. The
+ * addresses that bounce keep being mailed, on a sending domain the whole fleet
+ * shares.
+ *
+ * Reported rather than fixed here, because most of these cannot be fixed from
+ * inside the client: the webhook secret is issued per endpoint by the email
+ * provider, and the platform credentials belong to the control plane.
+ */
+function missingSecrets(): string[] {
+  const needed: Array<[string, string]> = [
+    ["GEMINI_API_KEY", "AI analysis, drafting and Agent Stripes"],
+    ["RESEND_API_KEY", "all outbound email"],
+    ["EMAIL_WEBHOOK_SECRET", "bounce and complaint handling"],
+    ["SITE_URL", "the links inside emails"],
+    ["PLATFORM_X_BEARER_TOKEN", "monitoring X without a connected account"],
+  ];
+  return needed.filter(([name]) => !Deno.env.get(name)?.trim()).map(([name]) => name);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -126,6 +151,8 @@ Deno.serve(async (req) => {
         // the same when you are trying to work out why a client's monitoring is
         // quiet; the names say whether anything was ever connected.
         social_networks: connectedNetworks,
+        // What this deployment cannot do, by name. See missingSecrets().
+        secrets_missing: missingSecrets(),
       },
       member_hashes,
     };
