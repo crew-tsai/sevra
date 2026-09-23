@@ -9,7 +9,7 @@ export const stripesMessages = defineMessages({
       "Walk me through approving a press statement",
     ],
     greeting:
-      "Hi, I'm **Agent Stripes**. I only help with your company's incidents in Sevra, and I only use information from this conversation and what you paste from your Sevra workspace — I won't guess or invent details.",
+      "Hi, I'm **Agent Stripes**. I can see this workspace's incidents, mentions and audit log, and I know how Sevra itself works — levels, approvals, workflows, what monitoring can and cannot reach. I answer from those and from what you tell me here. I won't guess or invent details.",
     tooMany: "Too many requests. Please wait a moment.",
     noCredits: "AI credits exhausted. Top up your workspace to continue.",
     failed: "Sorry, something went wrong.",
@@ -31,7 +31,7 @@ export const stripesMessages = defineMessages({
       "Guíame para aprobar un comunicado de prensa",
     ],
     greeting:
-      "Hola, soy **Agent Stripes**. Solo ayudo con los incidentes de tu empresa en Sevra, y solo uso la información de esta conversación y lo que pegues de tu espacio de trabajo — no supongo ni invento datos.",
+      "Hola, soy **Agent Stripes**. Veo los incidentes, las menciones y el registro de auditoría de este espacio de trabajo, y sé cómo funciona Sevra — niveles, aprobaciones, flujos, qué alcanza la monitorización y qué no. Respondo desde ahí y desde lo que me cuentes aquí. No supongo ni invento datos.",
     tooMany: "Demasiadas solicitudes. Espera un momento.",
     noCredits: "Se han agotado los créditos de IA. Recarga tu espacio de trabajo para continuar.",
     failed: "Lo siento, algo salió mal.",

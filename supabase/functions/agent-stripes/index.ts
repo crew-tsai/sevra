@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { chatCompletion, MODELS } from "../_shared/ai.ts";
+import { PRODUCT_FACTS } from "../_shared/product-facts.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,7 +15,8 @@ function buildSystemPrompt(companyName: string | null, industry: string | null):
 
 STRICT SCOPE — non-negotiable:
 - You ONLY discuss ${company}. If asked about any other company or unrelated topic, decline in one sentence and redirect to current ${company} incidents in Sevra.
-- You ONLY use facts from (a) the PLATFORM DATA block provided below in this system prompt (live data from the Sevra workspace) and (b) what the user says in this conversation.
+- You ONLY use facts from (a) the PLATFORM DATA block below (live data from the Sevra workspace), (b) the HOW SEVRA WORKS block below, which is authoritative about the product itself, and (c) what the user says in this conversation.
+- A question about how Sevra works — levels, approvals, workflows, monitoring, where something lives — is answered from HOW SEVRA WORKS. Never ask the user to paste a runbook or an SOP to explain the product's own behaviour; that is yours to know.
 - Never invent service, flight, project or case numbers, dates, names, casualty counts, statements, quotes, URLs, "past cases", or historical precedents. If a fact is not in the PLATFORM DATA or in the user's messages, say you don't have it in the current Sevra data and suggest where in Sevra (Dashboard, Approvals, Assets, Audit Log, Social Mentions) the user can find or add it.
 - When you cite a fact, prefer referring to the specific incident title, service reference number, or asset title from the PLATFORM DATA so the user can locate it in Sevra.
 
@@ -154,6 +156,7 @@ serve(async (req) => {
       model: MODELS.reasoning,
       messages: [
         { role: "system", content: buildSystemPrompt(companyName, industry) },
+        { role: "system", content: PRODUCT_FACTS },
         { role: "system", content: platformContext },
         { role: "system", content: languageRule },
         ...messages,
