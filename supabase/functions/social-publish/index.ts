@@ -43,7 +43,38 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { network, content } = await req.json().catch(() => ({}));
+    const { network, content, asset_id, incident_id, asset_title, asset_type } = await req.json().catch(() => ({}));
+    /**
+     * Record that this left the building — or that it tried and did not.
+     *
+     * Written with the service-role client so it cannot be skipped by a caller
+     * and cannot be edited afterwards by anyone. A failure is recorded too: an
+     * attempt that errored is exactly what someone is looking for when they
+     * ask why the statement never appeared.
+     *
+     * Never allowed to break publishing. If the post went out and the log
+     * write fails, the post still went out, and saying otherwise would be the
+     * worse lie.
+     */
+    const record = async (row: Record<string, unknown>) => {
+      if (!incident_id) return;
+      try {
+        const { error } = await admin.from("communication_sends").insert({
+          asset_id: asset_id ?? null,
+          incident_id,
+          asset_title: asset_title ?? null,
+          asset_type: asset_type ?? null,
+          channel: network,
+          method: "api",
+          sent_by: userId,
+          ...row,
+        });
+        if (error) console.error("social-publish: could not record the send", error.message);
+      } catch (e) {
+        console.error("social-publish: could not record the send", e);
+      }
+    };
+
     if (!isPublishableNetwork(network)) {
       return new Response(
         JSON.stringify({ success: false, error: "Direct publishing is only available for X and Facebook right now." }),
@@ -115,6 +146,7 @@ Deno.serve(async (req) => {
       const tweetJson = await tweetRes.json().catch(() => ({}));
       if (!tweetRes.ok || !tweetJson?.data?.id) {
         console.error("social-publish: X post failed", tweetJson);
+        await record({ status: "failed", error: tweetJson?.detail ?? "Failed to post to X" });
         return new Response(
           JSON.stringify({ success: false, error: tweetJson?.detail ?? "Failed to post to X" }),
           { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -125,6 +157,12 @@ Deno.serve(async (req) => {
       const url = handle
         ? `https://twitter.com/${handle}/status/${tweetJson.data.id}`
         : `https://twitter.com/i/web/status/${tweetJson.data.id}`;
+
+      await record({
+        destination: handle ? `@${handle}` : null,
+        external_id: tweetJson.data.id,
+        external_url: url,
+      });
 
       return new Response(JSON.stringify({ success: true, url, post_id: tweetJson.data.id }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -148,11 +186,18 @@ Deno.serve(async (req) => {
     const fbJson = await fbRes.json().catch(() => ({}));
     if (!fbRes.ok || !fbJson?.id) {
       console.error("social-publish: Facebook post failed", fbJson);
+      await record({ status: "failed", error: fbJson?.error?.message ?? "Failed to post to Facebook" });
       return new Response(
         JSON.stringify({ success: false, error: fbJson?.error?.message ?? "Failed to post to Facebook" }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
+    await record({
+      destination: connection.account_label ?? pageId,
+      external_id: fbJson.id,
+      external_url: `https://www.facebook.com/${fbJson.id}`,
+    });
 
     return new Response(
       JSON.stringify({ success: true, url: `https://www.facebook.com/${fbJson.id}`, post_id: fbJson.id }),

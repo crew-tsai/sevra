@@ -57,6 +57,75 @@ export type Database = {
         }
         Relationships: []
       }
+      communication_sends: {
+        Row: {
+          asset_id: string | null
+          asset_title: string | null
+          asset_type: string | null
+          channel: string
+          destination: string | null
+          error: string | null
+          external_id: string | null
+          external_url: string | null
+          id: string
+          incident_id: string
+          method: string
+          recipients: number | null
+          sent_at: string
+          sent_by: string | null
+          status: string
+        }
+        Insert: {
+          asset_id?: string | null
+          asset_title?: string | null
+          asset_type?: string | null
+          channel: string
+          destination?: string | null
+          error?: string | null
+          external_id?: string | null
+          external_url?: string | null
+          id?: string
+          incident_id: string
+          method: string
+          recipients?: number | null
+          sent_at?: string
+          sent_by?: string | null
+          status?: string
+        }
+        Update: {
+          asset_id?: string | null
+          asset_title?: string | null
+          asset_type?: string | null
+          channel?: string
+          destination?: string | null
+          error?: string | null
+          external_id?: string | null
+          external_url?: string | null
+          id?: string
+          incident_id?: string
+          method?: string
+          recipients?: number | null
+          sent_at?: string
+          sent_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_sends_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "incident_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_sends_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_settings: {
         Row: {
           auto_package_level: number | null
@@ -1544,6 +1613,7 @@ export type Database = {
         Args: { p_active: boolean }
         Returns: undefined
       }
+      time_to_first_send: { Args: { _incident_id: string }; Returns: number }
     }
     Enums: {
       app_role: "admin" | "coordinador" | "manager" | "ejecutivo" | "soporte"

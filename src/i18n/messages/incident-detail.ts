@@ -56,6 +56,9 @@ export const incidentDetailMessages = defineMessages({
     source: "source",
     operationalDetails: "Operational details",
     country: "Country",
+    factHint:
+      "Correct this if you have learned otherwise. The crisis level is computed from it, so changing it here changes the level — up or down — and the audit log records who did it.",
+    levelRecomputed: (level: string) => `Crisis level is now ${level}.`,
     injury: "Injury / fatality",
     regulator: "Regulator involved",
     influencerMedia: "Influencer media",
@@ -138,6 +141,9 @@ export const incidentDetailMessages = defineMessages({
     source: "fuente",
     operationalDetails: "Detalles operativos",
     country: "País",
+    factHint:
+      "Corrígelo si te consta lo contrario. El nivel de crisis se calcula a partir de este dato, así que cambiarlo aquí cambia el nivel — hacia arriba o hacia abajo — y el registro de auditoría deja constancia de quién lo hizo.",
+    levelRecomputed: (level: string) => `El nivel de crisis ahora es ${level}.`,
     injury: "Heridos / fallecidos",
     regulator: "Regulador involucrado",
     influencerMedia: "Influencers o medios",

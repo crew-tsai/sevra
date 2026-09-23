@@ -34,6 +34,8 @@ import { useIntlLocale, useLang, useMessages } from "@/i18n";
 import { useTranslations } from "@/i18n/useTranslations";
 import { commonMessages } from "@/i18n/messages/common";
 import { incidentDetailMessages } from "@/i18n/messages/incident-detail";
+import { Switch } from "@/components/ui/switch";
+import { crisisLevel } from "@/lib/crisis-level";
 
 type Incident = {
   id: string;
@@ -60,6 +62,7 @@ type Incident = {
   approval_status: string;
   approved_at: string | null;
   approved_by: string | null;
+  created_by: string | null;
   created_at: string;
   updated_at: string;
   translations: unknown;
@@ -134,6 +137,8 @@ export default function IncidentDetail() {
   const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [industry, setIndustry] = useState<string | null>(null);
+  const [canEditFacts, setCanEditFacts] = useState(false);
+  const [savingFact, setSavingFact] = useState<string | null>(null);
   const vocab = profileFor(industry, lang);
 
   useEffect(() => {
@@ -168,6 +173,16 @@ export default function IncidentDetail() {
         .eq("incident_id", id)
         .maybeSingle(),
     ]);
+    // Who may correct the facts is already decided by RLS on incidents
+    // (creator, admin or manager). Asking here as well is only so the control
+    // is absent rather than present-and-failing for everyone else.
+    const { data: user } = await supabase.auth.getUser();
+    if (user.user?.id) {
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.user.id);
+      const privileged = (roles ?? []).some((r) => r.role === "admin" || r.role === "manager");
+      setCanEditFacts(privileged || (inc as Incident | null)?.created_by === user.user.id);
+    }
+
     if (incErr) toast.error(incErr.message);
     if (menErr) toast.error(menErr.message);
     if (cntErr) toast.error(cntErr.message);
@@ -182,6 +197,49 @@ export default function IncidentDetail() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  /**
+   * Correct one of the facts the crisis level is computed from.
+   *
+   * These were read-only, which meant the level could only ever be changed by
+   * the AI analysing another mention. When someone phones in that a person was
+   * hurt, or that the regulator has called, that is the moment the level is
+   * most wrong and the moment nobody could fix it.
+   *
+   * The level is recomputed here from the same shared rules the analysis uses,
+   * and it may go DOWN — unlike the AI path, which only ever ratchets up. A
+   * person correcting a fact is asserting something they know; if the fact was
+   * wrong, so was the level it forced. The audit trigger records both changes
+   * and who made them.
+   */
+  const setFact = async (field: "injury_fatality" | "regulator_involved", value: boolean) => {
+    if (!incident) return;
+    setSavingFact(field);
+    const next = { ...incident, [field]: value };
+    const level = crisisLevel({
+      risk: next.risk,
+      riskScore: next.risk_score,
+      injuryFatality: next.injury_fatality,
+      regulatorInvolved: next.regulator_involved,
+      amplified: next.influencer_media_involved,
+    });
+    // Spelled out rather than built from a variable key: the generated types
+    // reject a computed property, and two lines beat a cast that would also
+    // accept a column that does not exist.
+    const patch = field === "injury_fatality"
+      ? { injury_fatality: value, crisis_level: level }
+      : { regulator_involved: value, crisis_level: level };
+    const { error } = await supabase
+      .from("incidents")
+      .update(patch)
+      .eq("id", incident.id);
+    setSavingFact(null);
+    if (error) return toast.error(error.message);
+    if (level !== (incident.crisis_level ?? 0)) {
+      toast.success(t.levelRecomputed(common.level[level]));
+    }
+    await load();
+  };
 
   const approve = async () => {
     if (!incident) return;
@@ -494,15 +552,27 @@ export default function IncidentDetail() {
               label={vocab.peopleLabel}
               value={incident.estimated_passengers_impacted?.toLocaleString(intl) ?? null}
             />
-            <DetailRow
+            <FactRow
               icon={AlertTriangle}
               label={t.injury}
-              value={incident.injury_fatality ? common.yes : common.no}
+              value={incident.injury_fatality}
+              yes={common.yes}
+              no={common.no}
+              editable={canEditFacts}
+              busy={savingFact === "injury_fatality"}
+              hint={t.factHint}
+              onChange={(v) => void setFact("injury_fatality", v)}
             />
-            <DetailRow
+            <FactRow
               icon={ShieldAlert}
               label={t.regulator}
-              value={incident.regulator_involved ? common.yes : common.no}
+              value={incident.regulator_involved}
+              yes={common.yes}
+              no={common.no}
+              editable={canEditFacts}
+              busy={savingFact === "regulator_involved"}
+              hint={t.factHint}
+              onChange={(v) => void setFact("regulator_involved", v)}
             />
             <DetailRow
               icon={Sparkles}
@@ -614,6 +684,52 @@ export default function IncidentDetail() {
           </Card>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * A fact that the crisis level is computed from, and can therefore be
+ * corrected. Reads exactly like the rows around it until you can edit it —
+ * this is a detail panel, not a form, and a crisis is the wrong moment to
+ * discover a new layout.
+ */
+function FactRow({
+  icon: Icon,
+  label,
+  value,
+  yes,
+  no,
+  editable,
+  busy,
+  hint,
+  onChange,
+}: {
+  icon: typeof Plane;
+  label: string;
+  value: boolean;
+  yes: string;
+  no: string;
+  editable: boolean;
+  busy: boolean;
+  hint: string;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 text-xs">
+      <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+      <span className="text-muted-foreground">{label}:</span>
+      <span className="text-foreground font-medium">{value ? yes : no}</span>
+      {editable && (
+        <Switch
+          checked={value}
+          disabled={busy}
+          onCheckedChange={onChange}
+          title={hint}
+          aria-label={label}
+          className="ml-auto scale-75"
+        />
+      )}
     </div>
   );
 }

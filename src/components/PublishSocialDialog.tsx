@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, ExternalLink, Info, Loader2, Send } from "lucide-react";
+import { CheckCircle2, Copy, ExternalLink, Info, Loader2, Send } from "lucide-react";
 import { socialNetworkKey, socialNetworkLabel, socialNetworkUrl } from "@/lib/distribution";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -20,6 +20,7 @@ type Props = {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   asset: {
+    id: string;
     asset_type: string;
     title: string;
     content: string;
@@ -30,6 +31,8 @@ type Props = {
 export function PublishSocialDialog({ open, onOpenChange, asset }: Props) {
   const [connected, setConnected] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [handedOff, setHandedOff] = useState(false);
+  const [marking, setMarking] = useState(false);
   const t = useMessages(distributionMessages);
 
   const networkKey = asset ? socialNetworkKey(asset.asset_type) : null;
@@ -60,12 +63,49 @@ export function PublishSocialDialog({ open, onOpenChange, asset }: Props) {
   const incidentRef = `INC-${asset.incident_id.slice(0, 8).toUpperCase()}`;
   const canPublishDirectly = !!networkKey && connected;
 
+  /**
+   * Record a post the person made themselves.
+   *
+   * Instagram and TikTok accept no API post, so the text is copied and the
+   * person publishes it by hand. Sevra cannot observe that, and pretending
+   * the copy was a publication would put a lie in the one table that exists
+   * to be believed. So it is recorded only when they say they did it, and
+   * recorded as their word rather than as a confirmed send.
+   */
+  const markPublished = async () => {
+    if (!asset) return;
+    setMarking(true);
+    const { data: user } = await supabase.auth.getUser();
+    const { error } = await supabase.from("communication_sends").insert({
+      asset_id: asset.id,
+      incident_id: asset.incident_id,
+      asset_title: asset.title,
+      asset_type: asset.asset_type,
+      channel: networkKey ?? asset.asset_type,
+      method: "manual",
+      sent_by: user.user?.id ?? null,
+    });
+    setMarking(false);
+    if (error) {
+      // A duplicate means it is already on the record, which is the state the
+      // person wanted anyway.
+      if (error.code === "23505") {
+        toast.success(t.alreadyRecorded);
+        onOpenChange(false);
+        return;
+      }
+      return toast.error(error.message);
+    }
+    toast.success(t.markedPublished(network));
+    onOpenChange(false);
+  };
+
   const handleCopyAndOpen = async () => {
     try {
       await navigator.clipboard.writeText(asset.content);
       toast.success(t.copiedOpening(network));
       window.open(url, "_blank", "noopener,noreferrer");
-      onOpenChange(false);
+      setHandedOff(true);
     } catch {
       toast.error(t.copyFailed);
     }
@@ -80,7 +120,17 @@ export function PublishSocialDialog({ open, onOpenChange, asset }: Props) {
     if (!networkKey) return;
     setPublishing(true);
     const { data, error } = await supabase.functions.invoke("social-publish", {
-      body: { network: networkKey, content: asset.content },
+      // The asset travels with the post so the send can be recorded against
+      // it. Without this the product could say what it had drafted and never
+      // what it had said.
+      body: {
+        network: networkKey,
+        content: asset.content,
+        asset_id: asset.id,
+        incident_id: asset.incident_id,
+        asset_title: asset.title,
+        asset_type: asset.asset_type,
+      },
     });
     setPublishing(false);
     if (error || !data?.success) {
@@ -147,6 +197,13 @@ export function PublishSocialDialog({ open, onOpenChange, asset }: Props) {
             <Button onClick={handlePublishNow} disabled={publishing}>
               {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               {t.publishNow}
+            </Button>
+          ) : handedOff ? (
+            // Offered only after the text was actually handed over, so the
+            // record reflects something that plausibly happened.
+            <Button onClick={() => void markPublished()} disabled={marking}>
+              {marking ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              {t.markPublished}
             </Button>
           ) : (
             <Button onClick={handleCopyAndOpen}>

@@ -40,6 +40,9 @@ export const distributionMessages = defineMessages({
     justCopy: "Just copy",
     publishNow: "Publish now",
     copyAndOpen: (network: string) => `Copy & open ${network}`,
+    markPublished: "I posted it — record that",
+    markedPublished: (network: string) => `Recorded as published on ${network}.`,
+    alreadyRecorded: "Already recorded as published.",
 
     // Send by email
     noContacts: (name: string) => `"${name}" has no contacts yet`,
@@ -125,6 +128,9 @@ export const distributionMessages = defineMessages({
     justCopy: "Solo copiar",
     publishNow: "Publicar ahora",
     copyAndOpen: (network: string) => `Copiar y abrir ${network}`,
+    markPublished: "Ya lo publiqué — regístralo",
+    markedPublished: (network: string) => `Registrado como publicado en ${network}.`,
+    alreadyRecorded: "Ya estaba registrado como publicado.",
 
     noContacts: (name: string) => `"${name}" aún no tiene contactos`,
     addedFrom: (n: number, name: string) => `Añadidos ${n} de ${name}`,

@@ -162,6 +162,28 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
       }
     }
 
+    // One line in the ledger for the whole send, not one per recipient:
+    // email_send_log already holds per-address delivery, and what belongs
+    // here is "the press release went to 14 people at 14:02". Recorded only
+    // when at least one actually went.
+    if (success) {
+      const { data: user } = await supabase.auth.getUser();
+      const { error: logErr } = await supabase.from("communication_sends").insert({
+        asset_id: asset.id,
+        incident_id: asset.incident_id,
+        asset_title: asset.title,
+        asset_type: asset.asset_type,
+        channel: "email",
+        method: "api",
+        recipients: success,
+        destination: recipients.slice(0, 3).join(", ") + (recipients.length > 3 ? ` +${recipients.length - 3}` : ""),
+        sent_by: user.user?.id ?? null,
+      });
+      // Never allowed to turn a successful send into an error on screen: the
+      // email went, and the person needs to know that above all.
+      if (logErr && logErr.code !== "23505") console.error("Could not record the send", logErr.message);
+    }
+
     setSending(false);
     if (success && !failed) {
       toast.success(t.sentTo(success));
