@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/check-shared-sync.mjs && tsc --noEmit -p tsconfig.app.json && vite build",
+    "build": "node scripts/check-shared-sync.mjs && tsc --noEmit -p tsconfig.app.json && vitest run --silent && vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "check:functions": "npx --yes deno-bin@2.2.7 check --no-lock --node-modules-dir=auto supabase/functions/*/index.ts",

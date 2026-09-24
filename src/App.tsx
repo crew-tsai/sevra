@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -11,27 +12,37 @@ import SignIn from "@/pages/SignIn";
 import ResetPassword from "@/pages/ResetPassword";
 import OpenWorkspace from "@/pages/OpenWorkspace";
 import { isHome } from "@/lib/home";
-import Dashboard from "@/pages/Dashboard";
-import Welcome from "@/pages/Welcome";
-import NewIncident from "@/pages/NewIncident";
-import IncidentDetail from "@/pages/IncidentDetail";
 
-import Assets from "@/pages/Assets";
-import Approvals from "@/pages/Approvals";
-import WorkflowsApp from "@/pages/Workflows";
-import Sevra from "@/pages/Sevra";
-import Reports from "@/pages/Reports";
-import Admin from "@/pages/Admin";
-import AuditLog from "@/pages/AuditLog";
-import Help from "./pages/Help";
-import Unsubscribe from "@/pages/Unsubscribe";
-import NotFound from "@/pages/NotFound";
-import MarketingLayout from "@/components/marketing/MarketingLayout";
-import Home from "@/pages/marketing/Home";
-import Product from "@/pages/marketing/Product";
-import About from "@/pages/marketing/About";
-import LegalPage from "@/pages/legal/LegalPage";
 
+
+
+// Split per route, so a crisis lead on hotel wifi at 3am downloads the
+// incident page and not the marketing site, the charting library and the
+// whole admin panel first. Login and the app shell stay eager: they are what
+// someone is waiting for.
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const Welcome = lazy(() => import("@/pages/Welcome"));
+const NewIncident = lazy(() => import("@/pages/NewIncident"));
+const IncidentDetail = lazy(() => import("@/pages/IncidentDetail"));
+const Assets = lazy(() => import("@/pages/Assets"));
+const Approvals = lazy(() => import("@/pages/Approvals"));
+const WorkflowsApp = lazy(() => import("@/pages/Workflows"));
+const Sevra = lazy(() => import("@/pages/Sevra"));
+const Reports = lazy(() => import("@/pages/Reports"));
+const Admin = lazy(() => import("@/pages/Admin"));
+const AuditLog = lazy(() => import("@/pages/AuditLog"));
+const Help = lazy(() => import("./pages/Help"));
+const Unsubscribe = lazy(() => import("@/pages/Unsubscribe"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
+const Home = lazy(() => import("@/pages/marketing/Home"));
+const Product = lazy(() => import("@/pages/marketing/Product"));
+const About = lazy(() => import("@/pages/marketing/About"));
+const LegalPage = lazy(() => import("@/pages/legal/LegalPage"));
+const MarketingLayout = lazy(() => import("@/components/marketing/MarketingLayout"));
+
+/** Shown while a route's code arrives. Deliberately quiet: a spinner that
+ *  appears for 80ms reads as a glitch, so this is a plain hold. */
+const RouteFallback = () => <div className="min-h-screen bg-background" />;
 
 const queryClient = new QueryClient();
 
@@ -42,6 +53,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <RouteMeta />
+        <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/reset-password" element={<ResetPassword />} />
@@ -76,6 +88,7 @@ const App = () => (
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
