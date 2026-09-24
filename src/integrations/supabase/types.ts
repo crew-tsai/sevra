@@ -585,6 +585,7 @@ export type Database = {
           approval_status: string
           approved_at: string | null
           approved_by: string | null
+          assigned_to: string | null
           assignee: string | null
           country: string | null
           created_at: string
@@ -618,6 +619,7 @@ export type Database = {
           approval_status?: string
           approved_at?: string | null
           approved_by?: string | null
+          assigned_to?: string | null
           assignee?: string | null
           country?: string | null
           created_at?: string
@@ -651,6 +653,7 @@ export type Database = {
           approval_status?: string
           approved_at?: string | null
           approved_by?: string | null
+          assigned_to?: string | null
           assignee?: string | null
           country?: string | null
           created_at?: string

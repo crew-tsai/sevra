@@ -36,6 +36,8 @@ interface CrisisAlertProps {
    */
   waitingMinutes?: number
   waitingFor?: string
+  /** Set when the recipient has just been made responsible for this incident. */
+  assignedToYou?: boolean
   companyName?: string
   lang?: 'en' | 'es'
 }
@@ -73,6 +75,9 @@ const WORDS = {
     rule: (name: string) => `You are receiving this because of the rule "${name}".`,
     fallbackTitle: 'New incident',
     waitingHeading: 'Waiting for approval',
+    assignedHeading: 'Assigned to you',
+    assigned:
+      'This incident is now yours. Open Sevra to see what has been drafted and what still needs a decision. Nothing is published until it has both approvals.',
     waiting: (minutes: number, what: string) =>
       `${what} has been waiting ${minutes} minutes for approval and has not been published. Nothing goes out until someone approves it.`,
   },
@@ -86,6 +91,9 @@ const WORDS = {
     rule: (name: string) => `Recibes este aviso por la regla "${name}".`,
     fallbackTitle: 'Incidente nuevo',
     waitingHeading: 'Pendiente de aprobación',
+    assignedHeading: 'Asignado a ti',
+    assigned:
+      'Este incidente es ahora tuyo. Abre Sevra para ver qué se ha redactado y qué falta decidir. No se publica nada hasta que tenga las dos aprobaciones.',
     waiting: (minutes: number, what: string) =>
       `${what} lleva ${minutes} minutos esperando aprobación y no se ha publicado. No sale nada hasta que alguien lo apruebe.`,
   },
@@ -102,6 +110,7 @@ const CrisisAlertEmail = ({
   workflowName,
   waitingMinutes,
   waitingFor,
+  assignedToYou,
   companyName,
   lang,
 }: CrisisAlertProps) => {
@@ -151,9 +160,11 @@ const CrisisAlertEmail = ({
           )}
 
           <Text style={draftsText}>
-            {typeof waitingMinutes === 'number'
-              ? w.waiting(waitingMinutes, waitingFor || w.waitingHeading)
-              : w.drafts}
+            {assignedToYou
+              ? w.assigned
+              : typeof waitingMinutes === 'number'
+                ? w.waiting(waitingMinutes, waitingFor || w.waitingHeading)
+                : w.drafts}
           </Text>
 
           <Hr style={hr} />
@@ -265,6 +276,9 @@ export const template = {
     const tag = level.split(' · ')[0]
     // An unapproved package needs to be distinguishable in an inbox from the
     // alert that opened the incident an hour earlier.
+    if (data?.assignedToYou) {
+      return `[${tag}] ${WORDS[l].assignedHeading} — ${data?.incidentTitle || WORDS[l].fallbackTitle}`
+    }
     if (typeof data?.waitingMinutes === 'number') {
       return `[${tag}] ${WORDS[l].waitingHeading} — ${data?.incidentTitle || WORDS[l].fallbackTitle}`
     }

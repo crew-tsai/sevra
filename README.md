@@ -42,6 +42,8 @@ The trade-off is that no single place shows the client portfolio. That is what t
 - **Incident Management** — Create, update, and track incidents with crisis level (L0–L4), risk score, and approval status
 - **Assets** — Communication assets: press releases, holding statements, social posts, internal memos, Q&As, FAQs. Instagram and TikTok assets can carry an uploaded image/video, or an AI-generated image
 - **Automatic drafting** — When an incident reaches the crisis level set in Workflows, the whole package is drafted without anyone asking. It follows the client's own crisis communications manual when one is uploaded in Admin → Company, and recognised practice for their industry when there is none; the audit log records which of the two was used, and `incidents.package_requested_at` is claimed atomically so two mentions of the same crisis cannot produce two packages
+- **Separation of duties** — Whoever sends a communication forward cannot give it the final approval, enforced in the database. Both approvers are recorded. A single-member workspace is allowed through; a workspace that opts in has every self-approval marked on the communication
+- **Personal data** — Mentions that never became an incident expire after a period the client chooses; an administrator can act on an erasure request by handle. Anything attached to an incident is redacted, not deleted, so the record does not silently change size
 - **Approvals** — Two-stage workflow: a team member sends a draft forward, an admin gives final approval. Approved assets unlock email, direct social publishing, and WhatsApp. There is no automatic publishing anywhere in the product, by design — automation drafts, people send
 - **Social connections** — OAuth to the operator's own X, Facebook, Instagram and TikTok accounts. X and Facebook publish directly; Instagram and TikTok fall back to copy-and-open because those platforms require media on every post
 - **Incident timeline** — Every mention, level change, draft, approval and send for one incident on one clock, saying which changes were Sevra's and which a person's
@@ -397,6 +399,9 @@ Applied in timestamp order. Key migrations:
 | `20260924130000` | `incident_reviews` — the after-action report |
 | `20260924160000` | `is_drill` on incidents, mentions and assets, the inheritance trigger, and `purge_drills()` |
 | `20260924170000` | Rate limit on the public `leads` form, in the database rather than the page |
+| `20260924180000` | `submitted_by` / `self_approved` and the trigger that makes two approvals two people |
+| `20260924200000` | `mention_retention_days`, `expire_old_mentions()` and `erase_author()` — keeping the privacy policy's promise |
+| `20260924210000` | `incidents.assigned_to` — an assignee who is a person rather than a string |
 | `20260923140000` | `monitor_sources`, `monitor_source_accounts`, `monitor_topics` and the `matched_*` provenance columns; supersedes `monitor_watchlist`, which is left in place to be dropped once every deployment is past this migration |
 
 > `20260701000000_grant_table_privileges` is required on any fresh project: PostgreSQL needs explicit `GRANT`s in addition to RLS policies.
@@ -416,6 +421,7 @@ Applied in timestamp order. Key migrations:
 | `social-monitor-control` | Enable/disable/status of the pg_cron monitor job |
 | `approval-escalation` | Scheduled: emails the owners of a communication left unapproved past the workspace's SLA |
 | `incident-review` | Writes the after-action review for one incident from its own record |
+| `notify-assignee` | Tells someone an incident is now theirs |
 | `social-oauth-start` | Begins an OAuth connection (admin only) |
 | `social-oauth-callback` | Handles the provider redirect, exchanges tokens, resolves the Facebook Page |
 | `social-oauth-credentials` | Stores/reads the client's own OAuth app credentials (admin only) |
@@ -441,7 +447,7 @@ Applied in timestamp order. Key migrations:
 
 Recorded rather than glossed over:
 
-- **No real test coverage** — the tooling runs, but the only test asserts `true`
+- **Test coverage is the pure logic only** — crisis levels, workflow criteria and monitoring reach are covered (36 tests, run by `npm run build`); the React components and edge functions are not
 - **No rate limiting on the edge functions.** The public lead form is limited in the database (`20260924170000`); the functions are not
 - Instagram and TikTok **connect** but do not publish directly; both platforms require media on every post, and the Content Posting API takes a video file rather than the script Sevra writes
 - **TikTok cannot be monitored at all.** Not a gap in this product: TikTok offers no way to search the platform for mentions outside its academic research programme, so the connection is for acting on the account, never for listening

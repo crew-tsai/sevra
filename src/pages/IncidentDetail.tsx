@@ -36,6 +36,7 @@ import { useTranslations } from "@/i18n/useTranslations";
 import { commonMessages } from "@/i18n/messages/common";
 import { incidentDetailMessages } from "@/i18n/messages/incident-detail";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { crisisLevel } from "@/lib/crisis-level";
 import { IncidentTimeline } from "@/components/IncidentTimeline";
 import { IncidentReview } from "@/components/IncidentReview";
@@ -62,6 +63,7 @@ type Incident = {
   risk_score: number;
   crisis_level: number | null;
   assignee: string | null;
+  assigned_to: string | null;
   approval_status: string;
   approved_at: string | null;
   approved_by: string | null;
@@ -130,6 +132,8 @@ export default function IncidentDetail() {
   const [rejecting, setRejecting] = useState(false);
   const [industry, setIndustry] = useState<string | null>(null);
   const [canEditFacts, setCanEditFacts] = useState(false);
+  const [team, setTeam] = useState<Array<{ user_id: string; name: string }>>([]);
+  const [assigning, setAssigning] = useState(false);
   const [savingFact, setSavingFact] = useState<string | null>(null);
   const vocab = profileFor(industry, lang);
 
@@ -168,6 +172,16 @@ export default function IncidentDetail() {
     // Who may correct the facts is already decided by RLS on incidents
     // (creator, admin or manager). Asking here as well is only so the control
     // is absent rather than present-and-failing for everyone else.
+    const { data: members } = await supabase
+      .from("team_members")
+      .select("user_id, full_name, email")
+      .not("user_id", "is", null);
+    setTeam(
+      (members ?? [])
+        .filter((m): m is { user_id: string; full_name: string | null; email: string } => !!m.user_id)
+        .map((m) => ({ user_id: m.user_id, name: m.full_name?.trim() || m.email })),
+    );
+
     const { data: user } = await supabase.auth.getUser();
     if (user.user?.id) {
       const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.user.id);
@@ -187,6 +201,30 @@ export default function IncidentDetail() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  // Live, like every other working screen. This was the only one without it,
+  // and it is the one where two people are most likely to be working at the
+  // same time — one raising the level while the other reads the old one.
+  useEffect(() => {
+    if (!id) return;
+    const channel = supabase
+      .channel(`incident_${id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "incidents", filter: `id=eq.${id}` },
+        () => void load(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "social_mentions", filter: `incident_id=eq.${id}` },
+        () => void load(),
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -229,6 +267,34 @@ export default function IncidentDetail() {
     if (error) return toast.error(error.message);
     if (level !== (incident.crisis_level ?? 0)) {
       toast.success(t.levelRecomputed(common.level[level]));
+    }
+    await load();
+  };
+
+  /**
+   * Put a name on the incident.
+   *
+   * Both columns are written: `assigned_to` is the person, and `assignee`
+   * keeps the display name two other screens already read. The audit trigger
+   * records the change, so who handed it to whom is in the timeline — which
+   * is the question after a crisis nobody wants to answer from memory.
+   */
+  const assign = async (userId: string | null) => {
+    if (!incident) return;
+    setAssigning(true);
+    const person = team.find((m) => m.user_id === userId);
+    const { error } = await supabase
+      .from("incidents")
+      .update({ assigned_to: userId, assignee: person?.name ?? null })
+      .eq("id", incident.id);
+    setAssigning(false);
+    if (error) return toast.error(error.message);
+
+    // Being assigned something during a crisis is only useful if you find out.
+    if (userId && userId !== incident.assigned_to) {
+      void supabase.functions.invoke("notify-assignee", {
+        body: { incident_id: incident.id, user_id: userId, lang },
+      });
     }
     await load();
   };
@@ -589,7 +655,31 @@ export default function IncidentDetail() {
               label={t.influencerMedia}
               value={incident.influencer_media_involved ? common.yes : common.no}
             />
-            <DetailRow icon={Users} label={t.assignee} value={incident.assignee} />
+            {/* An assignee picker, where a read-only row used to sit above a
+                column nothing ever wrote to. */}
+            <div className="flex items-center gap-2 text-xs">
+              <Users className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <span className="text-muted-foreground">{t.assignee}:</span>
+              {canEditFacts ? (
+                <Select
+                  value={incident.assigned_to ?? "none"}
+                  disabled={assigning}
+                  onValueChange={(v) => void assign(v === "none" ? null : v)}
+                >
+                  <SelectTrigger className="h-6 w-auto border-none px-1 text-xs font-medium shadow-none">
+                    <SelectValue placeholder={t.unassigned} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none" className="text-xs">{t.unassigned}</SelectItem>
+                    {team.map((m) => (
+                      <SelectItem key={m.user_id} value={m.user_id} className="text-xs">{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <span className="text-foreground font-medium truncate">{incident.assignee ?? t.unassigned}</span>
+              )}
+            </div>
           </Card>
 
           <Card className="p-4 space-y-3">
