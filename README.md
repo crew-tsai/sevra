@@ -44,7 +44,13 @@ The trade-off is that no single place shows the client portfolio. That is what t
 - **Automatic drafting** — When an incident reaches the crisis level set in Workflows, the whole package is drafted without anyone asking. It follows the client's own crisis communications manual when one is uploaded in Admin → Company, and recognised practice for their industry when there is none; the audit log records which of the two was used, and `incidents.package_requested_at` is claimed atomically so two mentions of the same crisis cannot produce two packages
 - **Approvals** — Two-stage workflow: a team member sends a draft forward, an admin gives final approval. Approved assets unlock email, direct social publishing, and WhatsApp. There is no automatic publishing anywhere in the product, by design — automation drafts, people send
 - **Social connections** — OAuth to the operator's own X, Facebook, Instagram and TikTok accounts. X and Facebook publish directly; Instagram and TikTok fall back to copy-and-open because those platforms require media on every post
-- **Reports** — Analytics and incident reporting
+- **Incident timeline** — Every mention, level change, draft, approval and send for one incident on one clock, saying which changes were Sevra's and which a person's
+- **What went out** — `communication_sends` is an append-only record of every communication leaving, whatever the channel. API posts are recorded by the function itself; a copy-and-open post on Instagram or TikTok is recorded only when the person says they published it, and marked as their word rather than a confirmed send
+- **Approval SLA** — After a configurable wait, on an incident at or above a chosen level, the people who own that communication are emailed. Once per asset, off by default
+- **After-action review** — Generated per resolved incident from its own record. The numbers and sequence are measured and handed to the model to narrate, never asked of it; without a model it is still produced, as the measured sequence, and says so
+- **Drill mode** — Rehearsals that cannot publish or email by any path, are excluded from reports, and can be cleared in one call
+- **Classification feedback** — A verdict on what a mention should have been, and the resulting agreement rate in Reports
+- **Reports** — Analytics and incident reporting, plus time-to-first-statement and classifier agreement
 - **Watched sources and topics** (Workflows) — Who the workspace listens to beyond its own name. A **source** is an actor — press, regulator, activist, competitor, partner, community — with a handle on whichever networks they use; a **topic** is a hashtag or a phrase. The role sets how the source is watched and reaches the AI as context for who is speaking. Every source reports what it actually collects per network, including "not watching anything yet" when its only handles are on networks Sevra cannot reach
 - **Workflows** — What the workspace does by itself, defined by its own admin: the baseline crisis level at which a package is drafted, plus rules matching on risk, type, level, network or amplification that can draft, notify, set status or lock public response. Rules are stored in `workflows`, executed server-side by `_shared/workflow-engine.ts`, and claimed once per incident through `workflow_runs` so a retry cannot fire them twice. Everyone can read them; only an admin can change them
 - **Response plan** — A RACI-grounded plan generated per incident from the client's manual and their responsibility matrix, shown on the incident page
@@ -115,6 +121,7 @@ An end-user walkthrough for the client's administrator is kept separately as the
 | Secret | Required | Purpose |
 |---|---|---|
 | `GEMINI_API_KEY` | Yes | Google AI Studio key: analysis, asset generation, Agent Stripes, monitoring |
+| `GEMINI_API_KEY_FALLBACK` | No | A second key, tried only when the first is rate-limited or erroring. Covers quota exhaustion — every client shares one key from the control plane — not a provider outage; that is covered by the AI-free holding statement |
 | `RESEND_API_KEY` | Yes | Transactional email delivery |
 | `EMAIL_WEBHOOK_SECRET` | No | Verifies the provider's bounce/complaint webhook. Unset ⇒ the endpoint refuses everything. Per client and per webhook endpoint, so provisioning cannot seed it: it exists only once someone creates that client's endpoint at the provider |
 | `SITE_URL` | Yes | Public app origin; used to build the OAuth return URL |
@@ -384,6 +391,12 @@ Applied in timestamp order. Key migrations:
 | `20260920130000` | `support_tickets` — what this workspace asked Sevra |
 | `20260920170000` | `support_replies` and `answered_at` — what Sevra answered, where the person who asked will look |
 | `20260921130000` | `support_messages`, `support_attachments` — a ticket is a thread, not one question |
+| `20260924100000` | `communication_sends` — the append-only record of what actually left, and `time_to_first_send()` |
+| `20260924110000` | `approval_sla_minutes` and the escalation sweep; the cron job reads its own project's host rather than hardcoding one |
+| `20260924120000` | `human_risk` on mentions and `classification_agreement()` — whether the AI was right |
+| `20260924130000` | `incident_reviews` — the after-action report |
+| `20260924160000` | `is_drill` on incidents, mentions and assets, the inheritance trigger, and `purge_drills()` |
+| `20260924170000` | Rate limit on the public `leads` form, in the database rather than the page |
 | `20260923140000` | `monitor_sources`, `monitor_source_accounts`, `monitor_topics` and the `matched_*` provenance columns; supersedes `monitor_watchlist`, which is left in place to be dropped once every deployment is past this migration |
 
 > `20260701000000_grant_table_privileges` is required on any fresh project: PostgreSQL needs explicit `GRANT`s in addition to RLS policies.
@@ -401,6 +414,8 @@ Applied in timestamp order. Key migrations:
 | `generate-asset-image` | Generates an image for an Instagram asset from a prompt |
 | `social-monitor-cron` | Scheduled: pulls real X/Facebook mentions, simulates Instagram/TikTok, auto-analyzes |
 | `social-monitor-control` | Enable/disable/status of the pg_cron monitor job |
+| `approval-escalation` | Scheduled: emails the owners of a communication left unapproved past the workspace's SLA |
+| `incident-review` | Writes the after-action review for one incident from its own record |
 | `social-oauth-start` | Begins an OAuth connection (admin only) |
 | `social-oauth-callback` | Handles the provider redirect, exchanges tokens, resolves the Facebook Page |
 | `social-oauth-credentials` | Stores/reads the client's own OAuth app credentials (admin only) |
@@ -427,7 +442,7 @@ Applied in timestamp order. Key migrations:
 Recorded rather than glossed over:
 
 - **No real test coverage** — the tooling runs, but the only test asserts `true`
-- **No rate limiting** on any edge function or the public lead form
+- **No rate limiting on the edge functions.** The public lead form is limited in the database (`20260924170000`); the functions are not
 - Instagram and TikTok **connect** but do not publish directly; both platforms require media on every post, and the Content Posting API takes a video file rather than the script Sevra writes
 - **TikTok cannot be monitored at all.** Not a gap in this product: TikTok offers no way to search the platform for mentions outside its academic research programme, so the connection is for acting on the account, never for listening
 - Five edge functions still hand-roll their caller check instead of using [`_shared/caller.ts`](supabase/functions/_shared/caller.ts); they are correct, but the duplication is how the original gap happened
