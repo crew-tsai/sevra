@@ -39,6 +39,7 @@ type Asset = {
   media_type: string | null;
   media_source: string | null;
   language: string | null;
+  self_approved: boolean;
 };
 
 type IncidentLite = {
@@ -254,6 +255,9 @@ export default function Approvals() {
         approval_status: status,
         approved_at: isFinal ? new Date().toISOString() : null,
         approved_by: isFinal ? userData.user?.id ?? null : null,
+        // Who sent it forward was never written down, which left the product's
+        // central promise — two approvals — with a record of only one of them.
+        ...(isFinal ? {} : { submitted_by: userData.user?.id ?? null, submitted_at: new Date().toISOString() }),
       })
       .in("id", items.map((a) => a.id))
       .select("id");
@@ -278,10 +282,15 @@ export default function Approvals() {
         approval_status: status,
         approved_at: isFinal ? new Date().toISOString() : null,
         approved_by: isFinal ? userData.user?.id ?? null : null,
+        ...(status === "user_approved"
+          ? { submitted_by: userData.user?.id ?? null, submitted_at: new Date().toISOString() }
+          : {}),
       })
       .eq("id", id);
     setBusyId(null);
-    if (error) return toast.error(error.message);
+    // 42501 is the separation-of-duties refusal, which carries a sentence
+    // written for the person who hit it rather than a database noise.
+    if (error) return toast.error(error.code === "42501" ? error.message : error.message);
     toast.success(t.statusToast[status]);
 
     // Only after the final admin approval prompt for distribution
@@ -525,6 +534,13 @@ export default function Approvals() {
               )}
               {isApproved && (
                 <Badge className="text-[10px] border-0 bg-risk-low-bg text-risk-low">{t.approvedBadge}</Badge>
+              )}
+              {/* One person did both halves. Allowed in some workspaces, never
+                  silent in any of them. */}
+              {item.self_approved && (
+                <Badge variant="outline" className="border-risk-medium/50 text-[10px] text-risk-medium" title={t.selfApprovedHint}>
+                  {t.selfApproved}
+                </Badge>
               )}
               {isRejected && (
                 <Badge className="text-[10px] border-0 bg-risk-critical-bg text-risk-critical">{t.rejectedBadge}</Badge>

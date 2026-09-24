@@ -128,6 +128,7 @@ export type Database = {
       }
       company_settings: {
         Row: {
+          allow_self_approval: boolean
           approval_sla_min_level: number
           approval_sla_minutes: number | null
           auto_package_level: number | null
@@ -158,6 +159,7 @@ export type Database = {
           x_handle: string | null
         }
         Insert: {
+          allow_self_approval?: boolean
           approval_sla_min_level?: number
           approval_sla_minutes?: number | null
           auto_package_level?: number | null
@@ -188,6 +190,7 @@ export type Database = {
           x_handle?: string | null
         }
         Update: {
+          allow_self_approval?: boolean
           approval_sla_min_level?: number
           approval_sla_minutes?: number | null
           auto_package_level?: number | null
@@ -422,6 +425,9 @@ export type Database = {
           media_source: string | null
           media_type: string | null
           media_url: string | null
+          self_approved: boolean
+          submitted_at: string | null
+          submitted_by: string | null
           title: string
           updated_at: string
         }
@@ -442,6 +448,9 @@ export type Database = {
           media_source?: string | null
           media_type?: string | null
           media_url?: string | null
+          self_approved?: boolean
+          submitted_at?: string | null
+          submitted_by?: string | null
           title: string
           updated_at?: string
         }
@@ -462,6 +471,9 @@ export type Database = {
           media_source?: string | null
           media_type?: string | null
           media_url?: string | null
+          self_approved?: boolean
+          submitted_at?: string | null
+          submitted_by?: string | null
           title?: string
           updated_at?: string
         }

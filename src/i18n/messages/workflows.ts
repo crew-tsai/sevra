@@ -19,6 +19,10 @@ export const workflowsMessages = defineMessages({
     baselineHint: "Rules can draft earlier for the cases you care about. None of them can switch this off.",
     baselineOffOption: "Only when someone asks",
     baselineLevelOption: (level: string) => `${level} and above`,
+    separationTitle: "Two approvals must be two people",
+    separationOn: "Whoever sends a communication forward cannot give it the final approval.",
+    separationOff: "One person may send a communication forward and approve it. Every time that happens it is marked on the communication.",
+    separationHint: "A workspace with a single member is always allowed to approve its own work — there is nobody else to ask, and the alternative is people sharing a login.",
     slaTitle: "Unapproved communications",
     slaOff: "Nobody is told when a communication sits unapproved.",
     slaOn: (minutes: number, level: string) =>
@@ -170,6 +174,10 @@ export const workflowsMessages = defineMessages({
     baselineHint: "Las reglas pueden redactar antes en los casos que te importen. Ninguna puede desactivar esto.",
     baselineOffOption: "Solo cuando alguien lo pida",
     baselineLevelOption: (level: string) => `${level} o superior`,
+    separationTitle: "Dos aprobaciones deben ser dos personas",
+    separationOn: "Quien envía una comunicación no puede darle la aprobación final.",
+    separationOff: "Una misma persona puede enviar una comunicación y aprobarla. Cada vez que ocurre queda marcado en la comunicación.",
+    separationHint: "Un espacio de trabajo con un solo miembro siempre puede aprobar su propio trabajo — no hay nadie más a quien preguntar, y la alternativa es que la gente comparta una cuenta.",
     slaTitle: "Comunicaciones sin aprobar",
     slaOff: "No se avisa a nadie cuando una comunicación se queda sin aprobar.",
     slaOn: (minutes: number, level: string) =>

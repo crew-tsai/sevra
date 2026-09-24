@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -67,6 +68,7 @@ export default function Workflows() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [sla, setSla] = useState<number | null>(null);
   const [slaLevel, setSlaLevel] = useState(3);
+  const [selfApproval, setSelfApproval] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
@@ -103,7 +105,7 @@ export default function Workflows() {
         .order("created_at", { ascending: true }),
       supabase.from("workflow_runs").select("workflow_id"),
       supabase.from("email_lists").select("id, name").order("name"),
-      supabase.from("company_settings").select("id, industry, auto_package_level, approval_sla_minutes, approval_sla_min_level").maybeSingle(),
+      supabase.from("company_settings").select("id, industry, auto_package_level, approval_sla_minutes, approval_sla_min_level, allow_self_approval").maybeSingle(),
     ]);
 
     if (user.user?.id) {
@@ -122,6 +124,7 @@ export default function Workflows() {
     setBaseline(settings.data?.auto_package_level ?? null);
     setSla(settings.data?.approval_sla_minutes ?? null);
     setSlaLevel(settings.data?.approval_sla_min_level ?? 3);
+    setSelfApproval(settings.data?.allow_self_approval ?? false);
     setSettingsId(settings.data?.id ?? null);
     setLoading(false);
   }
@@ -146,7 +149,11 @@ export default function Workflows() {
    * Lives here rather than in Admin because it is the same decision as the
    * baseline above it: what the workspace does when nobody is watching.
    */
-  async function saveSla(patch: { approval_sla_minutes?: number | null; approval_sla_min_level?: number }) {
+  async function saveSla(patch: {
+    approval_sla_minutes?: number | null;
+    approval_sla_min_level?: number;
+    allow_self_approval?: boolean;
+  }) {
     if (!settingsId) return;
     const { data, error } = await supabase
       .from("company_settings")
@@ -292,6 +299,34 @@ export default function Workflows() {
                 ))}
               </SelectContent>
             </Select>
+          )}
+        </div>
+      </Card>
+
+      {/* Whether the two approvals must be two people. */}
+      <Card className="p-5">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="h-9 w-9 rounded-md bg-primary/15 flex items-center justify-center text-primary shrink-0">
+              <Users className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-base font-semibold">{t.separationTitle}</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {selfApproval ? t.separationOff : t.separationOn}
+              </p>
+              <p className="text-xs text-muted-foreground/80 mt-1">{t.separationHint}</p>
+            </div>
+          </div>
+          {isAdmin && (
+            <Switch
+              checked={!selfApproval}
+              onCheckedChange={(v) => {
+                setSelfApproval(!v);
+                void saveSla({ allow_self_approval: !v });
+              }}
+              aria-label={t.separationTitle}
+            />
           )}
         </div>
       </Card>
