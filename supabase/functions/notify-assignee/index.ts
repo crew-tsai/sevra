@@ -8,6 +8,7 @@
 // is the thing that helps. The caller does not wait on this and a failure here
 // never un-assigns anybody.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { identifyCaller, unauthorized } from "../_shared/caller.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,25 +23,18 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
 
-    // A real person has to be asking: this sends mail, and the gateway accepts
-    // the publishable key as a valid JWT, so being let in proves nothing.
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? serviceKey;
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
-    });
-    const { data: userData } = await userClient.auth.getUser();
-    if (!userData?.user?.id) {
-      return new Response(JSON.stringify({ success: false, error: "Not authenticated" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Classified rather than trusted for having got in: the gateway accepts
+    // the publishable key as a valid JWT, so a request reaching this code
+    // proves nothing about who sent it.
+    const caller = await identifyCaller(req);
+    if (caller.kind !== "user") return unauthorized();
+    const userId = caller.userId;
 
     const { incident_id, user_id, lang } = await req.json().catch(() => ({}));
     if (!incident_id || !user_id) throw new Error("incident_id and user_id are required");
 
     // Telling somebody they own their own incident is noise.
-    if (user_id === userData.user.id) {
+    if (user_id === userId) {
       return new Response(JSON.stringify({ success: true, skipped: "assigned to self" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

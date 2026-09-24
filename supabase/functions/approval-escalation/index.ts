@@ -11,6 +11,7 @@
 //
 // Driven by pg_cron every five minutes.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { identifyCaller, unauthorized } from "../_shared/caller.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,20 +23,6 @@ const corsHeaders = {
 const MAX_PER_RUN = 12;
 const MAX_RECIPIENTS = 20;
 
-function parseJwtClaims(token: string): Record<string, unknown> | null {
-  const parts = token.split(".");
-  if (parts.length < 2) return null;
-  try {
-    const payload = parts[1]
-      .replaceAll("-", "+")
-      .replaceAll("_", "/")
-      .padEnd(Math.ceil(parts[1].length / 4) * 4, "=");
-    return JSON.parse(atob(payload)) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -43,16 +30,9 @@ Deno.serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
   // Cron only. The gateway accepts the publishable key as a valid JWT, so the
-  // caller has to be classified here rather than trusted for having got in.
-  const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
-  const claims = token ? parseJwtClaims(token) : null;
-  const isService = token === serviceKey || claims?.role === "service_role";
-  if (!isService) {
-    return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  // caller is classified rather than trusted for having got in.
+  const caller = await identifyCaller(req);
+  if (caller.kind !== "service") return unauthorized();
 
   try {
     const admin = createClient(supabaseUrl, serviceKey);

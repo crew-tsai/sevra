@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { identifyCaller, unauthorized } from "../_shared/caller.ts";
+import { allowRequest, tooManyRequests } from "../_shared/rate-limit.ts";
 import { chatCompletion, MODELS } from "../_shared/ai.ts";
 import { productFacts } from "../_shared/product-facts.ts";
 
@@ -119,18 +121,17 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userData } = await userClient.auth.getUser();
-    if (!userData?.user?.id) {
-      return new Response(JSON.stringify({ error: "Not authenticated" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const caller = await identifyCaller(req);
+    if (caller.kind !== "user") return unauthorized();
+
+    // Every message costs AI budget, on a key the whole fleet shares. Thirty a
+    // minute is far more than a person types and far less than a loop.
+    const limiter = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    if (!(await allowRequest(limiter, `stripes:${caller.userId}`, 30, 60))) {
+      return tooManyRequests("You are sending messages faster than I can answer. Give me a moment.");
     }
 
     const { messages, lang } = await req.json();

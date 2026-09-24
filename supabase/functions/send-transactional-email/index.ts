@@ -3,6 +3,7 @@ import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 import { resolveFromAddress, resolveSenderDomain } from '../_shared/sender-identity.ts'
+import { isDrillAsset } from '../_shared/drill.ts'
 import { identifyCaller } from '../_shared/caller.ts'
 
 // Sender identity is per deployment, not baked in — see _shared/sender-identity.ts
@@ -142,12 +143,7 @@ Deno.serve(async (req) => {
   // mails a real stakeholder list has stopped being a rehearsal. Callers that
   // send on behalf of an asset pass its id; everything else is unaffected.
   if (assetId) {
-    const { data: assetRow } = await supabase
-      .from('incident_assets')
-      .select('is_drill')
-      .eq('id', assetId)
-      .maybeSingle()
-    if (assetRow?.is_drill) {
+    if (await isDrillAsset(supabase, assetId)) {
       console.log('send-transactional-email: drill asset, nothing sent', { assetId })
       return new Response(
         JSON.stringify({

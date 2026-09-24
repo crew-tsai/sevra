@@ -9,6 +9,7 @@
 // sequence alone, and says so. A post-mortem that fails to exist because a
 // provider was busy is the least defensible failure in this product.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { identifyCaller, unauthorized } from "../_shared/caller.ts";
 import { chatCompletion, MODELS } from "../_shared/ai.ts";
 import { profileFor } from "../_shared/industries.ts";
 import { CRISIS_RULES } from "../_shared/crisis-level.ts";
@@ -35,21 +36,12 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
 
-    // A real signed-in person, resolved by asking rather than by trusting the
-    // gateway: it accepts the publishable key as a valid JWT.
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? serviceKey;
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userData } = await userClient.auth.getUser();
-    const userId = userData?.user?.id ?? null;
-    if (!userId) {
-      return new Response(JSON.stringify({ success: false, error: "Not authenticated" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Classified rather than trusted for having got in: the gateway accepts
+    // the publishable key as a valid JWT, so a request reaching this code
+    // proves nothing about who sent it.
+    const caller = await identifyCaller(req);
+    if (caller.kind !== "user") return unauthorized();
+    const userId = caller.userId;
 
     const { incident_id, lang: rawLang } = await req.json().catch(() => ({}));
     if (!incident_id) throw new Error("incident_id is required");

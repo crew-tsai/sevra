@@ -5,6 +5,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { refreshXToken, META_GRAPH } from "../_shared/social-providers.ts";
 import { resolveCredentials } from "../_shared/social-credentials.ts";
+import { isDrillAsset } from "../_shared/drill.ts";
+import { identifyCaller, unauthorized } from "../_shared/caller.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,25 +27,12 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
 
-    const authHeader = req.headers.get("Authorization") ?? "";
-    let userId: string | null = null;
-    try {
-      const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? serviceKey;
-      const userClient = createClient(supabaseUrl, anonKey, {
-        global: { headers: { Authorization: authHeader } },
-      });
-      const { data: userData } = await userClient.auth.getUser();
-      userId = userData?.user?.id ?? null;
-    } catch { /* non-fatal, checked below */ }
-
-    if (!userId) {
-      return new Response(JSON.stringify({ success: false, error: "Not authenticated" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const caller = await identifyCaller(req);
+    if (caller.kind !== "user") return unauthorized();
+    const userId = caller.userId;
 
     const { network, content, asset_id, incident_id, asset_title, asset_type } = await req.json().catch(() => ({}));
+
     /**
      * Record that this left the building — or that it tried and did not.
      *
@@ -82,12 +71,7 @@ Deno.serve(async (req) => {
     // is unrecoverable. A rehearsal that posts to a real X account at 03:10 is
     // not a rehearsal, it is the crisis.
     if (asset_id) {
-      const { data: assetRow } = await admin
-        .from("incident_assets")
-        .select("is_drill")
-        .eq("id", asset_id)
-        .maybeSingle();
-      if (assetRow?.is_drill) {
+      if (await isDrillAsset(admin, asset_id)) {
         await record({
           status: "sent",
           method: "manual",

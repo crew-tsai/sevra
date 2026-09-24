@@ -448,8 +448,8 @@ Applied in timestamp order. Key migrations:
 Recorded rather than glossed over:
 
 - **Test coverage is the pure logic only** — crisis levels, workflow criteria and monitoring reach are covered (36 tests, run by `npm run build`); the React components and edge functions are not
-- **No rate limiting on the edge functions.** The public lead form is limited in the database (`20260924170000`); the functions are not
+- **Rate limiting covers the paths that can be abused or cost money**, not every function: the public lead form, `account-recovery` (5 per address per hour, answered identically so it still reveals nothing) and Agent Stripes (30 per user per minute). The rest are authenticated and cheap
 - Instagram and TikTok **connect** but do not publish directly; both platforms require media on every post, and the Content Posting API takes a video file rather than the script Sevra writes
 - **TikTok cannot be monitored at all.** Not a gap in this product: TikTok offers no way to search the platform for mentions outside its academic research programme, so the connection is for acting on the account, never for listening
-- Five edge functions still hand-roll their caller check instead of using [`_shared/caller.ts`](supabase/functions/_shared/caller.ts); they are correct, but the duplication is how the original gap happened
+- **Some edge functions still hand-roll their caller check** instead of using [`_shared/caller.ts`](supabase/functions/_shared/caller.ts). The ones touched recently were converted; the rest are correct today and are being left until there is a reason to open them, because a mistake in that code locks people out. Note that `handle-email-suppression`, `handle-email-unsubscribe` and `account-recovery` are deliberately public and must **not** use it — they authenticate a webhook signature, a token, or nothing at all by design
 - `preview-transactional-email` has no entry point in the UI
