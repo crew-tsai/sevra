@@ -94,7 +94,7 @@ export const legalMessages = defineMessages<{
         {
           h: "Your choices and rights",
           p: [
-            "You can ask us to access, correct or delete your personal information by writing to the address below. If your information is in a client's workspace, we will pass your request to that client, who decides on it, and help them respond. Depending on where you live, you may have additional rights under laws such as the GDPR or the CCPA; we will honor them.",
+            "You can ask us to access, correct or delete your personal information by writing to the address below. If your information is in a client's workspace, we will pass your request to that client, who decides on it, and help them respond. Sevra gives every client a tool to act on such a request: their administrator can find everything collected from a public account and remove it. Where a post is part of the record of an incident the client is handling, the author's name, handle, picture and words are erased and only the fact that a post existed remains, because a record of a crisis must not silently change. Clients also choose how long posts that never became an incident are kept at all. Depending on where you live, you may have additional rights under laws such as the GDPR or the CCPA; we will honor them.",
           ],
         },
         {
@@ -298,7 +298,7 @@ export const legalMessages = defineMessages<{
         {
           h: "Tus opciones y derechos",
           p: [
-            "Puedes pedirnos acceder a tu información personal, corregirla o eliminarla escribiendo a la dirección indicada abajo. Si tu información está en el espacio de trabajo de un cliente, le trasladaremos tu solicitud, que es quien decide, y le ayudaremos a responderla. Según dónde vivas, puedes tener derechos adicionales conforme a leyes como el RGPD o la CCPA; los respetaremos.",
+            "Puedes pedirnos acceder a tu información personal, corregirla o eliminarla escribiendo a la dirección indicada abajo. Si tu información está en el espacio de trabajo de un cliente, le trasladaremos tu solicitud, que es quien decide, y le ayudaremos a responderla. Sevra da a cada cliente una herramienta para atender esa solicitud: su administrador puede encontrar todo lo recogido de una cuenta pública y eliminarlo. Cuando una publicación forma parte del registro de un incidente que el cliente está gestionando, se borran el nombre, la cuenta, la imagen y las palabras del autor, y solo queda constancia de que hubo una publicación, porque el registro de una crisis no debe cambiar en silencio. Los clientes también eligen cuánto tiempo se conservan las publicaciones que nunca llegaron a ser un incidente. Según dónde vivas, puedes tener derechos adicionales conforme a leyes como el RGPD o la CCPA; los respetaremos.",
           ],
         },
         {

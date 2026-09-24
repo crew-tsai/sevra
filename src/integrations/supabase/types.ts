@@ -143,6 +143,7 @@ export type Database = {
           id: string
           industry: string | null
           logo_url: string | null
+          mention_retention_days: number | null
           monitor_active: boolean
           monitor_auto_incident_threshold: number
           monitor_countries: string[]
@@ -174,6 +175,7 @@ export type Database = {
           id?: string
           industry?: string | null
           logo_url?: string | null
+          mention_retention_days?: number | null
           monitor_active?: boolean
           monitor_auto_incident_threshold?: number
           monitor_countries?: string[]
@@ -205,6 +207,7 @@ export type Database = {
           id?: string
           industry?: string | null
           logo_url?: string | null
+          mention_retention_days?: number | null
           monitor_active?: boolean
           monitor_auto_incident_threshold?: number
           monitor_countries?: string[]
@@ -1594,6 +1597,14 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      erase_author: {
+        Args: { _handle: string }
+        Returns: {
+          deleted: number
+          redacted: number
+        }[]
+      }
+      expire_old_mentions: { Args: never; Returns: number }
       get_assets_by_month: {
         Args: { p_from?: string; p_to?: string }
         Returns: {

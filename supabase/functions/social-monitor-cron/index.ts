@@ -864,6 +864,20 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Retention runs on the monitor's own schedule rather than a cron job of
+    // its own, so the thing that deletes personal data cannot quietly stop
+    // running while everything else looks healthy. Never allowed to fail the
+    // run: not collecting mentions is a worse outcome than keeping some for
+    // an extra fifteen minutes.
+    let expired = 0;
+    try {
+      const { data: expiredCount, error: expErr } = await admin.rpc("expire_old_mentions");
+      if (expErr) console.error("social-monitor-cron: retention sweep failed", expErr.message);
+      else expired = Number(expiredCount ?? 0);
+    } catch (e) {
+      console.error("social-monitor-cron: retention sweep threw", e);
+    }
+
     // What Social Intel shows as "last run". Written on every run, cron or
     // manual, so it cannot drift from what actually happened.
     const { error: runErr } = await admin
@@ -873,6 +887,7 @@ Deno.serve(async (req) => {
         monitor_last_result: {
           generated: insertedIds.length,
           analyzed,
+          ...(expired ? { expired } : {}),
           ...(Object.keys(networkErrors).length ? { network_errors: networkErrors } : {}),
         },
       })

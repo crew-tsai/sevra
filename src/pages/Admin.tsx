@@ -18,6 +18,7 @@ import { Loader2, Upload, FileText, Trash2, ShieldAlert, Building2, Users, Palet
 import { z } from "zod";
 import EmailListsManager from "@/components/admin/EmailListsManager";
 import { DrillData } from "@/components/admin/DrillData";
+import { PersonalData } from "@/components/admin/PersonalData";
 import ResponsibilityMatrixEditor from "@/components/admin/ResponsibilityMatrixEditor";
 import SocialConnectionsManager from "@/components/admin/SocialConnectionsManager";
 import SendingDomainManager from "@/components/admin/SendingDomainManager";
@@ -377,6 +378,8 @@ export default function Admin() {
                 onLanguages={setMonitorLanguages}
                 onExcludeTerms={setMonitorExcludeTerms}
               />
+
+              <PersonalData isAdmin={isAdmin} />
 
               <DrillData isAdmin={isAdmin} />
 
