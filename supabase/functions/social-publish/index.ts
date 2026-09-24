@@ -75,6 +75,37 @@ Deno.serve(async (req) => {
       }
     };
 
+    // A drill must not reach the outside world, by any path.
+    //
+    // Checked on the asset rather than the incident, and checked server-side
+    // rather than trusted from the caller: this is the one guard whose failure
+    // is unrecoverable. A rehearsal that posts to a real X account at 03:10 is
+    // not a rehearsal, it is the crisis.
+    if (asset_id) {
+      const { data: assetRow } = await admin
+        .from("incident_assets")
+        .select("is_drill")
+        .eq("id", asset_id)
+        .maybeSingle();
+      if (assetRow?.is_drill) {
+        await record({
+          status: "sent",
+          method: "manual",
+          destination: "drill — not published",
+          error: null,
+        });
+        return new Response(
+          JSON.stringify({
+            success: true,
+            drill: true,
+            url: null,
+            message: "This is a drill. Nothing was published. The step was recorded so the rehearsal reads like the real thing.",
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
+
     if (!isPublishableNetwork(network)) {
       return new Response(
         JSON.stringify({ success: false, error: "Direct publishing is only available for X and Facebook right now." }),

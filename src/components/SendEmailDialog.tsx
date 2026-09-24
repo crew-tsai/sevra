@@ -141,6 +141,10 @@ export function SendEmailDialog({ open, onOpenChange, asset }: Props) {
           body: {
             templateName: "crisis-communication",
             recipientEmail: email,
+            // Lets the server refuse to send for a drill. The dialog also
+            // refuses, but the guard that matters is the one nearest the
+            // provider.
+            assetId: asset.id,
             idempotencyKey: `asset-${asset.id}-${email}`,
             templateData: {
               assetTitle: asset.title,

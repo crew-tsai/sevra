@@ -72,9 +72,12 @@ export default function Reports() {
     (async () => {
       setLoading(true);
       const [inc, ast, men, snd] = await Promise.all([
-        supabase.from("incidents").select("id, created_at, risk, status, source, incident_type").order("created_at", { ascending: false }).limit(1000),
-        supabase.from("incident_assets").select("id, created_at, asset_type, approval_status").order("created_at", { ascending: false }).limit(1000),
-        supabase.from("social_mentions").select("id, created_at, ai_risk").order("created_at", { ascending: false }).limit(1000),
+        // Drills are rehearsals, not events. Counting them would flatter the
+        // numbers a client is judged on, which is the one thing a practice
+        // mode must never do.
+        supabase.from("incidents").select("id, created_at, risk, status, source, incident_type").eq("is_drill", false).order("created_at", { ascending: false }).limit(1000),
+        supabase.from("incident_assets").select("id, created_at, asset_type, approval_status").eq("is_drill", false).order("created_at", { ascending: false }).limit(1000),
+        supabase.from("social_mentions").select("id, created_at, ai_risk").eq("is_drill", false).order("created_at", { ascending: false }).limit(1000),
         supabase
           .from("communication_sends")
           .select("incident_id, sent_at")

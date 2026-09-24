@@ -98,6 +98,8 @@ export const incidentDetailMessages = defineMessages({
         is_public: "Public",
       } as Record<string, string>,
     },
+    drillBanner: "This is a drill.",
+    drillBannerHint: "Nothing here can be published or emailed. It is kept out of your reports, and an administrator can clear every drill in Admin.",
     factHint:
       "Correct this if you have learned otherwise. The crisis level is computed from it, so changing it here changes the level — up or down — and the audit log records who did it.",
     levelRecomputed: (level: string) => `Crisis level is now ${level}.`,
@@ -225,6 +227,8 @@ export const incidentDetailMessages = defineMessages({
         is_public: "Público",
       } as Record<string, string>,
     },
+    drillBanner: "Esto es un simulacro.",
+    drillBannerHint: "Nada de esto puede publicarse ni enviarse por correo. No entra en tus informes, y un administrador puede borrar todos los simulacros en Administración.",
     factHint:
       "Corrígelo si te consta lo contrario. El nivel de crisis se calcula a partir de este dato, así que cambiarlo aquí cambia el nivel — hacia arriba o hacia abajo — y el registro de auditoría deja constancia de quién lo hizo.",
     levelRecomputed: (level: string) => `El nivel de crisis ahora es ${level}.`,

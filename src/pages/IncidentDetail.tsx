@@ -66,6 +66,7 @@ type Incident = {
   approved_at: string | null;
   approved_by: string | null;
   created_by: string | null;
+  is_drill: boolean;
   created_at: string;
   updated_at: string;
   translations: unknown;
@@ -478,6 +479,16 @@ export default function IncidentDetail() {
               ))}
             </ul>
           </Card>
+
+          {/* Said once, loudly, at the top of everything. A drill that reads
+              like a real incident is the failure mode this whole flag exists
+              to prevent. */}
+          {incident.is_drill && (
+            <div className="rounded-md border border-risk-medium/60 bg-risk-medium-bg/40 px-4 py-3">
+              <p className="text-sm font-semibold text-risk-medium">{t.drillBanner}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{t.drillBannerHint}</p>
+            </div>
+          )}
 
           {/* The sequence, which during a crisis is the information: what did
               we know, when, and what had we already said by then. */}

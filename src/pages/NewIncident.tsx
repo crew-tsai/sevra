@@ -53,6 +53,7 @@ export default function NewIncident() {
 
   // Risk Context
   const [injuryFatality, setInjuryFatality] = useState(false);
+  const [isDrill, setIsDrill] = useState(false);
   const [regulatorInvolved, setRegulatorInvolved] = useState(false);
   const [estimatedPassengers, setEstimatedPassengers] = useState("");
   const [isPublic, setIsPublic] = useState(false);
@@ -119,6 +120,7 @@ export default function NewIncident() {
       estimated_passengers_impacted: passengers,
       is_public: isPublic,
       influencer_media_involved: influencerMedia,
+      is_drill: isDrill,
       source,
       risk,
       risk_score: riskScore,
@@ -206,6 +208,23 @@ export default function NewIncident() {
               <Label htmlFor="country">{t.country}</Label>
               <Input id="country" placeholder={t.countryPlaceholder} value={country} onChange={(e) => setCountry(e.target.value)} maxLength={60} />
             </div>
+          </div>
+        </section>
+
+        {/* A rehearsal, marked before anything else is typed. Placed above the
+            details on purpose: deciding afterwards that "this was only a
+            drill" is exactly the thing that must not be possible. */}
+        <section>
+          <div
+            className={`flex items-center justify-between rounded-md border p-3 ${
+              isDrill ? "border-risk-medium/60 bg-risk-medium-bg/40" : "border-border"
+            }`}
+          >
+            <div className="min-w-0">
+              <Label htmlFor="drill" className="cursor-pointer">{t.drill}</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">{isDrill ? t.drillOn : t.drillHint}</p>
+            </div>
+            <Switch id="drill" checked={isDrill} onCheckedChange={setIsDrill} />
           </div>
         </section>
 

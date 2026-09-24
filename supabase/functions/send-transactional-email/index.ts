@@ -67,6 +67,7 @@ Deno.serve(async (req) => {
   let recipientEmail: string
   let idempotencyKey: string
   let messageId: string
+  let assetId: string | null = null
   let templateData: Record<string, any> = {}
   try {
     const body = await req.json()
@@ -74,6 +75,7 @@ Deno.serve(async (req) => {
     recipientEmail = body.recipientEmail || body.recipient_email
     messageId = crypto.randomUUID()
     idempotencyKey = body.idempotencyKey || body.idempotency_key || messageId
+    assetId = body.assetId || body.asset_id || null
     if (body.templateData && typeof body.templateData === 'object') {
       templateData = body.templateData
     }
@@ -132,6 +134,31 @@ Deno.serve(async (req) => {
 
   // Create Supabase client with service role (bypasses RLS)
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+  // 1b. A drill never leaves the building.
+  //
+  // Checked here rather than only in the browser because this is the last
+  // place before an address is handed to the provider, and a rehearsal that
+  // mails a real stakeholder list has stopped being a rehearsal. Callers that
+  // send on behalf of an asset pass its id; everything else is unaffected.
+  if (assetId) {
+    const { data: assetRow } = await supabase
+      .from('incident_assets')
+      .select('is_drill')
+      .eq('id', assetId)
+      .maybeSingle()
+    if (assetRow?.is_drill) {
+      console.log('send-transactional-email: drill asset, nothing sent', { assetId })
+      return new Response(
+        JSON.stringify({
+          success: true,
+          drill: true,
+          message: 'This is a drill. No email was sent.',
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+  }
 
   // 2. Check suppression list (fail-closed: if we can't verify, don't send)
   const { data: suppressed, error: suppressionError } = await supabase

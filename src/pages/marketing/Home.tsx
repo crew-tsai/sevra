@@ -43,7 +43,10 @@ export default function Home() {
     const { error } = await supabase.from("leads").insert([parsed.data as { name: string; email: string; company?: string; industry?: string; message?: string }]);
     setLoading(false);
     if (error) {
-      toast.error(m.submitFailed);
+      // The rate limit raises 53400 with a sentence written for the person who
+      // hit it. Showing the generic failure instead would tell someone who
+      // submitted twice by accident that the form is broken.
+      toast.error(error.code === "53400" ? error.message : m.submitFailed);
       return;
     }
     setDone(true);

@@ -417,6 +417,7 @@ export type Database = {
           escalated_at: string | null
           id: string
           incident_id: string
+          is_drill: boolean
           language: string | null
           media_source: string | null
           media_type: string | null
@@ -436,6 +437,7 @@ export type Database = {
           escalated_at?: string | null
           id?: string
           incident_id: string
+          is_drill?: boolean
           language?: string | null
           media_source?: string | null
           media_type?: string | null
@@ -455,6 +457,7 @@ export type Database = {
           escalated_at?: string | null
           id?: string
           incident_id?: string
+          is_drill?: boolean
           language?: string | null
           media_source?: string | null
           media_type?: string | null
@@ -579,6 +582,7 @@ export type Database = {
           incident_type: string
           influencer_media_involved: boolean
           injury_fatality: boolean
+          is_drill: boolean
           is_public: boolean
           package_requested_at: string | null
           regulator_involved: boolean
@@ -611,6 +615,7 @@ export type Database = {
           incident_type: string
           influencer_media_involved?: boolean
           injury_fatality?: boolean
+          is_drill?: boolean
           is_public?: boolean
           package_requested_at?: string | null
           regulator_involved?: boolean
@@ -643,6 +648,7 @@ export type Database = {
           incident_type?: string
           influencer_media_involved?: boolean
           injury_fatality?: boolean
+          is_drill?: boolean
           is_public?: boolean
           package_requested_at?: string | null
           regulator_involved?: boolean
@@ -1088,6 +1094,7 @@ export type Database = {
           human_risk_by: string | null
           id: string
           incident_id: string | null
+          is_drill: boolean
           is_influencer: boolean | null
           is_verified: boolean | null
           likes: number | null
@@ -1123,6 +1130,7 @@ export type Database = {
           human_risk_by?: string | null
           id?: string
           incident_id?: string | null
+          is_drill?: boolean
           is_influencer?: boolean | null
           is_verified?: boolean | null
           likes?: number | null
@@ -1158,6 +1166,7 @@ export type Database = {
           human_risk_by?: string | null
           id?: string
           incident_id?: string | null
+          is_drill?: boolean
           is_influencer?: boolean | null
           is_verified?: boolean | null
           likes?: number | null
@@ -1671,6 +1680,13 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      purge_drills: {
+        Args: never
+        Returns: {
+          incidents_removed: number
+          mentions_removed: number
+        }[]
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }

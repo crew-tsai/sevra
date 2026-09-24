@@ -89,6 +89,18 @@ export const adminMessages = defineMessages({
     status: "Status",
     active: "Active",
     pending: "Pending",
+    drills: {
+      title: "Drill data",
+      intro: "Rehearsals are kept out of your reports and can never be published or emailed. When you are finished with them, remove them here.",
+      none: "No drill data.",
+      holding: (incidents: number, mentions: number) =>
+        `Holding ${incidents} drill incident${incidents === 1 ? "" : "s"} and ${mentions} loose drill mention${mentions === 1 ? "" : "s"}.`,
+      clear: "Clear drill data",
+      confirm: (incidents: number, mentions: number) =>
+        `Delete ${incidents} incident${incidents === 1 ? "" : "s"} and everything in them`,
+      cancel: "Cancel",
+      cleared: "Drill data removed.",
+    },
     focus: {
       title: "Monitoring focus",
       intro: "Narrows what monitoring collects when your name is also a common word, or a word in another language.",
@@ -195,6 +207,18 @@ export const adminMessages = defineMessages({
     status: "Estado",
     active: "Activo",
     pending: "Pendiente",
+    drills: {
+      title: "Datos de simulacro",
+      intro: "Los ensayos no entran en tus informes y nunca pueden publicarse ni enviarse por correo. Cuando termines con ellos, bórralos aquí.",
+      none: "No hay datos de simulacro.",
+      holding: (incidents: number, mentions: number) =>
+        `Hay ${incidents} incidente${incidents === 1 ? "" : "s"} de simulacro y ${mentions} mención${mentions === 1 ? "" : "es"} suelta${mentions === 1 ? "" : "s"}.`,
+      clear: "Borrar datos de simulacro",
+      confirm: (incidents: number, mentions: number) =>
+        `Eliminar ${incidents} incidente${incidents === 1 ? "" : "s"} y todo su contenido`,
+      cancel: "Cancelar",
+      cleared: "Datos de simulacro eliminados.",
+    },
     focus: {
       title: "Enfoque de la monitorización",
       intro: "Reduce lo que se captura cuando el nombre de tu empresa es también una palabra común, o una palabra en otro idioma.",

@@ -17,6 +17,7 @@ import { toast } from "@/hooks/use-toast";
 import { Loader2, Upload, FileText, Trash2, ShieldAlert, Building2, Users, Palette, Mail, Network, Share2 } from "lucide-react";
 import { z } from "zod";
 import EmailListsManager from "@/components/admin/EmailListsManager";
+import { DrillData } from "@/components/admin/DrillData";
 import ResponsibilityMatrixEditor from "@/components/admin/ResponsibilityMatrixEditor";
 import SocialConnectionsManager from "@/components/admin/SocialConnectionsManager";
 import SendingDomainManager from "@/components/admin/SendingDomainManager";
@@ -376,6 +377,8 @@ export default function Admin() {
                 onLanguages={setMonitorLanguages}
                 onExcludeTerms={setMonitorExcludeTerms}
               />
+
+              <DrillData isAdmin={isAdmin} />
 
               <div className="space-y-2">
                 <Label>{t.manual}</Label>
