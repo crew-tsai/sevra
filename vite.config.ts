@@ -13,23 +13,17 @@ export default defineConfig(({ mode }) => ({
     },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
-  build: {
-    rollupOptions: {
-      output: {
-        // Vendor code changes on a different clock from ours: splitting it out
-        // means a deploy of the product does not re-download React and the
-        // component library. Only libraries large enough to be worth a
-        // separate request are named.
-        manualChunks(id: string) {
-          if (!id.includes("node_modules")) return;
-          if (id.includes("react-dom") || id.includes("/react/") || id.includes("scheduler")) return "vendor-react";
-          if (id.includes("@supabase")) return "vendor-supabase";
-          if (id.includes("@radix-ui")) return "vendor-radix";
-          if (id.includes("recharts") || id.includes("d3-")) return "vendor-charts";
-        },
-      },
-    },
-  },
+  // No manualChunks. Naming vendor chunks by path split a cyclic module
+  // group — recharts and its d3 internals — across chunks, and they were then
+  // evaluated out of order: "ReferenceError: Cannot access 'S' before
+  // initialization", thrown from vendor-charts on page load, which killed the
+  // whole app behind a blank screen. The chunk import graph was acyclic, which
+  // is why inspecting it did not catch this; acyclic chunks do not imply a
+  // safe evaluation order for modules that reference each other.
+  //
+  // Rollup's own splitting already gives a chunk per lazy route and puts
+  // shared dependencies where they can be initialised safely. The route-level
+  // laziness is where the benefit was anyway.
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
