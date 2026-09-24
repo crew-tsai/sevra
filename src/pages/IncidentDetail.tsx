@@ -120,7 +120,9 @@ export default function IncidentDetail() {
   const { lang } = useLang();
   const intl = useIntlLocale();
   const fmt = (iso: string | null | undefined) => formatDateTime(iso, intl);
-  const backLabel = navState?.fromLabel ?? t.back;
+  // Arriving without navigation state — a direct link, a bookmark, a refresh
+  // — left this as backTo("Back"), which rendered "Back to Back".
+  const backLabel = navState?.fromLabel ?? null;
   const [incident, setIncident] = useState<Incident | null>(null);
   const [mentions, setMentions] = useState<Mention[]>([]);
   const [assetCount, setAssetCount] = useState(0);
@@ -135,6 +137,7 @@ export default function IncidentDetail() {
   const [team, setTeam] = useState<Array<{ user_id: string; name: string }>>([]);
   const [assigning, setAssigning] = useState(false);
   const [savingFact, setSavingFact] = useState<string | null>(null);
+  const [changingStatus, setChangingStatus] = useState(false);
   const vocab = profileFor(industry, lang);
 
   useEffect(() => {
@@ -299,6 +302,29 @@ export default function IncidentDetail() {
     await load();
   };
 
+  /**
+   * Move the incident along its lifecycle.
+   *
+   * The stepper displayed four stages and could reach none of them. Resolving
+   * is the one that matters most: it is what takes a finished crisis off the
+   * dashboard and what makes the after-action review available at all.
+   */
+  const setStatus = async (next: Incident["status"]) => {
+    if (!incident || next === incident.status) return;
+    setChangingStatus(true);
+    const { data, error } = await supabase
+      .from("incidents")
+      .update({ status: next })
+      .eq("id", incident.id)
+      .select("id");
+    setChangingStatus(false);
+    // RLS refuses without raising, so report what actually changed.
+    if (error) return toast.error(error.message);
+    if (!data?.length) return toast.error(t.statusRefused);
+    toast.success(t.statusChanged(common.status[next] ?? next));
+    await load();
+  };
+
   const approve = async () => {
     if (!incident) return;
     setApproving(true);
@@ -445,7 +471,7 @@ export default function IncidentDetail() {
           onClick={() => (backTo ? navigate(backTo) : navigate(-1))}
           className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> {t.backTo(backLabel)}
+          <ArrowLeft className="h-3.5 w-3.5" /> {backLabel ? t.backTo(backLabel) : t.back}
         </button>
       </div>
 
@@ -509,7 +535,11 @@ export default function IncidentDetail() {
           <h2 className="text-sm font-semibold text-foreground">{t.lifecycle}</h2>
           <span className="text-[11px] text-muted-foreground">{t.currentStage} <span className="text-foreground font-medium">{common.status[incident.status] ?? incident.status}</span></span>
         </div>
-        <StatusStepper status={incident.status} />
+        <StatusStepper
+          status={incident.status}
+          busy={changingStatus}
+          onChange={canEditFacts ? (next) => void setStatus(next) : undefined}
+        />
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

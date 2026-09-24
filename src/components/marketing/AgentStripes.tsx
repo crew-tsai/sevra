@@ -169,7 +169,12 @@ export default function AgentStripes() {
         onClick={() => setOpen((o) => !o)}
         className={cn(
           "fixed z-50",
-          "bottom-4 right-4 sm:bottom-6 sm:left-1/2 sm:right-auto sm:-translate-x-1/2",
+          // Bottom-RIGHT, not bottom-centre. Centred, it sat on top of the
+          // main column on every page: it covered the baseline text on
+          // Workflows and two rows of the incident timeline. A launcher that
+          // hides the content it is meant to help with is worse than no
+          // launcher.
+          "bottom-4 right-4 sm:bottom-6 sm:right-6",
           "flex items-center gap-2 sm:gap-3 rounded-full p-2 sm:pl-4 sm:pr-6 sm:py-3",
           "bg-primary text-primary-foreground shadow-2xl shadow-primary/30",
           "hover:scale-105 transition-transform",
@@ -193,7 +198,7 @@ export default function AgentStripes() {
           className={cn(
             "fixed z-50 bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden",
             "bottom-4 right-4 left-4 h-[min(600px,calc(100vh-2rem))]",
-            "sm:bottom-6 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-[min(420px,calc(100vw-2rem))] sm:h-[min(600px,calc(100vh-3rem))]",
+            "sm:bottom-6 sm:right-6 sm:left-auto sm:w-[min(420px,calc(100vw-2rem))] sm:h-[min(600px,calc(100vh-3rem))]",
           )}
         >
           <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-gradient-to-r from-primary/10 to-transparent">

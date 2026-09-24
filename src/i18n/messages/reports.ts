@@ -9,6 +9,12 @@ export const reportsMessages = defineMessages({
     accuracyIntro: "From the verdicts your team recorded on Social Intel, over the last 90 days.",
     accuracyEmpty: "Nobody has corrected a classification yet. On Social Intel, tell Sevra what a mention should have been — that is the only thing this can be measured from.",
     accuracyAgreed: (n: number) => `agreed, out of ${n} judged`,
+    accuracyByOne: "disagreed by one band — the mildest kind",
+    accuracySerious: "disagreed by more than one band",
+    accuracyImplicit: (n: number) =>
+      `${n} of these are mentions your team dismissed, counted as "not a crisis". Dismissing something is a verdict, so it is included rather than waiting for anyone to grade mentions by hand.`,
+    accuracySplit: (over: number, under: number) =>
+      `${over} called worse than your team judged, ${under} called milder.`,
     accuracyOver: "called worse than it was",
     accuracyUnder: "called milder than it was",
     speedTitle: "How fast you speak",
@@ -47,6 +53,12 @@ export const reportsMessages = defineMessages({
     accuracyIntro: "Según los veredictos que tu equipo registró en Social Intel, en los últimos 90 días.",
     accuracyEmpty: "Todavía nadie ha corregido una clasificación. En Social Intel, dile a Sevra qué debería haber sido una mención — es lo único con lo que se puede medir esto.",
     accuracyAgreed: (n: number) => `de acuerdo, de ${n} valoradas`,
+    accuracyByOne: "difieren en un nivel — la discrepancia más leve",
+    accuracySerious: "difieren en más de un nivel",
+    accuracyImplicit: (n: number) =>
+      `${n} de estas son menciones que tu equipo descartó, contadas como «no es una crisis». Descartar algo es un veredicto, así que se incluye en vez de esperar a que alguien califique menciones a mano.`,
+    accuracySplit: (over: number, under: number) =>
+      `${over} calificadas peor de lo que juzgó tu equipo, ${under} más leves.`,
     accuracyOver: "calificadas peor de lo que eran",
     accuracyUnder: "calificadas más leves de lo que eran",
     speedTitle: "Cuánto tardas en hablar",

@@ -124,11 +124,25 @@ export function IncidentTimeline({ incidentId, openedAt }: { incidentId: string;
       });
     }
 
+    // A package is twelve communications written in the same second. Twelve
+    // rows saying so pushes the events that matter — the level moving, the
+    // statement going out — off the screen. They collapse to one row per
+    // batch, naming what was in it.
+    const drafts = new Map<string, string[]>();
     for (const a of assets ?? []) {
-      out.push({ at: a.created_at, kind: "drafted", title: t.drafted(a.title) });
+      const minute = a.created_at.slice(0, 16);
+      drafts.set(minute, [...(drafts.get(minute) ?? []), a.title]);
       if (a.approved_at) {
         out.push({ at: a.approved_at, kind: "approved", title: t.approved(a.title) });
       }
+    }
+    for (const [, titles] of drafts) {
+      const at = (assets ?? []).find((a) => titles.includes(a.title))!.created_at;
+      out.push(
+        titles.length === 1
+          ? { at, kind: "drafted", title: t.drafted(titles[0]) }
+          : { at, kind: "drafted", title: t.draftedMany(titles.length), detail: titles.join(" · ") },
+      );
     }
 
     for (const s of sends ?? []) {

@@ -193,13 +193,30 @@ export default function Dashboard() {
   ];
 
   // 3. Social mentions — rich decision view
+  /**
+   * What this workspace is actually facing, excluding what it threw away.
+   *
+   * Every figure on this screen was computed over every row, dismissed ones
+   * included. On The Stellar Crew that meant a headline of 74 mentions,
+   * 144.9K reach and 69 influential accounts — when 69 of the 74 had been
+   * dismissed by the team, all 69 "influencers" were among them, and the real
+   * reach of what remained was five. The screen is titled "real-time risk
+   * posture"; it was reporting the posture of the bin.
+   *
+   * Dismissed means a person looked at it and said it was not about us. It is
+   * kept (it is evidence about the classifier) and it is counted nowhere that
+   * describes risk.
+   */
+  const live = useMemo(() => mentions.filter((m) => m.status !== "dismissed"), [mentions]);
+  const dismissedCount = mentions.length - live.length;
+
   const RISK_WEIGHT: Record<string, number> = { critical: 100, high: 60, medium: 25, low: 5 };
   const channelStats = useMemo(() => {
     const map = new Map<
       string,
       { count: number; reach: number; negative: number; influencers: number }
     >();
-    for (const m of mentions) {
+    for (const m of live) {
       const k = (m.channel ?? "web").toLowerCase();
       const cur = map.get(k) ?? { count: 0, reach: 0, negative: 0, influencers: 0 };
       cur.count += 1;
@@ -211,24 +228,25 @@ export default function Dashboard() {
     return Array.from(map.entries())
       .map(([channel, v]) => ({ channel, ...v }))
       .sort((a, b) => b.count - a.count);
-  }, [mentions]);
-  const mentionsTotal = mentions.length;
-  const influencerCount = mentions.filter((m) => m.is_influencer).length;
-  const verifiedCount = mentions.filter((m) => m.is_verified).length;
-  const totalReach = mentions.reduce((s, m) => s + (m.reach ?? 0), 0);
-  const totalEngagement = mentions.reduce(
+  }, [live]);
+
+  const mentionsTotal = live.length;
+  const influencerCount = live.filter((m) => m.is_influencer).length;
+  const verifiedCount = live.filter((m) => m.is_verified).length;
+  const totalReach = live.reduce((s, m) => s + (m.reach ?? 0), 0);
+  const totalEngagement = live.reduce(
     (s, m) => s + (m.likes ?? 0) + (m.shares ?? 0),
     0,
   );
   const mentionRiskCounts = useMemo(() => {
     const c = { critical: 0, high: 0, medium: 0, low: 0, unscored: 0 };
-    for (const m of mentions) {
+    for (const m of live) {
       const r = m.ai_risk;
       if (r && r in c) (c as any)[r] += 1;
       else c.unscored += 1;
     }
     return c;
-  }, [mentions]);
+  }, [live]);
   const negativeShare = mentionsTotal
     ? Math.round(((mentionRiskCounts.critical + mentionRiskCounts.high) / mentionsTotal) * 100)
     : 0;
@@ -238,7 +256,7 @@ export default function Dashboard() {
     const now = Date.now();
     const H = 60 * 60 * 1000;
     let last = 0, prev = 0;
-    for (const m of mentions) {
+    for (const m of live) {
       const t = new Date(m.posted_at ?? m.created_at).getTime();
       if (now - t <= H) last += 1;
       else if (now - t <= 2 * H) prev += 1;
@@ -246,18 +264,18 @@ export default function Dashboard() {
     const delta = last - prev;
     const pct = prev === 0 ? (last > 0 ? 100 : 0) : Math.round(((last - prev) / prev) * 100);
     return { last, prev, delta, pct };
-  }, [mentions]);
+  }, [live]);
 
   // Crisis pressure score (0–100) — blends volume, negativity, reach, influencer weight
   const pressure = useMemo(() => {
     if (mentionsTotal === 0) return 0;
-    const weighted = mentions.reduce(
+    const weighted = live.reduce(
       (s, m) => s + (RISK_WEIGHT[m.ai_risk ?? ""] ?? 10) * (m.is_influencer ? 2 : 1),
       0,
     );
     const score = Math.min(100, Math.round(weighted / mentionsTotal));
     return score;
-  }, [mentions, mentionsTotal]);
+  }, [live, mentionsTotal]);
   const pressureTone =
     pressure >= 70
       ? { label: "High", color: "text-risk-critical", bg: "bg-risk-critical", bgSoft: "bg-risk-critical-bg" }
@@ -374,7 +392,7 @@ export default function Dashboard() {
   const sentiment = useMemo(() => {
     let negCount = 0, neuCount = 0, posCount = 0;
     let negReach = 0, neuReach = 0, posReach = 0;
-    for (const m of mentions) {
+    for (const m of live) {
       const reach = Math.max(1, m.reach ?? 0);
       const bucket = classifySentiment(m);
       if (bucket === "negative") { negCount += 1; negReach += reach; }
@@ -476,7 +494,13 @@ export default function Dashboard() {
                 ) : null}
               </div>
               <p className="text-xl font-semibold text-primary">{mentionsTotal}</p>
-              <p className="text-[10px] text-muted-foreground">{t.inLastHour(velocity.last)}</p>
+              <p className="text-[10px] text-muted-foreground">
+                {t.inLastHour(velocity.last)}
+                {/* Said out loud rather than quietly omitted. A number that
+                    dropped from 74 to 5 with no explanation is its own kind of
+                    wrong. */}
+                {dismissedCount > 0 && <span className="block">{t.dismissedExcluded(dismissedCount)}</span>}
+              </p>
             </div>
             <div className="rounded-md bg-muted px-3 py-2">
               <div className="flex items-center gap-1">

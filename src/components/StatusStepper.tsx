@@ -11,9 +11,34 @@ const STAGES: { key: IncidentStatus; icon: typeof AlertCircle }[] = [
   { key: "resolved", icon: CheckCircle2 },
 ];
 
-export function StatusStepper({ status, className }: { status: IncidentStatus; className?: string }) {
+/**
+ * Where an incident is in its life, and — when the caller passes onChange —
+ * how it is moved.
+ *
+ * It was presentational only. Nothing anywhere in the app could write
+ * incidents.status, so every incident opened as Active and stayed Active
+ * forever: the four stages were a picture. That is not a cosmetic gap. A
+ * crisis that never ends keeps appearing in Critical Top 3, keeps counting
+ * towards "active now", and can never reach the after-action review, which
+ * only offers itself once the thing is over.
+ *
+ * Without onChange it stays exactly as it was, so any read-only use is
+ * unaffected.
+ */
+export function StatusStepper({
+  status,
+  className,
+  onChange,
+  busy,
+}: {
+  status: IncidentStatus;
+  className?: string;
+  onChange?: (next: IncidentStatus) => void;
+  busy?: boolean;
+}) {
   const currentIdx = STAGES.findIndex((s) => s.key === status);
   const t = useMessages(commonMessages);
+  const interactive = !!onChange;
 
   return (
     <div className={cn("w-full", className)}>
@@ -25,16 +50,27 @@ export function StatusStepper({ status, className }: { status: IncidentStatus; c
           return (
             <div key={stage.key} className="flex items-center flex-1 last:flex-none">
               <div className="flex flex-col items-center gap-1.5 shrink-0">
-                <div
+                <button
+                  type="button"
+                  disabled={!interactive || busy || isCurrent}
+                  onClick={() => onChange?.(stage.key)}
+                  // Reads as a label when it cannot be used, and as a control
+                  // when it can, rather than looking clickable either way.
+                  aria-current={isCurrent ? "step" : undefined}
+                  aria-label={t.status[stage.key]}
                   className={cn(
                     "h-8 w-8 rounded-full flex items-center justify-center border-2 transition-colors",
                     isCurrent && "border-primary bg-primary text-primary-foreground",
                     isDone && "border-primary bg-primary/10 text-primary",
                     !isCurrent && !isDone && "border-border bg-background text-muted-foreground",
+                    interactive && !isCurrent && !busy &&
+                      "cursor-pointer hover:border-primary hover:text-primary",
+                    (!interactive || isCurrent) && "cursor-default",
+                    busy && "opacity-60",
                   )}
                 >
                   <Icon className="h-4 w-4" />
-                </div>
+                </button>
                 <span
                   className={cn(
                     "text-[11px] font-medium",

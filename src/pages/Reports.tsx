@@ -50,7 +50,7 @@ export default function Reports() {
   const [allAssets, setAllAssets] = useState<Asset[]>([]);
   const [allMentions, setAllMentions] = useState<Mention[]>([]);
   const [firstSend, setFirstSend] = useState<Record<string, string>>({});
-  const [agreement, setAgreement] = useState<{ judged: number; agreed: number; overcalled: number; undercalled: number } | null>(null);
+  const [agreement, setAgreement] = useState<{ judged: number; agreed: number; overcalled: number; undercalled: number; implicit: number; by_one: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
   const t = useMessages(reportsMessages);
@@ -296,21 +296,33 @@ export default function Reports() {
           {!agreement || agreement.judged === 0 ? (
             <p className="text-sm text-muted-foreground">{t.accuracyEmpty}</p>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div>
-                <p className="text-2xl font-bold text-foreground">
-                  {Math.round((agreement.agreed / agreement.judged) * 100)}%
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">{t.accuracyAgreed(agreement.judged)}</p>
+            <div className="space-y-3">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <p className="text-2xl font-bold text-foreground">
+                    {Math.round((agreement.agreed / agreement.judged) * 100)}%
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">{t.accuracyAgreed(agreement.judged)}</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{agreement.by_one}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t.accuracyByOne}</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">
+                    {agreement.judged - agreement.agreed - agreement.by_one}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">{t.accuracySerious}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{agreement.overcalled}</p>
-                <p className="text-xs text-muted-foreground mt-1">{t.accuracyOver}</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{agreement.undercalled}</p>
-                <p className="text-xs text-muted-foreground mt-1">{t.accuracyUnder}</p>
-              </div>
+              {/* Where the verdicts came from, because "69 judged" would
+                  otherwise imply a team grading every mention by hand. */}
+              {agreement.implicit > 0 && (
+                <p className="text-xs text-muted-foreground">{t.accuracyImplicit(agreement.implicit)}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {t.accuracySplit(agreement.overcalled, agreement.undercalled)}
+              </p>
             </div>
           )}
         </CardContent>
