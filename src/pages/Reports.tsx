@@ -77,7 +77,10 @@ export default function Reports() {
         // mode must never do.
         supabase.from("incidents").select("id, created_at, risk, status, source, incident_type").eq("is_drill", false).order("created_at", { ascending: false }).limit(1000),
         supabase.from("incident_assets").select("id, created_at, asset_type, approval_status").eq("is_drill", false).order("created_at", { ascending: false }).limit(1000),
-        supabase.from("social_mentions").select("id, created_at, ai_risk").eq("is_drill", false).order("created_at", { ascending: false }).limit(1000),
+        // Dismissed excluded here too. The dashboard and this page use the same
+        // words for the same thing, and a client who sees "5 mentions" on one
+        // screen and "71" on the other has no way to tell which is lying.
+        supabase.from("social_mentions").select("id, created_at, ai_risk").eq("is_drill", false).neq("status", "dismissed").order("created_at", { ascending: false }).limit(1000),
         supabase
           .from("communication_sends")
           .select("incident_id, sent_at")
