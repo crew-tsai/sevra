@@ -85,6 +85,38 @@ function missingSecrets(): string[] {
   return needed.filter(([name]) => !Deno.env.get(name)?.trim()).map(([name]) => name);
 }
 
+/**
+ * Where RLS and table privileges disagree.
+ *
+ * Both gates must open for a query to work, and Postgres checks privileges
+ * first — so a missing GRANT means the policy is never even consulted. The
+ * failure is invisible from the inside: no error is logged anywhere, the
+ * feature just does nothing.
+ *
+ * Never allowed to break the heartbeat. A deployment that cannot answer this
+ * question still needs to report everything else.
+ */
+// deno-lint-ignore no-explicit-any
+async function grantMismatches(admin: any): Promise<string[]> {
+  try {
+    const { data, error } = await admin.rpc("policy_grant_mismatches");
+    if (error) {
+      // Older clients have not run the migration that adds it yet, which is
+      // not a fault worth reporting as one.
+      if (!/does not exist|schema cache/i.test(error.message)) {
+        console.error("heartbeat: grant check failed", error.message);
+      }
+      return [];
+    }
+    return ((data ?? []) as Array<{ table_name: string; role_name: string; action: string }>)
+      .map((r) => `${r.table_name}:${r.role_name}:${r.action}`)
+      .slice(0, 12);
+  } catch (e) {
+    console.error("heartbeat: grant check threw", e);
+    return [];
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -153,6 +185,11 @@ Deno.serve(async (req) => {
         social_networks: connectedNetworks,
         // What this deployment cannot do, by name. See missingSecrets().
         secrets_missing: missingSecrets(),
+        // Tables whose RLS promises something the table grants refuse. This
+        // fails closed and silently — the feature simply never works — and
+        // that is how the public demo form sat broken from the beginning
+        // without anybody knowing.
+        grant_mismatches: await grantMismatches(admin),
       },
       member_hashes,
     };
