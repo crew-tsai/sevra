@@ -155,11 +155,29 @@ serve(async (req) => {
 
     const response = await chatCompletion({
       model: MODELS.reasoning,
+      // ONE system message, not four.
+      //
+      // Gemini's OpenAI-compatible surface folds system messages into a single
+      // systemInstruction and does not reliably carry the extras. This was
+      // three messages until product knowledge was added as a second, which
+      // pushed the live workspace snapshot to third — and the assistant began
+      // answering "I have no incident data loaded for your workspace" while
+      // explaining the product perfectly. It had been given the workspace and
+      // never received it.
+      //
+      // Everything the model must know now travels in one message, in the
+      // order it should be weighed: who it is, how the product works, what is
+      // actually in this workspace right now, and which language to answer in.
       messages: [
-        { role: "system", content: buildSystemPrompt(companyName, industry) },
-        { role: "system", content: productFacts() },
-        { role: "system", content: platformContext },
-        { role: "system", content: languageRule },
+        {
+          role: "system",
+          content: [
+            buildSystemPrompt(companyName, industry),
+            productFacts(),
+            platformContext,
+            languageRule,
+          ].join("\n\n"),
+        },
         ...messages,
       ],
       stream: true,
