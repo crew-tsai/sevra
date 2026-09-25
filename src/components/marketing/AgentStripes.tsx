@@ -232,8 +232,43 @@ export default function AgentStripes() {
                     : "bg-muted text-foreground",
                 )}
               >
-                <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0">
-                  <ReactMarkdown>{m.content}</ReactMarkdown>
+                {/*
+                  Two things had to change for this to read like an answer
+                  rather than a wall.
+
+                  Markdown collapses a single newline into a space, so the
+                  assistant's one-fact-per-line replies arrived as a single
+                  unbroken paragraph. `whitespace-pre-line` on the paragraph
+                  keeps those newlines, which is how people expect a chat
+                  message to behave — and costs no extra dependency.
+
+                  And the spacing was crushed to almost nothing
+                  (prose-p:my-1, prose-li:my-0). In a 420px panel that is the
+                  difference between scannable and solid.
+                */}
+                <div
+                  className={cn(
+                    "prose prose-sm max-w-none",
+                    "prose-p:my-2 prose-p:leading-relaxed",
+                    "prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-li:leading-relaxed",
+                    "prose-headings:mt-3 prose-headings:mb-1.5 prose-headings:text-sm prose-headings:font-semibold",
+                    "prose-strong:font-semibold",
+                    "prose-code:text-[0.8em] prose-code:before:content-none prose-code:after:content-none",
+                    "first:prose-p:mt-0 last:prose-p:mb-0",
+                    m.role === "user"
+                      ? "prose-invert prose-strong:text-primary-foreground"
+                      : "dark:prose-invert",
+                  )}
+                >
+                  <ReactMarkdown
+                    components={{
+                      p: ({ node: _node, ...props }) => (
+                        <p className="whitespace-pre-line" {...props} />
+                      ),
+                    }}
+                  >
+                    {m.content}
+                  </ReactMarkdown>
                 </div>
               </div>
             ))}
