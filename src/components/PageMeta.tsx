@@ -8,7 +8,7 @@ interface PageMetaProps {
   noindex?: boolean;
 }
 
-const SITE = "https://demo.safesevra.com";
+const SITE = "https://sevra-xi.vercel.app";
 const OG_IMAGE = `${SITE}/og-share.jpg`;
 
 export function PageMeta({ title, description, path = "/", type = "website", noindex }: PageMetaProps) {

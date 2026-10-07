@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://demo.safesevra.com/sitemap.xml
+Sitemap: https://sevra-xi.vercel.app/sitemap.xml
