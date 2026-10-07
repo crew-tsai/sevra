@@ -27,9 +27,9 @@ export const legalMessages = defineMessages<{
     footerDeletion: "Data deletion",
     privacy: {
       title: "Privacy Policy",
-      updated: "Last updated: September 19, 2026",
+      updated: "Last updated: October 7, 2026",
       intro: [
-        `Sevra is a crisis-communications platform operated by ${COMPANY}, a Texas limited liability company ("we", "us"). This policy explains what information Sevra handles, why, and the choices you have.`,
+        `Sevra is a crisis-communications platform operated by ${COMPANY}, a Texas limited liability company, part-owned by Merx LLC, a Florida limited liability company ("we", "us"). This policy explains what information Sevra handles, why, and the choices you have.`,
         "Sevra is used by organizations (our \"clients\"). Inside a client's workspace, the client decides what information is added and who can see it; we process it on the client's behalf and under its instructions. For the public website and for our own business contacts, we decide how information is used.",
       ],
       sections: [
@@ -119,9 +119,9 @@ export const legalMessages = defineMessages<{
     },
     terms: {
       title: "Terms of Service",
-      updated: "Last updated: September 19, 2026",
+      updated: "Last updated: October 7, 2026",
       intro: [
-        `These terms govern the use of Sevra, a service of ${COMPANY}, a Texas limited liability company. By using Sevra you agree to them on behalf of yourself and the organization you represent. A signed agreement between us and a client takes precedence over these terms where they differ.`,
+        `These terms govern the use of Sevra, a service of ${COMPANY}, a Texas limited liability company, part-owned by Merx LLC, a Florida limited liability company. By using Sevra you agree to them on behalf of yourself and the organization you represent. A signed agreement between us and a client takes precedence over these terms where they differ.`,
       ],
       sections: [
         {
@@ -231,9 +231,9 @@ export const legalMessages = defineMessages<{
     footerDeletion: "Eliminación de datos",
     privacy: {
       title: "Política de privacidad",
-      updated: "Última actualización: 19 de septiembre de 2026",
+      updated: "Última actualización: 7 de octubre de 2026",
       intro: [
-        `Sevra es una plataforma de comunicación de crisis operada por ${COMPANY}, una sociedad de responsabilidad limitada de Texas ("nosotros"). Esta política explica qué información trata Sevra, para qué y qué opciones tienes.`,
+        `Sevra es una plataforma de comunicación de crisis operada por ${COMPANY}, una sociedad de responsabilidad limitada de Texas, participada por Merx LLC, una sociedad de responsabilidad limitada de Florida ("nosotros"). Esta política explica qué información trata Sevra, para qué y qué opciones tienes.`,
         "Sevra la utilizan organizaciones (nuestros \"clientes\"). Dentro del espacio de trabajo de un cliente, es el cliente quien decide qué información se añade y quién puede verla; nosotros la tratamos en su nombre y siguiendo sus instrucciones. En el sitio web público y con nuestros propios contactos comerciales, decidimos nosotros cómo se usa la información.",
       ],
       sections: [
@@ -323,9 +323,9 @@ export const legalMessages = defineMessages<{
     },
     terms: {
       title: "Términos del servicio",
-      updated: "Última actualización: 19 de septiembre de 2026",
+      updated: "Última actualización: 7 de octubre de 2026",
       intro: [
-        `Estos términos regulan el uso de Sevra, un servicio de ${COMPANY}, una sociedad de responsabilidad limitada de Texas. Al usar Sevra los aceptas en tu nombre y en el de la organización que representas. Si existe un contrato firmado entre nosotros y un cliente, prevalece sobre estos términos en lo que difieran.`,
+        `Estos términos regulan el uso de Sevra, un servicio de ${COMPANY}, una sociedad de responsabilidad limitada de Texas, participada por Merx LLC, una sociedad de responsabilidad limitada de Florida. Al usar Sevra los aceptas en tu nombre y en el de la organización que representas. Si existe un contrato firmado entre nosotros y un cliente, prevalece sobre estos términos en lo que difieran.`,
       ],
       sections: [
         {
