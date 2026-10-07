@@ -255,13 +255,32 @@ a handful. But it means Meta's timeline need not block the first customers.
 
 ## Running a second entity in parallel — Merx LLC
 
-**Decided 2026-10-07.** The Stellar Crew's verification has been in review since
-19 September. Rather than wait on a single entity, Merx LLC runs a second submission —
-as a *genuine Sevra submission*, not a hedge with different content. Whichever entity
-clears first is the one that ships; the other becomes a spare the app can be
-transferred to later without re-reviewing anything.
+**Revised 2026-10-07, once the relationship was clear: Merx LLC is one of the two
+owners of The Stellar Crew LLC.**
 
-### The rule that makes this legitimate
+That makes Merx a *fallback*, not a parallel race. The first version of this section
+assumed two independent companies and recommended submitting both at once; with a
+parent and its subsidiary that is worse, not better:
+
+- **It is not an independent second chance.** Same corporate family, overlapping people
+  with full control, overlapping documents. That is closer to what Meta's duplicate-app
+  detection looks for across portfolios, not further from it.
+- **Merx does not operate Sevra — The Stellar Crew does.** A Merx-owned app asserts that
+  Merx provides the service. The only truthful fix is to disclose the ownership chain in
+  the legal pages, which *adds* entity surface for a reviewer to find a mismatch in, and
+  mismatch is the top rejection cause.
+- **The tenure clock applies either way**, so it is not faster.
+
+**When Merx is genuinely the right move:** The Stellar Crew is rejected on
+*documentation* and Merx has what it lacks — an older registration, a business bank
+statement, a utility bill at an address matching the registration. That is a real
+reason. "Two chances" is not.
+
+**So the order is:** find out why The Stellar Crew is sitting in review before preparing
+anything under Merx. Approved ends this. Rejected names a field, and only then is it
+worth asking whether Merx's documents answer that specific field better.
+
+### If Merx is used anyway — the rule that makes it legitimate
 
 **App Review approves a use case, not just an app.** Permissions are granted against the
 product you demonstrated in the screencasts. So the Merx app must be reviewed showing
@@ -305,16 +324,20 @@ follows that link from a **Merx-owned** app finds a different company operating 
 service, which is the same class of mismatch that causes most verification rejections,
 and afterwards is a data-controller question rather than a review question.
 
-**This must be settled before the Merx app is submitted, not after.** The wording
-depends on the actual relationship between the two companies — parent, affiliate,
-operator — which is a legal question, not an engineering one. Once decided it is a
-one-line change in that file, and both languages follow.
+**Today this is correct and needs no change**: The Stellar Crew LLC does operate Sevra.
+It only becomes wrong if a **Merx-owned** app ships, and then the accurate wording is
+the ownership chain — Sevra operated by The Stellar Crew LLC, part-owned by Merx LLC —
+not a swap of one name for the other, which would be false.
+
+Note what that costs: the privacy policy stops naming one company and starts explaining
+a corporate structure, on the page a reviewer opens first. That is a reason to prefer
+keeping the app under the operating entity unless documentation forces the switch.
 
 ### Do not
 
-- Submit the same screencasts under both entities **at the same time**. Meta flags
-  near-duplicate apps across portfolios, and the risk is both being penalised rather
-  than two chances. Stage them: one under review at a time.
+- Submit under both entities **at the same time**. Meta flags near-duplicate apps across
+  portfolios, and two portfolios owned by the same people make that more likely, not
+  less. One under review at a time, and only after the first has actually failed.
 - Create a Merx portfolio and expect to submit immediately. Portfolio tenure is
   30 days–3 months and the clock only starts when the portfolio exists. Create it now
   even if the submission waits.
@@ -356,10 +379,13 @@ Business still works.
 - [x] Documents collected, all in The Stellar Crew's name, address identical across all
 - [x] Business Verification submitted (The Stellar Crew) — **in review since 2026-09-19**
 - [ ] Business Verification approved
-- [ ] **Merx LLC**: portfolio created (starts the tenure clock — do this even if the
-      submission waits)
-- [ ] **Merx LLC**: operator wording settled in `legal.ts` before submitting
-- [ ] **Merx LLC**: submission prepared as a genuine Sevra submission
+- [ ] Find out *why* The Stellar Crew is still in review — approved, rejected with a
+      named field, or merely slow. Everything below depends on the answer
+- [ ] **Merx LLC**: portfolio created (starts the tenure clock — worth doing now even
+      though the submission waits; nothing shortens it later)
+- [ ] Only if The Stellar Crew is rejected on documents: check whether Merx's documents
+      answer that specific field better
+- [ ] Only if switching to Merx: ownership-chain wording in `legal.ts` before submitting
 - [ ] App linked to verified portfolio; privacy policy, ToS, relay URI set
 - [ ] Screencasts recorded — one per permission
 - [ ] App Review submitted
