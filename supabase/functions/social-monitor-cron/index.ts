@@ -212,18 +212,21 @@ export function buildSourceQueries(
   const brandClause = brandTerms.length > 1 ? `(${brandTerms.join(" OR ")})` : brandTerms[0] ?? "";
 
   // Terms that only count when the company is named alongside them, and terms
-  // that stand on their own.
+  // that stand on their own -- kept apart again by whether they are accounts
+  // or words, because the two want opposite treatment on retweets.
   const narrowed: string[] = [];
   const open: string[] = [];
+  const narrowedSources: string[] = [];
+  const openSources: string[] = [];
 
   for (const source of sources) {
     const handle = cleanHandle(source.handle ?? "");
     if (!handle) continue;
-    if (source.watchEverything) open.push(`from:${handle}`);
+    if (source.watchEverything) openSources.push(`from:${handle}`);
     // With nothing to match against, "only when they mention us" cannot be
     // expressed, and collecting everything instead would be the opposite of
     // what was asked for.
-    else if (brandClause) narrowed.push(`from:${handle}`);
+    else if (brandClause) narrowedSources.push(`from:${handle}`);
   }
 
   for (const topic of topics) {
@@ -249,22 +252,28 @@ export function buildSourceQueries(
     else open.push(term);
   }
 
-  const SUFFIX = " -is:retweet";
+  // Retweets are excluded when searching for words, because a retweet repeats
+  // the words and would arrive as a copy of a post already collected. They are
+  // kept when watching accounts: what a regulator or a newspaper chose to
+  // amplify is a thing they did, and dropping it meant the watchlist saw an
+  // outlet's own posts and nothing it endorsed. searchX resolves each one back
+  // to the post it carries, so the feed still gets the original.
+  const NO_RETWEETS = " -is:retweet";
   const LIMIT = 512;
   const queries: string[] = [];
   const dropped: string[] = [];
 
   /** Pack terms into as few queries as will hold them. */
-  const pack = (terms: string[], wrap: (group: string) => string) => {
+  const pack = (terms: string[], wrap: (group: string) => string, suffix: string) => {
     let batch: string[] = [];
     const flush = () => {
       if (!batch.length) return;
-      queries.push(wrap(batch.join(" OR ")) + SUFFIX);
+      queries.push(wrap(batch.join(" OR ")) + suffix);
       batch = [];
     };
     for (const term of terms) {
       const next = [...batch, term];
-      if (wrap(next.join(" OR ")).length + SUFFIX.length > LIMIT) {
+      if (wrap(next.join(" OR ")).length + suffix.length > LIMIT) {
         // A single term that cannot fit even alone is unsearchable, not a
         // reason to stop.
         if (!batch.length) {
@@ -278,8 +287,11 @@ export function buildSourceQueries(
     flush();
   };
 
-  pack(narrowed, (group) => `((${group}) ${brandClause})`);
-  pack(open, (group) => (group.includes(" OR ") ? `(${group})` : group));
+  const asGroup = (group: string) => (group.includes(" OR ") ? `(${group})` : group);
+  pack(narrowedSources, (group) => `((${group}) ${brandClause})`, "");
+  pack(openSources, asGroup, "");
+  pack(narrowed, (group) => `((${group}) ${brandClause})`, NO_RETWEETS);
+  pack(open, asGroup, NO_RETWEETS);
 
   // A ceiling, so a runaway list cannot turn one tick into hundreds of
   // requests. Whatever does not fit is named rather than quietly discarded.
@@ -481,6 +493,15 @@ async function pullRealX(admin: any, companyName: string | null): Promise<{ rows
     if (query) await writeCursor(admin, "x", query, brand.newestId);
     const watched = await pullWatchedX(admin, accessToken, { companyName, handle });
 
+    // Never allowed to fail the run: stale engagement figures are worse than
+    // fresh ones, and no collection at all is worse than both.
+    try {
+      const refreshed = await refreshMetrics(admin, accessToken);
+      if (refreshed) console.log(`social-monitor-cron: refreshed metrics on ${refreshed} mentions`);
+    } catch (e) {
+      console.error("social-monitor-cron: metric refresh threw", e);
+    }
+
     // A post can match both. The first copy wins, and the watched search runs
     // second, so a merge must not lose the amplified flag it set.
     const byId = new Map<string, MentionRow>();
@@ -587,8 +608,11 @@ async function searchX(
     const params = new URLSearchParams({
       query,
       max_results: String(X_PAGE_SIZE),
-      "tweet.fields": "created_at,public_metrics,lang",
-      expansions: "author_id",
+      "tweet.fields": "created_at,public_metrics,lang,referenced_tweets",
+      // referenced_tweets.id brings the retweeted post itself back in
+      // `includes`, with its own author and its own metrics -- which is the
+      // thing worth recording. The retweet carries no text of its own.
+      expansions: "author_id,referenced_tweets.id,referenced_tweets.id.author_id",
       // public_metrics carries follower_count, and verified_type is the live
       // field -- plain `verified` is the pre-Blue flag and reads false for
       // almost every account, which is why nothing was ever marked verified.
@@ -609,8 +633,19 @@ async function searchX(
     }
 
     const users = new Map((json.includes?.users ?? []).map((u: any) => [u.id, u]));
+    const included = new Map((json.includes?.tweets ?? []).map((t: any) => [t.id, t]));
     const tweets = Array.isArray(json.data) ? json.data : [];
-    for (const t of tweets) {
+    for (const raw of tweets) {
+      // A retweet is not a mention: it has no words of its own, and ten
+      // thousand of them would be ten thousand copies of one sentence. What it
+      // means is that the post it carries reached further, and that post's own
+      // retweet_count already says by how much -- so record the original and
+      // let the duplicate fall out on external_id.
+      const retweetOf = (raw.referenced_tweets ?? []).find((r: any) => r.type === "retweeted");
+      const t = retweetOf ? included.get(retweetOf.id) : raw;
+      // The original can be missing -- deleted, protected, or simply not
+      // returned. Nothing useful is left to store in that case.
+      if (!t) continue;
       const author = users.get(t.author_id) as any;
       const metrics = author?.public_metrics ?? {};
       const followers = Number(metrics.followers_count ?? 0) || 0;
@@ -640,10 +675,13 @@ async function searchX(
         status: "pending",
         created_by: null,
       });
+      // The cursor follows what the search returned, not what was stored. A
+      // retweet of a week-old post is a new result; advancing the cursor to
+      // the original's id would walk it backwards and re-read everything since.
       // Tweet ids are monotonic, so the largest is the newest. Compared as
       // numbers of different lengths would misorder; same length compares fine
       // lexicographically, so compare by length first.
-      const id = String(t.id);
+      const id = String(raw.id);
       if (!newestId || id.length > newestId.length || (id.length === newestId.length && id > newestId)) {
         newestId = id;
       }
@@ -654,6 +692,70 @@ async function searchX(
   }
 
   return { rows, newestId };
+}
+
+/**
+ * Go back and look at how far a post travelled.
+ *
+ * Every tick reads forward from a cursor, so a post is collected exactly once
+ * and its engagement is frozen at the second it was found -- usually seconds
+ * after it was written, when it has no engagement at all. A complaint stored
+ * at two retweets that goes on to reach five thousand still reads as two, and
+ * the number that decides whether anyone responds is the one that never moves.
+ *
+ * So recent mentions get re-read: one request per hundred, metrics only, no
+ * new rows. Bounded to the window where a post is still spreading -- an
+ * eight-day-old tweet is finished, and paying to re-read it would be.
+ */
+// deno-lint-ignore no-explicit-any
+async function refreshMetrics(admin: any, accessToken: string): Promise<number> {
+  const since = new Date(Date.now() - 72 * 3600 * 1000).toISOString();
+  const { data: recent } = await admin
+    .from("social_mentions")
+    .select("id, external_id")
+    .eq("channel", "twitter")
+    .not("external_id", "is", null)
+    .gte("occurred_at", since)
+    .order("occurred_at", { ascending: false })
+    .limit(200);
+
+  const rows = (recent ?? []) as Array<{ id: string; external_id: string }>;
+  if (!rows.length) return 0;
+
+  let updated = 0;
+  for (let i = 0; i < rows.length; i += 100) {
+    const batch = rows.slice(i, i + 100);
+    const params = new URLSearchParams({
+      ids: batch.map((r) => r.external_id).join(","),
+      "tweet.fields": "public_metrics",
+    });
+    const res = await fetch(`https://api.twitter.com/2/tweets?${params}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) {
+      console.warn(`social-monitor-cron: metric refresh failed (${res.status})`);
+      break;
+    }
+    const json = await res.json().catch(() => ({}));
+    const byId = new Map((Array.isArray(json.data) ? json.data : []).map((t: any) => [t.id, t]));
+
+    for (const row of batch) {
+      const t = byId.get(row.external_id) as any;
+      // A post that has been deleted comes back missing rather than empty.
+      // Leaving the last known figures is more honest than zeroing them.
+      if (!t) continue;
+      const m = t.public_metrics ?? {};
+      const patch: Record<string, number> = {
+        likes: Number(m.like_count ?? 0) || 0,
+        shares: Number(m.retweet_count ?? 0) || 0,
+      };
+      const impressions = Number(m.impression_count ?? 0) || 0;
+      if (impressions > 0) patch.reach = impressions;
+      await admin.from("social_mentions").update(patch).eq("id", row.id);
+      updated++;
+    }
+  }
+  return updated;
 }
 
 /**
