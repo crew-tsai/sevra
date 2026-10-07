@@ -319,17 +319,23 @@ after.
 | App | `1422580146676547`, linked to Merx LLC |
 | Login configuration | `3156875411370865` · user access token · 4 Page permissions |
 | Redirect URI | registered, Strict Mode on |
-| **Business Verification** | **submitted 2026-10-07** |
+| **Business Verification** | ✅ **VERIFIED 2026-10-07 — same day, within minutes** |
 | Documents submitted | CP 575 (name) · address document (Spring TX) |
+| Next gate | Tech Provider / access verification |
 | App Review | not started — needs the five screencasts |
 
-The Stellar Crew's verification was still *In Review* at the time of submitting, 18 days
-in. Two verifications are now open across two portfolios controlled by the same people.
-That is tolerable while only one **app** is under review — App Review is where
-near-duplicate apps get flagged — but do not submit both apps.
+**Merx verified immediately; The Stellar Crew has been In Review since 2026-09-19.**
+Eighteen days against minutes, for the same product and the same person. The difference
+was not entity age or luck — it was that the Merx submission was internally consistent:
+one address across the entered details and both documents, and a document chosen for
+each half of the check rather than one pile for both.
 
-**While it is in review: change nothing in Business Info.** Edits can reset or void the
-submission.
+That settles the entity question. **Merx is the route; the app to take forward is
+`1422580146676547`.** The Stellar Crew's submission can be left to resolve on its own —
+it costs nothing while it sits, and it is a spare if anything ever goes wrong here.
+
+**One app to App Review, never two.** That is where near-duplicate apps across
+portfolios get flagged, and both are called Sevra.
 
 ## 9. Order of operations
 
