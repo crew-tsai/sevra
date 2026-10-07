@@ -377,6 +377,10 @@ Deno.serve(async (req) => {
         translations: analysis.summary_es ? { es: { ai_summary: analysis.summary_es } } : null,
         ai_should_create_incident: analysis.should_create_incident,
         ai_extracted: analysis,
+        // The same number the incident gets, stored rather than recomputed in
+        // the browser -- which is what let Social Intel filter and count by
+        // level without first downloading every mention in the workspace.
+        crisis_level: level,
         incident_id: incidentId,
       })
       .eq("id", mention_id);

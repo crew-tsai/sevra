@@ -7,6 +7,7 @@ import { refreshXToken, META_GRAPH, MONITOR_REACH } from "../_shared/social-prov
 import { resolveCredentials } from "../_shared/social-credentials.ts";
 import { profileFor } from "../_shared/industries.ts";
 import { chatCompletion, MODELS } from "../_shared/ai.ts";
+import { crisisLevel } from "../_shared/crisis-level.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1084,6 +1085,34 @@ Deno.serve(async (req) => {
     // happens. This runs after analysis so the sub-types it clusters on are
     // already filled in, and it raises an alert rather than an incident: the
     // thresholds are guesses until they have seen real traffic.
+    // Any mention analysed before crisis_level existed, or whose write lost a
+    // race, has it NULL -- and NULL filters as "not that level", which would
+    // quietly hide it from the view somebody watches. This is arithmetic over
+    // columns already on the row, so it costs no AI call, and it runs through
+    // the same crisisLevel() the analyser and the incident use. There is
+    // deliberately no SQL version of these rules to drift from.
+    try {
+      const { data: unlevelled } = await admin
+        .from("social_mentions")
+        .select("id, ai_risk, ai_risk_score, is_verified, is_influencer")
+        .is("crisis_level", null)
+        .not("status", "in", '("pending","analyzing")')
+        .limit(500);
+      for (const m of (unlevelled ?? []) as Array<Record<string, unknown>>) {
+        const level = crisisLevel({
+          risk: m.ai_risk as string | null,
+          riskScore: m.ai_risk_score as number | null,
+          amplified: Boolean(m.is_verified) || Boolean(m.is_influencer),
+        });
+        await admin.from("social_mentions").update({ crisis_level: level }).eq("id", m.id as string);
+      }
+      if (unlevelled?.length) {
+        console.log(`social-monitor-cron: backfilled crisis_level on ${unlevelled.length} mentions`);
+      }
+    } catch (e) {
+      console.error("social-monitor-cron: crisis_level backfill failed", e);
+    }
+
     let surges = 0;
     try {
       const { data: alerts, error: surgeErr } = await admin.rpc("detect_mention_surge");

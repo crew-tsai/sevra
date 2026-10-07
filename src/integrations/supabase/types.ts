@@ -151,6 +151,7 @@ export type Database = {
           monitor_languages: string[]
           monitor_last_result: Json | null
           monitor_last_run_at: string | null
+          noise_retention_days: number | null
           sending_domain: string | null
           sending_domain_records: Json | null
           sending_domain_status: string | null
@@ -183,6 +184,7 @@ export type Database = {
           monitor_languages?: string[]
           monitor_last_result?: Json | null
           monitor_last_run_at?: string | null
+          noise_retention_days?: number | null
           sending_domain?: string | null
           sending_domain_records?: Json | null
           sending_domain_status?: string | null
@@ -215,6 +217,7 @@ export type Database = {
           monitor_languages?: string[]
           monitor_last_result?: Json | null
           monitor_last_run_at?: string | null
+          noise_retention_days?: number | null
           sending_domain?: string | null
           sending_domain_records?: Json | null
           sending_domain_status?: string | null
@@ -1191,6 +1194,7 @@ export type Database = {
           content: string
           created_at: string
           created_by: string | null
+          crisis_level: number | null
           external_id: string | null
           human_risk: string | null
           human_risk_at: string | null
@@ -1203,6 +1207,7 @@ export type Database = {
           likes: number | null
           matched_source_id: string | null
           matched_topic_id: string | null
+          occurred_at: string | null
           post_url: string | null
           posted_at: string | null
           reach: number | null
@@ -1228,6 +1233,7 @@ export type Database = {
           content: string
           created_at?: string
           created_by?: string | null
+          crisis_level?: number | null
           external_id?: string | null
           human_risk?: string | null
           human_risk_at?: string | null
@@ -1240,6 +1246,7 @@ export type Database = {
           likes?: number | null
           matched_source_id?: string | null
           matched_topic_id?: string | null
+          occurred_at?: string | null
           post_url?: string | null
           posted_at?: string | null
           reach?: number | null
@@ -1265,6 +1272,7 @@ export type Database = {
           content?: string
           created_at?: string
           created_by?: string | null
+          crisis_level?: number | null
           external_id?: string | null
           human_risk?: string | null
           human_risk_at?: string | null
@@ -1277,6 +1285,7 @@ export type Database = {
           likes?: number | null
           matched_source_id?: string | null
           matched_topic_id?: string | null
+          occurred_at?: string | null
           post_url?: string | null
           posted_at?: string | null
           reach?: number | null
@@ -1815,6 +1824,11 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       log_support_access: { Args: never; Returns: undefined }
+      mention_counts_by_incident: { Args: { p_ids: string[] }; Returns: Json }
+      mention_facets: {
+        Args: { p_channel?: string; p_from?: string; p_to?: string }
+        Returns: Json
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string

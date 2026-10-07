@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { RiskBadge } from "@/components/RiskBadge";
 import { CrisisLevelBadge } from "@/components/CrisisLevelBadge";
-import { TimeRangeFilter, ALL_TIME, isInRangeOrUnfinished, type TimeRange } from "@/components/TimeRangeFilter";
+import { TimeRangeFilter, ALL_TIME, type TimeRange } from "@/components/TimeRangeFilter";
 import { useIntlLocale, useLang, useMessages } from "@/i18n";
 import { useTranslations } from "@/i18n/useTranslations";
 import { sevraMessages } from "@/i18n/messages/sevra";
@@ -81,12 +81,25 @@ type MonitorAlert = {
 };
 
 /**
- * PostgREST will not return more than a thousand rows in one response, so
- * "all of them" means paging through it. Worth the extra round trips: every
- * figure on this screen is counted from what was loaded, so a short fetch
- * does not merely shorten the list, it silently under-reports the totals.
+ * The totals behind the cards, chips and channel tabs.
+ *
+ * Counted by the database over the whole workspace, not by the browser over
+ * whatever page happens to be loaded -- which is what they used to be, and
+ * what made them quietly wrong the moment a workspace outgrew one page.
  */
-const FETCH_CHUNK = 1000;
+type Facets = {
+  total: number;
+  noise: number;
+  no_risk: number;
+  pending: number;
+  at_risk: number;
+  levels: Record<string, number>;
+  channels: Record<string, number>;
+};
+
+const EMPTY_FACETS: Facets = {
+  total: 0, noise: 0, no_risk: 0, pending: 0, at_risk: 0, levels: {}, channels: {},
+};
 
 /** How many mentions a page of the feed shows. */
 const PAGE_SIZE = 25;
@@ -130,6 +143,9 @@ export default function Sevra() {
   const [mentions, setMentions] = useState<Mention[]>([]);
   const [alerts, setAlerts] = useState<MonitorAlert[]>([]);
   const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [facets, setFacets] = useState<Facets>(EMPTY_FACETS);
+  const [incidentMentionCounts, setIncidentMentionCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
@@ -257,26 +273,78 @@ export default function Sevra() {
     setAlerts((rows) => rows.filter((r) => r.id !== alert.id));
   };
 
+  /**
+   * The filters, as a query.
+   *
+   * These used to be applied in the browser over every mention in the
+   * workspace, which meant downloading the lot to show twenty-five of them and
+   * counting the lot to fill three cards. The database does both now, so the
+   * page costs the same whether a client has seventy mentions or seventy
+   * thousand.
+   */
+  // deno-lint-ignore no-explicit-any
+  const applyFilters = (q: any) => {
+    if (filter !== "all") q = q.eq("channel", filter);
+    if (statusFilter === "noise") q = q.eq("status", "dismissed");
+    else if (statusFilter === "no_risk") q = q.eq("status", "no_risk");
+    else if (statusFilter === "crisis_level") {
+      q = q.not("status", "in", '("dismissed","no_risk")');
+      // A mention nobody has analysed yet has no level, and the view that
+      // counts it as L0 must also be able to show it.
+      if (levelFilter === 0) q = q.or("crisis_level.eq.0,crisis_level.is.null");
+      else if (levelFilter !== "all") q = q.eq("crisis_level", levelFilter);
+    }
+    if (timeRange.from) {
+      const from = timeRange.from.toISOString();
+      const to = new Date(
+        (timeRange.to ? timeRange.to.getTime() : Date.now()) + 24 * 60 * 60 * 1000,
+      ).toISOString();
+      // Unfinished work ignores the date filter, as it always has: an untriaged
+      // mention from last week is still untriaged this week.
+      q = q.or(
+        `and(occurred_at.gte.${from},occurred_at.lte.${to}),status.in.("pending","analyzing")`,
+      );
+    }
+    return q;
+  };
+
   const load = async () => {
     setLoading(true);
-    const all: Mention[] = [];
-    for (let from = 0; ; from += FETCH_CHUNK) {
-      const { data, error } = await supabase
+    const from = (page - 1) * PAGE_SIZE;
+    const { data, error, count } = await applyFilters(
+      supabase
         .from("social_mentions")
-        .select("*, monitor_sources(name, role), monitor_topics(kind, value)")
-        // By when it was said. Ordering by created_at put a rebuild's worth of
-        // mentions in whatever order they happened to be written.
-        .order("posted_at", { ascending: false, nullsFirst: false })
-        .range(from, from + FETCH_CHUNK - 1);
-      if (error) {
-        toast.error(error.message);
-        break;
-      }
-      all.push(...((data ?? []) as Mention[]));
-      if (!data || data.length < FETCH_CHUNK) break;
-    }
-    setMentions(all);
+        .select("*, monitor_sources(name, role), monitor_topics(kind, value)", { count: "exact" }),
+    )
+      .order("occurred_at", { ascending: sort === "oldest" })
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (error) toast.error(error.message);
+    const rows = (data ?? []) as Mention[];
+    setMentions(rows);
+    setTotal(count ?? 0);
     setLoading(false);
+
+    // Only for the incidents on this page. The old version grouped every
+    // mention in the workspace to get the same numbers.
+    const ids = [...new Set(rows.map((m) => m.incident_id).filter(Boolean))] as string[];
+    if (ids.length) {
+      const { data: counts } = await supabase.rpc("mention_counts_by_incident", { p_ids: ids });
+      setIncidentMentionCounts((counts ?? {}) as Record<string, number>);
+    } else {
+      setIncidentMentionCounts({});
+    }
+  };
+
+  const loadFacets = async () => {
+    const { data } = await supabase.rpc("mention_facets", {
+      p_from: timeRange.from ? timeRange.from.toISOString() : null,
+      p_to: timeRange.to
+        ? new Date(timeRange.to.getTime() + 24 * 60 * 60 * 1000).toISOString()
+        : null,
+      p_channel: filter === "all" ? null : filter,
+    });
+    setFacets({ ...EMPTY_FACETS, ...((data ?? {}) as Partial<Facets>) });
   };
 
   // A changed filter is a different list, and being dropped on page 7 of it is
@@ -286,16 +354,42 @@ export default function Sevra() {
     setPage(1);
   }, [filter, statusFilter, levelFilter, timeRange, sort]);
 
+  // The realtime subscription is set up once, so the callback it captures
+  // would keep the filters that were set at mount and refetch the wrong page
+  // forever. The ref always points at the current one.
+  const loadRef = useRef(load);
+  const facetsRef = useRef(loadFacets);
+  loadRef.current = load;
+  facetsRef.current = loadFacets;
+
+  // The filters live in the query now, so changing one is a refetch rather
+  // than a re-filter of something already in memory.
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter, statusFilter, levelFilter, timeRange, sort, page]);
+
+  // The totals do not depend on the page or the sort -- they are the whole
+  // set, which is the point of them.
+  useEffect(() => {
+    loadFacets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter, timeRange]);
+
+  useEffect(() => {
     loadAlerts();
     refreshMonitorStatus();
     const channel = supabase
       .channel("social_mentions_realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "social_mentions" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "social_mentions" }, () => {
+        // A new mention changes both what is on the page and every total.
+        loadRef.current();
+        facetsRef.current();
+      })
       .on("postgres_changes", { event: "*", schema: "public", table: "monitor_alerts" }, () => loadAlerts())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const analyzeOne = async (m: Mention) => {
@@ -337,66 +431,40 @@ export default function Sevra() {
   };
 
   const analyzeAllPending = async () => {
-    const pending = mentions.filter((m) => m.status === "pending");
+    // Everything waiting, not just the page in front of you -- the button's
+    // count comes from the whole workspace, so its action must too.
+    const { data } = await supabase
+      .from("social_mentions")
+      .select("id")
+      .eq("status", "pending")
+      .order("occurred_at", { ascending: true });
+    const pending = (data ?? []) as Array<{ id: string }>;
     if (!pending.length) return toast.message(t.nothingPending);
     toast.success(t.analyzingN(pending.length));
     for (const m of pending) {
-      await analyzeOne(m);
+      await analyzeOne(m as Mention);
     }
   };
 
-  // Anything nobody has triaged yet outlives the date filter: an unread
-  // mention from last week is still unread this week.
-  const timeScoped = mentions.filter((m) =>
-    isInRangeOrUnfinished(
-      m.posted_at ?? m.created_at,
-      timeRange,
-      m.status === "pending" || m.status === "analyzing",
-    ));
-  const filtered = timeScoped.filter(
-    (m) =>
-      (filter === "all" || m.channel === filter) &&
-      (statusFilter === "all" ||
-        (statusFilter === "noise" && m.status === "dismissed") ||
-        (statusFilter === "no_risk" && m.status === "no_risk") ||
-        (statusFilter === "crisis_level" && isRisk(m))) &&
-      (statusFilter !== "crisis_level" || levelFilter === "all" || mentionCrisisLevel(m) === levelFilter),
-  );
-
-  // posted_at is the real timeline; created_at only says when the collector
-  // got to it. Falls back when a post arrived without a timestamp rather than
-  // dropping it to the bottom.
-  const sorted = [...filtered].sort((a, b) => {
-    const at = new Date(a.posted_at ?? a.created_at).getTime();
-    const bt = new Date(b.posted_at ?? b.created_at).getTime();
-    return sort === "newest" ? bt - at : at - bt;
-  });
-
-  const incidentMentionCounts = mentions.reduce<Record<string, number>>((acc, m) => {
-    if (m.incident_id) acc[m.incident_id] = (acc[m.incident_id] ?? 0) + 1;
-    return acc;
-  }, {});
-
-  const crisisMentions = timeScoped.filter(isRisk);
-  const levelCounts: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
-  crisisMentions.forEach((m) => {
-    levelCounts[mentionCrisisLevel(m)]++;
-  });
-
-  // Still clamped as well as reset: a realtime delete can shrink the list
-  // under a page that is already open, and page 7 of 3 renders nothing.
-  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  // The rows are already filtered, sorted and paged by the query, so the list
+  // is simply what came back.
+  const visible = mentions;
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
-  const visible = sorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const levelCounts: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
+  for (const [lvl, n] of Object.entries(facets.levels)) levelCounts[Number(lvl)] = n;
+
+  const stats = {
+    noise: facets.noise,
+    no_risk: facets.no_risk,
+    pending: facets.pending,
+    crisis_level: facets.at_risk,
+  };
 
   const tr = useTranslations("social_mentions", visible);
 
-  const stats = {
-    noise: timeScoped.filter((m) => m.status === "dismissed").length,
-    no_risk: timeScoped.filter((m) => m.status === "no_risk").length,
-    pending: mentions.filter((m) => m.status === "pending").length,
-    crisis_level: crisisMentions.length,
-  };
+
 
 
 
@@ -567,7 +635,7 @@ export default function Sevra() {
           <TabsTrigger value="all">{t.allChannels}</TabsTrigger>
           {CHANNEL_TABS.map((channel) => {
             const meta = CHANNEL_META[channel];
-            const count = timeScoped.filter((m) => m.channel === channel).length;
+            const count = facets.channels[channel] ?? 0;
             return (
               <TabsTrigger key={channel} value={channel} title={meta.label} aria-label={meta.label} className="gap-1.5">
                 <NetworkIcon network={meta.network} size={15} className={meta.color} />
@@ -592,7 +660,7 @@ export default function Sevra() {
 
       {loading ? (
         <div className="text-center py-12 text-muted-foreground">{t.loadingMentions}</div>
-      ) : !filtered.length ? (
+      ) : !visible.length ? (
         <Card className="p-10 text-center">
           <p className="text-muted-foreground mb-4">{t.empty}</p>
           <Button onClick={runMonitorNow} disabled={monitorRunning}>
@@ -770,8 +838,8 @@ export default function Sevra() {
           <span className="text-xs text-muted-foreground tabular-nums">
             {t.showingRange(
               (currentPage - 1) * PAGE_SIZE + 1,
-              Math.min(currentPage * PAGE_SIZE, sorted.length),
-              sorted.length,
+              Math.min(currentPage * PAGE_SIZE, total),
+              total,
             )}
           </span>
           <div className="flex items-center gap-2">
