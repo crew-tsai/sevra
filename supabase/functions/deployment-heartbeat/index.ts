@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
 
     const [settings, incidentsTotal, incidentsOpen, assets, mentions, users, social] =
       await Promise.all([
-        admin.from("company_settings").select("company_name, industry").maybeSingle(),
+        admin.from("company_settings").select("company_name, industry, x_handle").maybeSingle(),
         admin.from("incidents").select("id", { count: "exact", head: true }),
         admin.from("incidents").select("id", { count: "exact", head: true }).eq("status", "active"),
         admin.from("incident_assets").select("id", { count: "exact", head: true }),
@@ -165,6 +165,18 @@ Deno.serve(async (req) => {
       .map((r) => (r.account_label ? `${r.network}:${r.account_label}` : r.network))
       .sort();
 
+    // X is searched with Sevra's own application token, so a client needs no
+    // connection at all -- only their handle. Reporting connections alone made
+    // a perfectly healthy workspace read as "0 networks", which is the same
+    // thing the fleet view shows for one that was never set up. The handle
+    // monitoring is actually watching is the honest answer, whichever way it
+    // was configured.
+    const xHandle = String(settings.data?.x_handle ?? "").replace(/^@/, "").trim();
+    const monitoredHandles = [...connectedNetworks];
+    if (xHandle && !connectedNetworks.some((n) => n.startsWith("x:"))) {
+      monitoredHandles.push(`x:@${xHandle} (app token)`);
+    }
+
     const member_hashes = await memberHashes(admin, secret);
 
     const payload = {
@@ -178,11 +190,11 @@ Deno.serve(async (req) => {
         assets_total: assets.count ?? 0,
         mentions_total: mentions.count ?? 0,
         users_total: users.count ?? 0,
-        social_connected: connectedNetworks.length,
+        social_connected: monitoredHandles.length,
         // Which networks, not just how many. A count of 0 and a count of 2 read
         // the same when you are trying to work out why a client's monitoring is
         // quiet; the names say whether anything was ever connected.
-        social_networks: connectedNetworks,
+        social_networks: monitoredHandles,
         // What this deployment cannot do, by name. See missingSecrets().
         secrets_missing: missingSecrets(),
         // Tables whose RLS promises something the table grants refuse. This
