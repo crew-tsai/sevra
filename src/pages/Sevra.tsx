@@ -142,6 +142,7 @@ export default function Sevra() {
   const navigate = useNavigate();
   const [mentions, setMentions] = useState<Mention[]>([]);
   const [alerts, setAlerts] = useState<MonitorAlert[]>([]);
+  const [monitorUnreachable, setMonitorUnreachable] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [facets, setFacets] = useState<Facets>(EMPTY_FACETS);
@@ -174,9 +175,22 @@ export default function Sevra() {
   const incidentTypeLabel = (v: string) =>
     (INCIDENT_TYPES as readonly string[]).includes(v) ? typeLabel(industry, v as IncidentType, lang) : v;
 
+  /**
+   * Ask whether the schedule is running.
+   *
+   * A failure here used to return quietly, leaving the state null -- and the
+   * card rendered null as "Paused. Mentions will only be ingested when you
+   * click Run monitor now", which is a confident false statement about a
+   * crisis tool whose cron was running every fifteen minutes throughout. Not
+   * knowing is now its own state, and it says so.
+   */
   const refreshMonitorStatus = async () => {
     const { data, error } = await supabase.functions.invoke("social-monitor-control", { body: {} });
-    if (error || !data?.success) return;
+    if (error || !data?.success) {
+      setMonitorUnreachable(true);
+      return;
+    }
+    setMonitorUnreachable(false);
     setMonitorActive(!!data.active);
     setMonitorSchedule(data.schedule ?? null);
     setMonitorLastRun(data.last_run_at ?? null);
@@ -376,6 +390,17 @@ export default function Sevra() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, timeRange]);
 
+  // The usual reason the status call fails is a session that expired while the
+  // tab sat open, which is precisely the moment someone comes back to it.
+  useEffect(() => {
+    const recheck = () => {
+      if (document.visibilityState === "visible") refreshMonitorStatus();
+    };
+    document.addEventListener("visibilitychange", recheck);
+    return () => document.removeEventListener("visibilitychange", recheck);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     loadAlerts();
     refreshMonitorStatus();
@@ -544,7 +569,12 @@ export default function Sevra() {
             <div className="flex items-center gap-2">
               <span className="font-semibold text-foreground">{t.continuous}</span>
               {monitorActive === null ? (
-                <Badge variant="outline" className="text-[10px]">{t.checking}</Badge>
+                <Badge
+                  variant="outline"
+                  className={`text-[10px] ${monitorUnreachable ? "text-amber-600 border-amber-500/40" : ""}`}
+                >
+                  {monitorUnreachable ? t.statusUnavailable : t.checking}
+                </Badge>
               ) : monitorActive ? (
                 <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/20 text-[10px] uppercase tracking-wider">
                   <Power className="h-3 w-3 mr-1" /> {t.onBadge}
@@ -556,9 +586,20 @@ export default function Sevra() {
               )}
             </div>
             <div className="text-xs text-muted-foreground mt-0.5">
-              {monitorActive
-                ? t.scansEvery
-                : t.paused}
+              {monitorActive === null
+                ? t.statusUnknown
+                : monitorActive
+                  ? t.scansEvery
+                  : t.paused}
+              {monitorUnreachable && (
+                <button
+                  type="button"
+                  onClick={refreshMonitorStatus}
+                  className="ml-1 underline underline-offset-2 hover:text-foreground"
+                >
+                  {t.retryCheck}
+                </button>
+              )}
               {monitorLastRun && (
                 <>{t.lastRun(rel(monitorLastRun) ?? "")}</>
               )}
@@ -566,7 +607,9 @@ export default function Sevra() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">{monitorActive ? t.on : t.off}</span>
+          <span className="text-xs text-muted-foreground">
+            {monitorActive === null ? "—" : monitorActive ? t.on : t.off}
+          </span>
           <Switch
             checked={!!monitorActive}
             onCheckedChange={toggleMonitor}
