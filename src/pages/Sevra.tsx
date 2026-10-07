@@ -596,7 +596,10 @@ export default function Sevra() {
             </div>
             <div className="text-xs text-muted-foreground mt-0.5">
               {monitorActive === null
-                ? t.statusUnknown
+                // Three states, not two: still asking is not the same as asked
+                // and failed, and saying "couldn't check" while the first call
+                // is still in flight is the same overreach as saying "paused".
+                ? (monitorUnreachable ? t.statusUnknown : t.checkingSchedule)
                 : monitorActive
                   ? t.scansEvery
                   : t.paused}
