@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useIntlLocale, useMessages } from "@/i18n";
 import { incidentDetailMessages } from "@/i18n/messages/incident-detail";
+import { collapseMentionRuns } from "@/lib/timeline";
 import { formatDateTime } from "@/lib/utils";
 
 type Kind = "opened" | "mention" | "change" | "drafted" | "approved" | "sent" | "failed";
@@ -24,6 +25,12 @@ type Event = {
   title: string;
   detail?: string | null;
   who?: string | null;
+  // Set on mention events so collapseMentionRuns can fold an unbroken run
+  // from one author into a single row.
+  channel?: string;
+  author?: string;
+  count?: number;
+  untilAt?: string;
 };
 
 const ICONS: Record<Kind, typeof Flag> = {
@@ -107,6 +114,8 @@ export function IncidentTimeline({ incidentId, openedAt }: { incidentId: string;
         kind: "mention",
         title: t.mention(m.channel, m.author_handle ? `@${m.author_handle}` : "—"),
         detail: origin,
+        channel: m.channel,
+        author: m.author_handle ? `@${m.author_handle}` : "—",
       });
     }
 
@@ -164,7 +173,7 @@ export function IncidentTimeline({ incidentId, openedAt }: { incidentId: string;
     }
 
     out.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
-    setEvents(out);
+    setEvents(collapseMentionRuns(out, t.mentions));
   }
 
   if (events === null) {
@@ -202,6 +211,7 @@ export function IncidentTimeline({ incidentId, openedAt }: { incidentId: string;
               </div>
               <div className="text-xs text-muted-foreground">
                 {formatDateTime(e.at, intl)}
+                {e.untilAt ? ` – ${formatDateTime(e.untilAt, intl)}` : ""}
                 {e.detail ? ` · ${e.detail}` : ""}
               </div>
             </li>
