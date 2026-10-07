@@ -50,6 +50,9 @@ export const sevraMessages = defineMessages({
     verdictHint:
       "Tell Sevra what this should have been. It changes nothing here — it is how the classifier is measured and corrected.",
     verdictThanks: "Recorded. Thank you.",
+    sortLabel: "Sort mentions",
+    sortNewest: "Newest first",
+    sortOldest: "Oldest first",
     verdictNotSaved: "That did not save. Refresh and try again.",
     alertSurge: "Unusual volume",
     alertCluster: "Many people reporting the same thing",
@@ -130,6 +133,9 @@ export const sevraMessages = defineMessages({
     verdictHint:
       "Dile a Sevra qué debería haber dicho. Aquí no cambia nada — así se mide y se corrige el clasificador.",
     verdictThanks: "Registrado. Gracias.",
+    sortLabel: "Ordenar menciones",
+    sortNewest: "Más recientes primero",
+    sortOldest: "Más antiguas primero",
     verdictNotSaved: "No se guardó. Actualiza la página e inténtalo de nuevo.",
     alertSurge: "Volumen inusual",
     alertCluster: "Muchas personas reportan lo mismo",

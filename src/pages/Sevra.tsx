@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/u
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RefreshCw, Sparkles, ExternalLink, AlertTriangle, CheckCircle2, Loader2, Radio, Power, PowerOff } from "lucide-react";
+import { RefreshCw, Sparkles, ExternalLink, AlertTriangle, CheckCircle2, Loader2, Radio, Power, PowerOff, ArrowDownUp } from "lucide-react";
 import { NetworkIcon } from "@/components/NetworkIcon";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -123,6 +123,10 @@ export default function Sevra() {
   const [filter, setFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "noise" | "no_risk" | "crisis_level">("all");
   const [levelFilter, setLevelFilter] = useState<number | "all">("all");
+  // By when it was said, not when Sevra happened to find it. Those are the
+  // same thing while collection trickles in, and nothing like it after a
+  // rebuild, when every post arrives in one batch seconds apart.
+  const [sort, setSort] = useState<"newest" | "oldest">("newest");
   const [approvedIds, setApprovedIds] = useState<Set<string>>(new Set());
   const [monitorRunning, setMonitorRunning] = useState(false);
   const [monitorActive, setMonitorActive] = useState<boolean | null>(null);
@@ -330,6 +334,15 @@ export default function Sevra() {
       (statusFilter !== "crisis_level" || levelFilter === "all" || mentionCrisisLevel(m) === levelFilter),
   );
 
+  // posted_at is the real timeline; created_at only says when the collector
+  // got to it. Falls back when a post arrived without a timestamp rather than
+  // dropping it to the bottom.
+  const sorted = [...filtered].sort((a, b) => {
+    const at = new Date(a.posted_at ?? a.created_at).getTime();
+    const bt = new Date(b.posted_at ?? b.created_at).getTime();
+    return sort === "newest" ? bt - at : at - bt;
+  });
+
   const incidentMentionCounts = mentions.reduce<Record<string, number>>((acc, m) => {
     if (m.incident_id) acc[m.incident_id] = (acc[m.incident_id] ?? 0) + 1;
     return acc;
@@ -341,7 +354,7 @@ export default function Sevra() {
     levelCounts[mentionCrisisLevel(m)]++;
   });
 
-  const tr = useTranslations("social_mentions", filtered);
+  const tr = useTranslations("social_mentions", sorted);
 
   const stats = {
     noise: timeScoped.filter((m) => m.status === "dismissed").length,
@@ -513,7 +526,8 @@ export default function Sevra() {
         </div>
       )}
 
-      <Tabs value={filter} onValueChange={setFilter} className="w-full">
+      <div className="flex items-center gap-3 flex-wrap">
+        <Tabs value={filter} onValueChange={setFilter} className="flex-1 min-w-[200px]">
         <TabsList className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="all">{t.allChannels}</TabsTrigger>
           {CHANNEL_TABS.map((channel) => {
@@ -528,7 +542,18 @@ export default function Sevra() {
             );
           })}
         </TabsList>
-      </Tabs>
+        </Tabs>
+        <Select value={sort} onValueChange={(v) => setSort(v as "newest" | "oldest")}>
+          <SelectTrigger className="w-auto gap-2 h-9 shrink-0" aria-label={t.sortLabel}>
+            <ArrowDownUp className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-xs">{sort === "newest" ? t.sortNewest : t.sortOldest}</span>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">{t.sortNewest}</SelectItem>
+            <SelectItem value="oldest">{t.sortOldest}</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
       {loading ? (
         <div className="text-center py-12 text-muted-foreground">{t.loadingMentions}</div>
@@ -541,7 +566,7 @@ export default function Sevra() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {filtered.map((m) => {
+          {sorted.map((m) => {
             const meta = CHANNEL_META[m.channel] ?? CHANNEL_META.twitter;
             const isAnalyzing = analyzingId === m.id || m.status === "analyzing";
             return (
