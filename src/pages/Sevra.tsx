@@ -185,7 +185,16 @@ export default function Sevra() {
    * knowing is now its own state, and it says so.
    */
   const refreshMonitorStatus = async () => {
-    const { data, error } = await supabase.functions.invoke("social-monitor-control", { body: {} });
+    let { data, error } = await supabase.functions.invoke("social-monitor-control", { body: {} });
+    if (error || !data?.success) {
+      // An access token that expired while the tab sat open is the ordinary
+      // reason this fails, and it is recoverable without anyone logging in
+      // again. Tried once, so a genuine outage does not become a loop.
+      const { data: refreshed } = await supabase.auth.refreshSession();
+      if (refreshed?.session) {
+        ({ data, error } = await supabase.functions.invoke("social-monitor-control", { body: {} }));
+      }
+    }
     if (error || !data?.success) {
       setMonitorUnreachable(true);
       return;

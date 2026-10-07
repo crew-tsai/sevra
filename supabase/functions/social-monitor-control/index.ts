@@ -1,5 +1,6 @@
 // Read & toggle the social-monitor cron job state.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { identifyCaller, unauthorized } from "../_shared/caller.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,23 +17,16 @@ Deno.serve(async (req) => {
     const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(url, key);
 
-    const authHeader = req.headers.get("Authorization") ?? "";
-    let userId: string | null = null;
-    try {
-      const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? key;
-      const userClient = createClient(url, anonKey, {
-        global: { headers: { Authorization: authHeader } },
-      });
-      const { data: userData } = await userClient.auth.getUser();
-      userId = userData?.user?.id ?? null;
-    } catch { /* non-fatal, checked below */ }
-
-    if (!userId) {
-      return new Response(JSON.stringify({ success: false, error: "Not authenticated" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // This rolled its own caller check, and did it with getUser() and no
+    // argument -- which on supabase-js 2.45 only resolves a user from a stored
+    // session, not from the Authorization header the browser sent. So a
+    // signed-in person could be told "Not authenticated", the page swallowed
+    // the 401, and the card then reported monitoring as paused while its cron
+    // ran every fifteen minutes. identifyCaller passes the token explicitly,
+    // which is the whole reason it exists.
+    const caller = await identifyCaller(req);
+    if (caller.kind === "anonymous") return unauthorized();
+    const userId = caller.kind === "user" ? caller.userId : null;
 
     let action: "status" | "enable" | "disable" = "status";
     if (req.method === "POST") {
@@ -41,7 +35,11 @@ Deno.serve(async (req) => {
     }
 
     if (action !== "status") {
-      const { data: isAdmin } = await admin.rpc("is_admin", { _user_id: userId });
+      // A service-role caller is the cron, not a person, and needs no role
+      // lookup. Only a user has to prove they may change the schedule.
+      const { data: isAdmin } = userId
+        ? await admin.rpc("is_admin", { _user_id: userId })
+        : { data: caller.kind === "service" };
       if (!isAdmin) {
         return new Response(JSON.stringify({ success: false, error: "Admin access required" }), {
           status: 403,
