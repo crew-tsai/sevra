@@ -207,14 +207,24 @@ Set the two secrets. The application code is already written and waiting.
 
 ```sh
 supabase secrets set PLATFORM_META_CLIENT_ID=<app id> PLATFORM_META_CLIENT_SECRET=<app secret> \
-  --project-ref ocuicsgffeucdxqyzsai   # seeds every future client
+  --project-ref ocuicsgffeucdxqyzsai   # control plane — seeds every future client
 
-# and each workspace that already exists — at the time of writing:
+# and each workspace that already exists — verified against `supabase projects list`,
+# 2026-10-07. Do not copy a ref from an app URL; they do not match.
 supabase secrets set PLATFORM_META_CLIENT_ID=<app id> PLATFORM_META_CLIENT_SECRET=<app secret> \
-  --project-ref cbkeuuudcqgfpdkwevto   # The Stellar Crew's own workspace
+  --project-ref cbkeuuudcqgfpdkwevto   # Arajet (formerly The Stellar Crew's own workspace)
 supabase secrets set PLATFORM_META_CLIENT_ID=<app id> PLATFORM_META_CLIENT_SECRET=<app secret> \
-  --project-ref ftbnhpjapequsqqyakqa   # Lessence
+  --project-ref bdqjfrahzlcxbtmtlbxl   # Carryt
+supabase secrets set PLATFORM_META_CLIENT_ID=<app id> PLATFORM_META_CLIENT_SECRET=<app secret> \
+  --project-ref qvkvkgjfnpzdzakhufwv   # Lessence
 ```
+
+> The ref written here for Lessence until 2026-10-07 was `ftbnhpjapequsqqyakqa`, which
+> is not a project in this organisation. Secrets sent there would have gone nowhere and
+> the failure would have surfaced as "Connect does nothing" on a client's workspace.
+
+> `PLATFORM_META_CONFIG_ID` (and `_IG_CONFIG_ID`) go with them. They belong to the
+> **app**, so switching to a different app means reissuing all of them together.
 
 The Admin panel flips from "register your own developer app" to **Connect** on its own —
 the same switch that happened for X. No deploy required.
@@ -243,6 +253,89 @@ a handful. But it means Meta's timeline need not block the first customers.
 
 ---
 
+## Running a second entity in parallel — Merx LLC
+
+**Decided 2026-10-07.** The Stellar Crew's verification has been in review since
+19 September. Rather than wait on a single entity, Merx LLC runs a second submission —
+as a *genuine Sevra submission*, not a hedge with different content. Whichever entity
+clears first is the one that ships; the other becomes a spare the app can be
+transferred to later without re-reviewing anything.
+
+### The rule that makes this legitimate
+
+**App Review approves a use case, not just an app.** Permissions are granted against the
+product you demonstrated in the screencasts. So the Merx app must be reviewed showing
+*Sevra* — the same connect flow, the same monitoring, the same approve-then-publish.
+
+Getting an app approved for some other purpose and repointing it at Sevra afterwards is
+app-purpose misrepresentation. It breaches Platform Terms and is one of the faster ways
+to lose an app, and every connection made through it. **If it is not a Sevra submission,
+it is not reusable here.** That is the whole condition.
+
+### What must be identical between the two submissions
+
+- The permission list — `pages_show_list`, `pages_read_engagement`,
+  `pages_read_user_content`, `pages_manage_posts`, `instagram_basic`
+- The written justifications (Stage 4)
+- The screencasts — one per permission, showing the real product
+- The relay redirect URI, which is the same for every app and every client:
+  `https://ocuicsgffeucdxqyzsai.supabase.co/functions/v1/oauth-relay`
+- The app name `Sevra`, so the consent screen reads the same whoever owns it
+
+### What must differ
+
+- The business portfolio and every verification document — Merx LLC's registered name
+  and address, character for character, per Stage 0
+- The App ID, secret, and login configuration IDs, which belong to the app
+
+### The part that is not paperwork: who operates Sevra
+
+For an app touching **other businesses'** Pages, Meta treats the owning entity as the
+one providing the service. Sevra's legal pages currently say otherwise:
+
+```
+src/i18n/messages/legal.ts
+  const COMPANY = "The Stellar Crew LLC"
+  const ADDRESS = "18482 Kuykendahl Rd Unit #517, Spring, TX 77379, USA"
+```
+
+Those two constants feed the English and Spanish privacy policy, terms and
+data-deletion pages — the pages a reviewer opens from the app listing. A reviewer who
+follows that link from a **Merx-owned** app finds a different company operating the
+service, which is the same class of mismatch that causes most verification rejections,
+and afterwards is a data-controller question rather than a review question.
+
+**This must be settled before the Merx app is submitted, not after.** The wording
+depends on the actual relationship between the two companies — parent, affiliate,
+operator — which is a legal question, not an engineering one. Once decided it is a
+one-line change in that file, and both languages follow.
+
+### Do not
+
+- Submit the same screencasts under both entities **at the same time**. Meta flags
+  near-duplicate apps across portfolios, and the risk is both being penalised rather
+  than two chances. Stage them: one under review at a time.
+- Create a Merx portfolio and expect to submit immediately. Portfolio tenure is
+  30 days–3 months and the clock only starts when the portfolio exists. Create it now
+  even if the submission waits.
+- Edit Business Info on either portfolio while its verification is in review.
+
+### Switching Sevra to whichever app wins
+
+No code change. Set `PLATFORM_META_CLIENT_ID`, `_SECRET`, `_CONFIG_ID` and
+`_IG_CONFIG_ID` per Stage 5, on the control plane and every workspace.
+
+With `PLATFORM_META_CONFIG_ID` unset the connect start falls back to sending a scope
+list instead (`social-oauth-start/index.ts`), so an app without Facebook Login for
+Business still works.
+
+> **Tokens are app-bound.** Switching apps invalidates every connected Facebook and
+> Instagram account and forces a reconnect. That cost is zero today because nobody is
+> connected — it stops being zero the moment a client connects a Page, which is the
+> argument for settling the entity question before onboarding anyone onto Meta.
+
+---
+
 ## Rejection quick reference
 
 | Symptom | Cause | Fix |
@@ -261,8 +354,12 @@ a handful. But it means Meta's timeline need not block the first customers.
 
 - [x] Business portfolio created **in The Stellar Crew's legal name** — **start the tenure clock**
 - [x] Documents collected, all in The Stellar Crew's name, address identical across all
-- [x] Business Verification submitted — **in review since 2026-09-19**
+- [x] Business Verification submitted (The Stellar Crew) — **in review since 2026-09-19**
 - [ ] Business Verification approved
+- [ ] **Merx LLC**: portfolio created (starts the tenure clock — do this even if the
+      submission waits)
+- [ ] **Merx LLC**: operator wording settled in `legal.ts` before submitting
+- [ ] **Merx LLC**: submission prepared as a genuine Sevra submission
 - [ ] App linked to verified portfolio; privacy policy, ToS, relay URI set
 - [ ] Screencasts recorded — one per permission
 - [ ] App Review submitted
