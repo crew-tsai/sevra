@@ -163,97 +163,122 @@ export function buildXQuery(o: { companyName: string | null; handle: string; lan
 }
 
 /**
- * The X search for this company's watched sources and topics.
+ * The X searches for this company's watched sources and topics.
  *
- * Deliberately a separate query from the brand one, not more terms inside it.
- * The brand search narrows by language, because a bare company name otherwise
- * matches half the internet; a watched source posts in whatever language it
- * posts in, and filtering that out would defeat the reason for watching it.
+ * Plural, and that is the point. X caps a query at 512 characters, which is
+ * about seventeen `from:` terms — and an airline watching its regulators, the
+ * aviation trade press and the newsrooms along its route network has well over
+ * a hundred. The previous version packed what it could into one query and
+ * dropped the rest, so a carefully built watchlist of 138 entries was searched
+ * 24 at a time and the other 114 were never looked at. Nothing said so: the
+ * screen reported what each source *could* reach, not whether it survived
+ * being packed.
+ *
+ * So the list is split across as many queries as it needs. The monitor runs
+ * every fifteen minutes and X allows hundreds of searches in that window, so
+ * nine requests instead of one costs nothing that matters.
+ *
+ * Deliberately a separate set of queries from the brand one. The brand search
+ * narrows by language, because a bare company name otherwise matches half the
+ * internet; a watched source posts in whatever language it posts in, and
+ * filtering that out would defeat the reason for watching it.
  *
  * Sources are searched as `from:` — posts *by* them. "Watch this journalist"
  * means what they say, not who mentions them; the latter is already covered
  * when they mention the company.
- *
- * Most sources are narrowed to the posts that name the company. Watching a
- * newsroom otherwise means collecting the news: a few hundred posts a day,
- * almost none about this client, every one of them analysed. The ones set to
- * be read whole — a regulator, a campaigner working the sector — say so on
- * their own row, and the role they were given sets that default.
- *
- * Topics are never narrowed. A crisis hashtag is watched precisely because the
- * company is not named in it yet.
  */
-export function buildSourceQuery(
+export function buildSourceQueries(
   sources: Array<{ handle: string; watchEverything: boolean }>,
-  topics: Array<{ kind: string; value: string }>,
+  topics: Array<{ kind: string; value: string; onlyWithBrand?: boolean }>,
   brand?: { companyName?: string | null; handle?: string | null },
-): { query: string; dropped: string[] } {
+  maxQueries = 12,
+): { queries: string[]; dropped: string[] } {
   const cleanPhrase = (s: string) => s.replace(/["()]/g, " ").replace(/\s+/g, " ").trim();
   const cleanHandle = (s: string) => s.replace(/^@/, "").replace(/[^A-Za-z0-9_]/g, "");
 
   const name = brand?.companyName ? cleanPhrase(brand.companyName) : "";
   const brandHandle = brand?.handle ? cleanHandle(brand.handle) : "";
-  const brandTerms = [
-    brandHandle ? `@${brandHandle}` : "",
-    name ? `"${name}"` : "",
-  ].filter(Boolean);
+  const brandTerms = [brandHandle ? `@${brandHandle}` : "", name ? `"${name}"` : ""].filter(Boolean);
   const brandClause = brandTerms.length > 1 ? `(${brandTerms.join(" OR ")})` : brandTerms[0] ?? "";
 
+  // Terms that only count when the company is named alongside them, and terms
+  // that stand on their own.
   const narrowed: string[] = [];
   const open: string[] = [];
 
   for (const source of sources) {
     const handle = cleanHandle(source.handle ?? "");
     if (!handle) continue;
-    if (source.watchEverything) {
-      open.push(`from:${handle}`);
-    } else if (brandClause) {
-      // With nothing to match against, "only when they mention us" cannot be
-      // expressed — and collecting everything instead would be the opposite of
-      // what was asked for, so the source waits until the company names itself.
-      narrowed.push(`from:${handle}`);
-    }
+    if (source.watchEverything) open.push(`from:${handle}`);
+    // With nothing to match against, "only when they mention us" cannot be
+    // expressed, and collecting everything instead would be the opposite of
+    // what was asked for.
+    else if (brandClause) narrowed.push(`from:${handle}`);
   }
 
   for (const topic of topics) {
     const raw = (topic.value ?? "").trim();
     if (!raw) continue;
+    let term: string | null = null;
     if (topic.kind === "hashtag") {
+      // A hashtag cannot hold a space or an accent, so one written with either
+      // is silently mangled into something that matches nothing. Those belong
+      // in the product as phrases; this keeps the damage visible rather than
+      // inventing a tag nobody uses.
       const tag = raw.replace(/^#/, "").replace(/[^A-Za-z0-9_]/g, "");
-      if (tag) open.push(`#${tag}`);
+      if (tag) term = `#${tag}`;
     } else {
       const phrase = cleanPhrase(raw);
-      if (phrase) open.push(phrase.includes(" ") ? `"${phrase}"` : phrase);
+      if (phrase) term = phrase.includes(" ") ? `"${phrase}"` : phrase;
     }
+    if (!term) continue;
+    // "fire", "smoke", "mayday" are the earliest signals an airline gets and
+    // the most useless to search for on their own — every fire on earth comes
+    // back. Flagged topics are searched only where the company is also named.
+    if (topic.onlyWithBrand && brandClause) narrowed.push(term);
+    else open.push(term);
   }
 
-  // Built as groups so the two rules coexist in one request: these sources
-  // only when they name us, everything else on its own terms.
-  const assemble = () => {
-    const groups: string[] = [];
-    if (narrowed.length) groups.push(`((${narrowed.join(" OR ")}) ${brandClause})`);
-    if (open.length) groups.push(open.length > 1 ? `(${open.join(" OR ")})` : open[0]);
-    return groups.length ? `${groups.join(" OR ")} -is:retweet` : "";
+  const SUFFIX = " -is:retweet";
+  const LIMIT = 512;
+  const queries: string[] = [];
+  const dropped: string[] = [];
+
+  /** Pack terms into as few queries as will hold them. */
+  const pack = (terms: string[], wrap: (group: string) => string) => {
+    let batch: string[] = [];
+    const flush = () => {
+      if (!batch.length) return;
+      queries.push(wrap(batch.join(" OR ")) + SUFFIX);
+      batch = [];
+    };
+    for (const term of terms) {
+      const next = [...batch, term];
+      if (wrap(next.join(" OR ")).length + SUFFIX.length > LIMIT) {
+        // A single term that cannot fit even alone is unsearchable, not a
+        // reason to stop.
+        if (!batch.length) {
+          dropped.push(term);
+          continue;
+        }
+        flush();
+      }
+      batch.push(term);
+    }
+    flush();
   };
 
-  // X rejects queries over 512 characters. Drop one term at a time from the
-  // longer list, and say which ones went.
-  //
-  // The version this replaces dropped whole groups and then, if the result was
-  // still too long, returned an empty string — so a workspace watching thirty
-  // accounts watched none of them, and nothing anywhere said so. Watching most
-  // of the list beats watching none of it, and knowing which ones were left
-  // out beats finding out during a crisis.
-  const dropped: string[] = [];
-  let q = assemble();
-  while (q.length > 512 && (narrowed.length || open.length)) {
-    const from = open.length >= narrowed.length ? open : narrowed;
-    const gone = from.pop();
-    if (gone) dropped.push(gone);
-    q = assemble();
+  pack(narrowed, (group) => `((${group}) ${brandClause})`);
+  pack(open, (group) => (group.includes(" OR ") ? `(${group})` : group));
+
+  // A ceiling, so a runaway list cannot turn one tick into hundreds of
+  // requests. Whatever does not fit is named rather than quietly discarded.
+  if (queries.length > maxQueries) {
+    const cut = queries.splice(maxQueries);
+    dropped.push(`${cut.length} further ${cut.length === 1 ? "query" : "queries"} beyond the per-run limit`);
   }
 
-  return { query: q.length > 512 ? "" : q, dropped };
+  return { queries, dropped };
 }
 
 /**
@@ -271,7 +296,7 @@ async function loadWatched(admin: any, network: string) {
       .from("monitor_source_accounts")
       .select("handle, network, monitor_sources!inner(id, name, role, amplifies, watch_everything, active)")
       .eq("network", network),
-    admin.from("monitor_topics").select("id, kind, value, amplifies").eq("active", true),
+    admin.from("monitor_topics").select("id, kind, value, amplifies, only_with_brand").eq("active", true),
   ]);
 
   const sources = ((accounts ?? []) as any[])
@@ -293,6 +318,9 @@ async function loadWatched(admin: any, network: string) {
       kind: String(t.kind),
       value: String(t.value ?? ""),
       amplifies: !!t.amplifies,
+      // Searched only where the company is also named. See the comment in
+      // buildSourceQueries: "fire" on its own returns every fire on earth.
+      onlyWithBrand: !!t.only_with_brand,
     })),
   };
 }
@@ -435,7 +463,7 @@ async function pullRealX(admin: any, companyName: string | null): Promise<{ rows
     // Two searches, merged: what is said about the company, and what the
     // sources and topics they asked us to watch are saying. Kept apart
     // because the brand query narrows by language and the watch query must
-    // not — see buildSourceQuery.
+    // not — see buildSourceQueries.
     const brand = query ? await searchX(accessToken, query) : { rows: [] as MentionRow[] };
     const watched = await pullWatchedX(admin, accessToken, { companyName, handle });
 
@@ -532,20 +560,46 @@ async function pullWatchedX(
   const watched = await loadWatched(admin, "x");
   if (!watched.sources.length && !watched.topics.length) return { rows: [] };
 
-  const { query, dropped } = buildSourceQuery(watched.sources, watched.topics, brand);
-  if (!query) return { rows: [] };
+  const { queries, dropped } = buildSourceQueries(watched.sources, watched.topics, brand);
+  if (!queries.length) return { rows: [] };
   if (dropped.length) {
-    // Recorded rather than swallowed: the workspace is watching more than one
-    // X query can carry, and somebody needs to be able to find that out.
+    // Recorded rather than swallowed: somebody has to be able to find out
+    // that part of the watchlist is not being looked at.
     console.warn(
-      `social-monitor-cron: watch query too long, ${dropped.length} left out: ${dropped.join(", ")}`,
+      `social-monitor-cron: ${dropped.length} watched entries left out: ${dropped.join(", ")}`,
     );
   }
 
-  const { rows, error } = await searchX(accessToken, query);
-  if (error) return { rows: [], error };
+  // One request per query, in order. A post can match more than one — a
+  // watched journalist using a watched hashtag — so they are merged on the
+  // post id before anything is attributed.
+  const byId = new Map<string, MentionRow>();
+  const unkeyed: MentionRow[] = [];
+  let firstError: string | undefined;
 
-  return { rows: attribute(rows, watched) };
+  for (const query of queries) {
+    const { rows, error } = await searchX(accessToken, query);
+    if (error) {
+      // One failed query does not discard the others. A rate limit partway
+      // through a list of nine is a partial collection, not a dead run.
+      firstError ??= error;
+      console.error(`social-monitor-cron: watch query failed — ${error}`);
+      continue;
+    }
+    for (const row of rows) {
+      const id = row.external_id;
+      if (!id) {
+        unkeyed.push(row);
+        continue;
+      }
+      if (!byId.has(id)) byId.set(id, row);
+    }
+  }
+
+  const merged = [...byId.values(), ...unkeyed];
+  // Reported only when nothing at all came back; a partial result is worth
+  // more than an error message.
+  return { rows: attribute(merged, watched), error: merged.length ? undefined : firstError };
 }
 
 /**

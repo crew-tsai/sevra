@@ -790,6 +790,7 @@ export type Database = {
           id: string
           kind: string
           note: string | null
+          only_with_brand: boolean
           value: string
         }
         Insert: {
@@ -800,6 +801,7 @@ export type Database = {
           id?: string
           kind: string
           note?: string | null
+          only_with_brand?: boolean
           value: string
         }
         Update: {
@@ -810,6 +812,7 @@ export type Database = {
           id?: string
           kind?: string
           note?: string | null
+          only_with_brand?: boolean
           value?: string
         }
         Relationships: []
@@ -911,6 +914,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rate_limit_counters: {
+        Row: {
+          hits: number
+          key: string
+          window_start: string
+        }
+        Insert: {
+          hits?: number
+          key: string
+          window_start: string
+        }
+        Update: {
+          hits?: number
+          key?: string
+          window_start?: string
+        }
+        Relationships: []
       }
       response_plan: {
         Row: {
@@ -1587,6 +1608,8 @@ export type Database = {
         Args: { _since?: string }
         Returns: {
           agreed: number
+          by_one: number
+          implicit: number
           judged: number
           overcalled: number
           undercalled: number
@@ -1707,12 +1730,24 @@ export type Database = {
         }
         Returns: number
       }
+      policy_grant_mismatches: {
+        Args: never
+        Returns: {
+          action: string
+          role_name: string
+          table_name: string
+        }[]
+      }
       purge_drills: {
         Args: never
         Returns: {
           incidents_removed: number
           mentions_removed: number
         }[]
+      }
+      rate_limit_hit: {
+        Args: { _key: string; _limit: number; _window_seconds: number }
+        Returns: boolean
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }

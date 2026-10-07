@@ -149,6 +149,10 @@ export const workflowsMessages = defineMessages({
       watchingNothingHint:
         "This source has no account on a network Sevra can currently reach, so nothing will ever match it. Add a handle on X, or connect the network in Admin.",
       kindHashtag: "Hashtag",
+      topicAnywhere: "Anywhere",
+      topicWithBrand: "Only with your name",
+      topicScopeHint:
+        "A crisis hashtag is watched everywhere, because you are not named in it yet. A general word — fire, mayday, emergency landing — is only useful next to your name; on its own it returns the whole internet.",
       kindPhrase: "Phrase",
       topicPlaceholder: "a hashtag or a phrase",
       save: "Save",
@@ -301,6 +305,10 @@ export const workflowsMessages = defineMessages({
       watchingNothingHint:
         "Esta fuente no tiene cuenta en ninguna red que Sevra pueda alcanzar ahora mismo, así que nunca coincidirá con nada. Añade una cuenta de X, o conecta la red en Administración.",
       kindHashtag: "Hashtag",
+      topicAnywhere: "En cualquier parte",
+      topicWithBrand: "Solo junto a tu nombre",
+      topicScopeHint:
+        "Un hashtag de crisis se vigila en todas partes, porque todavía no te nombra. Una palabra general — fuego, mayday, aterrizaje de emergencia — solo sirve junto a tu nombre; sola devuelve internet entero.",
       kindPhrase: "Frase",
       topicPlaceholder: "un hashtag o una frase",
       save: "Guardar",

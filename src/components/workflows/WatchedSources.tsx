@@ -39,6 +39,7 @@ type Topic = {
   value: string;
   note: string | null;
   amplifies: boolean;
+  only_with_brand: boolean;
   active: boolean;
 };
 
@@ -86,7 +87,7 @@ export function WatchedSources({ isAdmin }: { isAdmin: boolean }) {
         .from("monitor_sources")
         .select("id, name, role, note, amplifies, watch_everything, active, monitor_source_accounts(network, handle)")
         .order("created_at"),
-      supabase.from("monitor_topics").select("id, kind, value, note, amplifies, active").order("created_at"),
+      supabase.from("monitor_topics").select("id, kind, value, note, amplifies, only_with_brand, active").order("created_at"),
       supabase.from("social_connections").select("network").eq("status", "connected"),
     ]);
 
@@ -206,10 +207,13 @@ export function WatchedSources({ isAdmin }: { isAdmin: boolean }) {
     void load();
   }
 
-  async function toggleTopic(topic: Topic) {
+  async function toggleTopic(topic: Topic, field: "active" | "only_with_brand" = "active") {
+    const patch = field === "active"
+      ? { active: !topic.active }
+      : { only_with_brand: !topic.only_with_brand };
     const { error } = await supabase
       .from("monitor_topics")
-      .update({ active: !topic.active })
+      .update(patch)
       .eq("id", topic.id)
       .select("id");
     if (error) return toast.error(error.message);
@@ -361,6 +365,17 @@ export function WatchedSources({ isAdmin }: { isAdmin: boolean }) {
                 <p className={`min-w-0 flex-1 truncate text-sm ${topic.active ? "" : "text-muted-foreground line-through"}`}>
                   {topic.kind === "hashtag" ? `#${topic.value}` : topic.value}
                 </p>
+                {/* A word like "fire" or "mayday" is the earliest signal there
+                    is and useless on its own — every fire on earth comes back.
+                    This is the switch that makes it usable. */}
+                <Badge
+                  variant="outline"
+                  className={`text-[10px] ${isAdmin ? "cursor-pointer" : "pointer-events-none"}`}
+                  title={t.topicScopeHint}
+                  onClick={() => isAdmin && void toggleTopic(topic, "only_with_brand")}
+                >
+                  {topic.only_with_brand ? t.topicWithBrand : t.topicAnywhere}
+                </Badge>
                 <Switch
                   checked={topic.active}
                   disabled={!isAdmin}
