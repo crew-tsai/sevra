@@ -67,6 +67,9 @@ type MentionRow = {
   likes?: number;
   shares?: number;
   reach?: number;
+  // The author's audience, kept separately from reach so that "who said it"
+  // stays legible after reach falls back to it.
+  author_followers?: number;
   is_verified?: boolean;
   is_influencer?: boolean;
   // Which watched source or topic brought this in. Null for a post the brand
@@ -148,8 +151,14 @@ export function buildXQuery(o: { companyName: string | null; handle: string; lan
   if (!terms.length) return "";
 
   const parts = [terms.length > 1 ? `(${terms.join(" OR ")})` : terms[0]];
-  if (langs.length === 1) parts.push(`lang:${langs[0]}`);
-  if (langs.length > 1) parts.push(`(${langs.map((l) => `lang:${l}`).join(" OR ")})`);
+  // X guesses a language and returns "und" when a post is too short to guess
+  // from -- which is the shape of exactly the posts that matter most, a
+  // three-word complaint. Filtering those out loses them, so "und" always
+  // rides along with whatever languages were asked for.
+  if (langs.length) {
+    const group = [...langs, "und"].map((l) => `lang:${l}`).join(" OR ");
+    parts.push(`(${group})`);
+  }
   for (const e of excludes) parts.push(e.includes(" ") ? `-"${e}"` : `-${e}`);
   parts.push("-is:retweet");
 
@@ -464,7 +473,11 @@ async function pullRealX(admin: any, companyName: string | null): Promise<{ rows
     // sources and topics they asked us to watch are saying. Kept apart
     // because the brand query narrows by language and the watch query must
     // not — see buildSourceQueries.
-    const brand = query ? await searchX(accessToken, query) : { rows: [] as MentionRow[] };
+    const brandCursor = query ? await readCursor(admin, "x", query) : null;
+    const brand = query
+      ? await searchX(accessToken, query, brandCursor)
+      : { rows: [] as MentionRow[], newestId: null as string | null };
+    if (query) await writeCursor(admin, "x", query, brand.newestId);
     const watched = await pullWatchedX(admin, accessToken, { companyName, handle });
 
     // A post can match both. The first copy wins, and the watched search runs
@@ -499,48 +512,147 @@ async function pullRealX(admin: any, companyName: string | null): Promise<{ rows
   }
 }
 
-/** One X search, mapped to mention rows. Shared by the brand and watch queries. */
+/**
+ * Where each query stopped reading last time.
+ *
+ * Per query, not per channel: the brand search moves far faster than
+ * `from:faa`, and one shared cursor would let the busy query's position
+ * suppress the quiet one's unread results.
+ */
 // deno-lint-ignore no-explicit-any
-async function searchX(accessToken: string, query: string): Promise<{ rows: MentionRow[]; error?: string }> {
-  const params = new URLSearchParams({
-    query,
-    max_results: "10",
-    "tweet.fields": "created_at,public_metrics",
-    expansions: "author_id",
-    "user.fields": "username,name,profile_image_url,verified",
-  });
-  const res = await fetch(`https://api.twitter.com/2/tweets/search/recent?${params}`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const msg = json?.detail || json?.title || `X search failed (${res.status})`;
-    return { rows: [], error: msg };
+async function readCursor(admin: any, channel: string, query: string): Promise<string | null> {
+  const { data } = await admin
+    .from("monitor_cursors")
+    .select("since_id")
+    .eq("channel", channel)
+    .eq("query", query)
+    .maybeSingle();
+  return (data?.since_id as string | null) ?? null;
+}
+
+/** Advance a cursor. A tick that found nothing new leaves it where it was. */
+// deno-lint-ignore no-explicit-any
+async function writeCursor(admin: any, channel: string, query: string, sinceId?: string | null) {
+  if (!sinceId) return;
+  const { error } = await admin
+    .from("monitor_cursors")
+    .upsert({ channel, query, since_id: sinceId, updated_at: new Date().toISOString() }, {
+      onConflict: "channel,query",
+    });
+  // A cursor that fails to save costs a re-read, not a lost post, so this is
+  // worth a line in the log and nothing more.
+  if (error) console.warn(`social-monitor-cron: cursor not saved — ${error.message}`);
+}
+
+/**
+ * How many followers make a voice an amplifier rather than one more person.
+ * Crisis comms cares about this directly: the same sentence from an account
+ * people listen to is a different event.
+ */
+const INFLUENCER_FOLLOWERS = 10_000;
+
+/** X caps a page at 100. Asking for 10 means a surge is invisible. */
+const X_PAGE_SIZE = 100;
+
+/**
+ * A ceiling on how far one query walks back in a single tick. Only reached
+ * when a cursor exists, so a first run collects a page and stops rather than
+ * dragging in a week of history.
+ */
+const X_MAX_PAGES = 5;
+
+/**
+ * One X search, mapped to mention rows. Shared by the brand and watch queries.
+ *
+ * Pages forward from `sinceId` so that volume above one page is collected
+ * rather than silently truncated -- the old single page of 10 meant that the
+ * busier the hour, the smaller the share of it Sevra saw, which is backwards.
+ * Returns the newest id it saw so the caller can advance the cursor.
+ */
+// deno-lint-ignore no-explicit-any
+async function searchX(
+  accessToken: string,
+  query: string,
+  sinceId?: string | null,
+): Promise<{ rows: MentionRow[]; error?: string; newestId?: string | null }> {
+  const rows: MentionRow[] = [];
+  let newestId: string | null = null;
+  let nextToken: string | undefined;
+  // Without a cursor there is nothing to page towards, and paging would mean
+  // backfilling the whole retention window on the first tick.
+  const maxPages = sinceId ? X_MAX_PAGES : 1;
+
+  for (let page = 0; page < maxPages; page++) {
+    const params = new URLSearchParams({
+      query,
+      max_results: String(X_PAGE_SIZE),
+      "tweet.fields": "created_at,public_metrics,lang",
+      expansions: "author_id",
+      // public_metrics carries follower_count, and verified_type is the live
+      // field -- plain `verified` is the pre-Blue flag and reads false for
+      // almost every account, which is why nothing was ever marked verified.
+      "user.fields": "username,name,profile_image_url,verified,verified_type,public_metrics",
+    });
+    if (sinceId) params.set("since_id", sinceId);
+    if (nextToken) params.set("next_token", nextToken);
+
+    const res = await fetch(`https://api.twitter.com/2/tweets/search/recent?${params}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg = json?.detail || json?.title || `X search failed (${res.status})`;
+      // Pages already collected are real findings; a failure partway through
+      // reports the error without throwing them away.
+      return { rows, error: msg, newestId };
+    }
+
+    const users = new Map((json.includes?.users ?? []).map((u: any) => [u.id, u]));
+    const tweets = Array.isArray(json.data) ? json.data : [];
+    for (const t of tweets) {
+      const author = users.get(t.author_id) as any;
+      const metrics = author?.public_metrics ?? {};
+      const followers = Number(metrics.followers_count ?? 0) || 0;
+      const verifiedType = String(author?.verified_type ?? "").toLowerCase();
+      // A media outlet or an agency carries an audience whether or not a person
+      // behind it is "verified" in the consumer sense.
+      const institutional = verifiedType === "business" || verifiedType === "government";
+      const impressions = Number(t.public_metrics?.impression_count ?? 0) || 0;
+
+      rows.push({
+        channel: "twitter",
+        external_id: t.id,
+        author_name: author?.name ?? null,
+        author_handle: author?.username ?? null,
+        author_avatar_url: author?.profile_image_url ?? null,
+        content: t.text,
+        post_url: author?.username ? `https://twitter.com/${author.username}/status/${t.id}` : null,
+        likes: t.public_metrics?.like_count ?? 0,
+        shares: t.public_metrics?.retweet_count ?? 0,
+        // X returns impressions for very few posts. Follower count is the
+        // honest stand-in for "how many people could have seen this".
+        reach: impressions > 0 ? impressions : followers,
+        author_followers: followers,
+        is_verified: !!author?.verified || (verifiedType !== "" && verifiedType !== "none"),
+        is_influencer: followers >= INFLUENCER_FOLLOWERS || institutional,
+        posted_at: t.created_at ?? new Date().toISOString(),
+        status: "pending",
+        created_by: null,
+      });
+      // Tweet ids are monotonic, so the largest is the newest. Compared as
+      // numbers of different lengths would misorder; same length compares fine
+      // lexicographically, so compare by length first.
+      const id = String(t.id);
+      if (!newestId || id.length > newestId.length || (id.length === newestId.length && id > newestId)) {
+        newestId = id;
+      }
+    }
+
+    nextToken = json.meta?.next_token;
+    if (!nextToken || tweets.length === 0) break;
   }
 
-  const users = new Map((json.includes?.users ?? []).map((u: any) => [u.id, u]));
-  const tweets = Array.isArray(json.data) ? json.data : [];
-  const rows: MentionRow[] = tweets.map((t: any) => {
-    const author = users.get(t.author_id) as any;
-    return {
-      channel: "twitter",
-      external_id: t.id,
-      author_name: author?.name ?? null,
-      author_handle: author?.username ?? null,
-      author_avatar_url: author?.profile_image_url ?? null,
-      content: t.text,
-      post_url: author?.username ? `https://twitter.com/${author.username}/status/${t.id}` : null,
-      likes: t.public_metrics?.like_count ?? 0,
-      shares: t.public_metrics?.retweet_count ?? 0,
-      reach: t.public_metrics?.impression_count ?? 0,
-      is_verified: !!author?.verified,
-      is_influencer: false,
-      posted_at: t.created_at ?? new Date().toISOString(),
-      status: "pending",
-      created_by: null,
-    };
-  });
-  return { rows };
+  return { rows, newestId };
 }
 
 /**
@@ -578,7 +690,9 @@ async function pullWatchedX(
   let firstError: string | undefined;
 
   for (const query of queries) {
-    const { rows, error } = await searchX(accessToken, query);
+    const cursor = await readCursor(admin, "x", query);
+    const { rows, error, newestId } = await searchX(accessToken, query, cursor);
+    await writeCursor(admin, "x", query, newestId);
     if (error) {
       // One failed query does not discard the others. A rate limit partway
       // through a list of nine is a partial collection, not a dead run.
@@ -900,9 +1014,41 @@ Deno.serve(async (req) => {
       insertedIds = insertedIds.concat((data ?? []).map((r: any) => r.id));
     }
 
-    // Auto-analyze each new mention (sevra-analyze auto-creates incidents on high risk)
-    let analyzed = 0;
-    for (const id of insertedIds) {
+    // A mention sevra-analyze started but never finished -- the function was
+    // redeployed mid-flight, or it threw somewhere without a handler -- sits
+    // at "analyzing" forever and is invisible to the queue below. Old ones go
+    // back in line.
+    const staleAnalyzing = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    await admin
+      .from("social_mentions")
+      .update({ status: "pending" })
+      .eq("status", "analyzing")
+      .lt("updated_at", staleAnalyzing);
+
+    // Analysis is the slow half of a tick: one AI call per mention, against a
+    // wall clock. While the collector could only ever return ten rows this
+    // loop always finished; now that it pages, a busy tick can produce
+    // hundreds, and running out of time mid-loop strands the rest at
+    // "pending" forever -- taking the surge check and the retention sweep
+    // behind it down too.
+    //
+    // So the queue is drained in bounded batches, oldest first, and drawn
+    // from everything still pending rather than only what this tick inserted.
+    // A backlog costs a few minutes of latency instead of being lost, and
+    // sevra-analyze flips a row to "analyzing" before it starts, so a batch
+    // cannot pick up work already in flight.
+    const ANALYSIS_BATCH = 24;
+    const ANALYSIS_CONCURRENCY = 4;
+
+    const { data: queued } = await admin
+      .from("social_mentions")
+      .select("id")
+      .eq("status", "pending")
+      .order("created_at", { ascending: true })
+      .limit(ANALYSIS_BATCH);
+    const toAnalyze = ((queued ?? []) as Array<{ id: string }>).map((r) => r.id);
+
+    const analyzeOne = async (id: string): Promise<boolean> => {
       try {
         const r = await fetch(`${supabaseUrl}/functions/v1/sevra-analyze`, {
           method: "POST",
@@ -912,10 +1058,46 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({ mention_id: id }),
         });
-        if (r.ok) analyzed++;
+        return r.ok;
       } catch (_) {
-        // continue with other mentions
+        // One mention failing is not a reason to abandon the rest.
+        return false;
       }
+    };
+
+    let analyzed = 0;
+    for (let i = 0; i < toAnalyze.length; i += ANALYSIS_CONCURRENCY) {
+      const slice = toAnalyze.slice(i, i + ANALYSIS_CONCURRENCY);
+      const results = await Promise.all(slice.map(analyzeOne));
+      analyzed += results.filter(Boolean).length;
+    }
+
+    // What is still waiting after this tick. Reported so a backlog that never
+    // drains is visible instead of being something you notice months later.
+    const { count: backlog } = await admin
+      .from("social_mentions")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending");
+
+    // Volume is its own signal. Each mention is scored alone, so a crowd all
+    // reporting the same thing scores low thirty times over and nothing
+    // happens. This runs after analysis so the sub-types it clusters on are
+    // already filled in, and it raises an alert rather than an incident: the
+    // thresholds are guesses until they have seen real traffic.
+    let surges = 0;
+    try {
+      const { data: alerts, error: surgeErr } = await admin.rpc("detect_mention_surge");
+      if (surgeErr) console.error("social-monitor-cron: surge check failed", surgeErr.message);
+      else {
+        surges = (alerts ?? []).length;
+        for (const a of alerts ?? []) {
+          console.warn(`social-monitor-cron: ${a.kind} — ${a.summary}`);
+        }
+      }
+    } catch (e) {
+      // Never allowed to fail the run: a missed alert is worse than a failed
+      // one, but a failed collection is worse than both.
+      console.error("social-monitor-cron: surge check threw", e);
     }
 
     // Retention runs on the monitor's own schedule rather than a cron job of
@@ -941,6 +1123,8 @@ Deno.serve(async (req) => {
         monitor_last_result: {
           generated: insertedIds.length,
           analyzed,
+          ...(backlog ? { pending_backlog: backlog } : {}),
+          ...(surges ? { surges } : {}),
           ...(expired ? { expired } : {}),
           ...(Object.keys(networkErrors).length ? { network_errors: networkErrors } : {}),
         },
@@ -953,6 +1137,8 @@ Deno.serve(async (req) => {
         success: true,
         generated: insertedIds.length,
         analyzed,
+        pending_backlog: backlog ?? 0,
+        surges,
         network_errors: Object.keys(networkErrors).length ? networkErrors : undefined,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },

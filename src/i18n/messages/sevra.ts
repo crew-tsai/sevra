@@ -50,6 +50,11 @@ export const sevraMessages = defineMessages({
     verdictHint:
       "Tell Sevra what this should have been. It changes nothing here — it is how the classifier is measured and corrected.",
     verdictThanks: "Recorded. Thank you.",
+    verdictNotSaved: "That did not save. Refresh and try again.",
+    alertSurge: "Unusual volume",
+    alertCluster: "Many people reporting the same thing",
+    alertWindow: (m: number) => (m >= 60 ? `last ${Math.round(m / 60)}h` : `last ${m}min`),
+    alertAcknowledge: "Acknowledge",
     verdictRecorded: (verdict: string) => `You said: ${verdict}`,
     verdictOptions: {
       none: "Not a crisis",
@@ -125,6 +130,11 @@ export const sevraMessages = defineMessages({
     verdictHint:
       "Dile a Sevra qué debería haber dicho. Aquí no cambia nada — así se mide y se corrige el clasificador.",
     verdictThanks: "Registrado. Gracias.",
+    verdictNotSaved: "No se guardó. Actualiza la página e inténtalo de nuevo.",
+    alertSurge: "Volumen inusual",
+    alertCluster: "Muchas personas reportan lo mismo",
+    alertWindow: (m: number) => (m >= 60 ? `últimas ${Math.round(m / 60)}h` : `últimos ${m}min`),
+    alertAcknowledge: "Visto",
     verdictRecorded: (verdict: string) => `Dijiste: ${verdict}`,
     verdictOptions: {
       none: "No es una crisis",

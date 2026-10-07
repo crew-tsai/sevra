@@ -713,6 +713,69 @@ export type Database = {
         }
         Relationships: []
       }
+      monitor_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          baseline: number | null
+          created_at: string
+          details: Json
+          id: string
+          kind: string
+          observed: number
+          status: string
+          summary: string
+          window_minutes: number
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          baseline?: number | null
+          created_at?: string
+          details?: Json
+          id?: string
+          kind: string
+          observed: number
+          status?: string
+          summary: string
+          window_minutes: number
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          baseline?: number | null
+          created_at?: string
+          details?: Json
+          id?: string
+          kind?: string
+          observed?: number
+          status?: string
+          summary?: string
+          window_minutes?: number
+        }
+        Relationships: []
+      }
+      monitor_cursors: {
+        Row: {
+          channel: string
+          query: string
+          since_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          channel: string
+          query: string
+          since_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          query?: string
+          since_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       monitor_source_accounts: {
         Row: {
           created_at: string
@@ -1121,6 +1184,7 @@ export type Database = {
           ai_sub_type: string | null
           ai_summary: string | null
           author_avatar_url: string | null
+          author_followers: number | null
           author_handle: string | null
           author_name: string | null
           channel: string
@@ -1157,6 +1221,7 @@ export type Database = {
           ai_sub_type?: string | null
           ai_summary?: string | null
           author_avatar_url?: string | null
+          author_followers?: number | null
           author_handle?: string | null
           author_name?: string | null
           channel: string
@@ -1193,6 +1258,7 @@ export type Database = {
           ai_sub_type?: string | null
           ai_summary?: string | null
           author_avatar_url?: string | null
+          author_followers?: number | null
           author_handle?: string | null
           author_name?: string | null
           channel?: string
@@ -1618,6 +1684,34 @@ export type Database = {
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
+      }
+      detect_mention_surge: {
+        Args: {
+          p_cluster_min?: number
+          p_cooldown_minutes?: number
+          p_min_absolute?: number
+          p_multiplier?: number
+          p_window_minutes?: number
+        }
+        Returns: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          baseline: number | null
+          created_at: string
+          details: Json
+          id: string
+          kind: string
+          observed: number
+          status: string
+          summary: string
+          window_minutes: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "monitor_alerts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }

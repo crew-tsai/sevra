@@ -65,6 +65,21 @@ type Mention = {
   monitor_topics?: { kind: string; value: string } | null;
 };
 
+/**
+ * A surge the collector noticed. Volume is a signal no single mention carries:
+ * thirty people reporting the same delay each score "low", and the crowd is
+ * the story. These alert rather than open an incident, so a person decides.
+ */
+type MonitorAlert = {
+  id: string;
+  kind: string;
+  summary: string;
+  observed: number;
+  baseline: number | null;
+  window_minutes: number;
+  created_at: string;
+};
+
 /** A mention that is, or may be, a risk: not yet analyzed, or analyzed as one. */
 const isRisk = (m: { status: string }) => m.status !== "dismissed" && m.status !== "no_risk";
 
@@ -102,6 +117,7 @@ const CHANNEL_TABS = ["twitter", "instagram", "tiktok", "facebook"] as const;
 export default function Sevra() {
   const navigate = useNavigate();
   const [mentions, setMentions] = useState<Mention[]>([]);
+  const [alerts, setAlerts] = useState<MonitorAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
@@ -181,17 +197,48 @@ export default function Sevra() {
    */
   const judge = async (mention: Mention, verdict: string) => {
     const { data: user } = await supabase.auth.getUser();
-    const { error } = await supabase
+    // .select() so the row count comes back. Without it an update that RLS
+    // filtered to zero rows returns success, and the thanks toast lies -- which
+    // is exactly what happened here for every verdict ever recorded.
+    const { data: saved, error } = await supabase
       .from("social_mentions")
       .update({
         human_risk: verdict,
         human_risk_at: new Date().toISOString(),
         human_risk_by: user.user?.id ?? null,
       })
-      .eq("id", mention.id);
+      .eq("id", mention.id)
+      .select("id");
     if (error) return toast.error(error.message);
+    if (!saved?.length) return toast.error(t.verdictNotSaved);
     setMentions((rows) => rows.map((r) => (r.id === mention.id ? { ...r, human_risk: verdict } : r)));
     toast.success(t.verdictThanks);
+  };
+
+  const loadAlerts = async () => {
+    const { data } = await supabase
+      .from("monitor_alerts")
+      .select("id, kind, summary, observed, baseline, window_minutes, created_at")
+      .eq("status", "open")
+      .order("created_at", { ascending: false });
+    setAlerts((data ?? []) as MonitorAlert[]);
+  };
+
+  /** Acknowledging clears the banner. It is not a verdict on the mentions. */
+  const acknowledge = async (alert: MonitorAlert) => {
+    const { data: user } = await supabase.auth.getUser();
+    const { data: saved, error } = await supabase
+      .from("monitor_alerts")
+      .update({
+        status: "acknowledged",
+        acknowledged_by: user.user?.id ?? null,
+        acknowledged_at: new Date().toISOString(),
+      })
+      .eq("id", alert.id)
+      .select("id");
+    if (error) return toast.error(error.message);
+    if (!saved?.length) return toast.error(t.verdictNotSaved);
+    setAlerts((rows) => rows.filter((r) => r.id !== alert.id));
   };
 
   const load = async () => {
@@ -208,10 +255,12 @@ export default function Sevra() {
 
   useEffect(() => {
     load();
+    loadAlerts();
     refreshMonitorStatus();
     const channel = supabase
       .channel("social_mentions_realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "social_mentions" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "monitor_alerts" }, () => loadAlerts())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
@@ -328,6 +377,34 @@ export default function Sevra() {
       </div>
 
       <TimeRangeFilter value={timeRange} onChange={setTimeRange} />
+
+      {/*
+        Above the feed and above the status card, because a surge is the one
+        thing on this page that is time-critical. No single mention in it has
+        to look alarming for the group to be an emergency.
+      */}
+      {alerts.map((a) => (
+        <Card
+          key={a.id}
+          className="p-4 border-2 border-risk-critical/40 bg-risk-critical-bg/40 flex items-start gap-3 flex-wrap"
+        >
+          <AlertTriangle className="h-5 w-5 text-risk-critical shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-[240px]">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-sm text-foreground">
+                {a.kind === "topic_cluster" ? t.alertCluster : t.alertSurge}
+              </span>
+              <Badge variant="outline" className="text-[10px]">
+                {t.alertWindow(a.window_minutes)}
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">{a.summary}</p>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => acknowledge(a)}>
+            {t.alertAcknowledge}
+          </Button>
+        </Card>
+      ))}
 
       <Card
         className={`p-4 flex items-center gap-4 flex-wrap border-2 ${
