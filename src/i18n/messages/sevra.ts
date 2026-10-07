@@ -50,6 +50,10 @@ export const sevraMessages = defineMessages({
     verdictHint:
       "Tell Sevra what this should have been. It changes nothing here — it is how the classifier is measured and corrected.",
     verdictThanks: "Recorded. Thank you.",
+    showingRange: (from: number, to: number, total: number) => `Showing ${from}-${to} of ${total}`,
+    pageOf: (p: number, total: number) => `${p} / ${total}`,
+    previousPage: "Previous",
+    nextPage: "Next",
     sortLabel: "Sort mentions",
     sortNewest: "Newest first",
     sortOldest: "Oldest first",
@@ -133,6 +137,10 @@ export const sevraMessages = defineMessages({
     verdictHint:
       "Dile a Sevra qué debería haber dicho. Aquí no cambia nada — así se mide y se corrige el clasificador.",
     verdictThanks: "Registrado. Gracias.",
+    showingRange: (from: number, to: number, total: number) => `Mostrando ${from}-${to} de ${total}`,
+    pageOf: (p: number, total: number) => `${p} / ${total}`,
+    previousPage: "Anterior",
+    nextPage: "Siguiente",
     sortLabel: "Ordenar menciones",
     sortNewest: "Más recientes primero",
     sortOldest: "Más antiguas primero",

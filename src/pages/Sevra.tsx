@@ -80,6 +80,17 @@ type MonitorAlert = {
   created_at: string;
 };
 
+/**
+ * PostgREST will not return more than a thousand rows in one response, so
+ * "all of them" means paging through it. Worth the extra round trips: every
+ * figure on this screen is counted from what was loaded, so a short fetch
+ * does not merely shorten the list, it silently under-reports the totals.
+ */
+const FETCH_CHUNK = 1000;
+
+/** How many mentions a page of the feed shows. */
+const PAGE_SIZE = 25;
+
 /** A mention that is, or may be, a risk: not yet analyzed, or analyzed as one. */
 const isRisk = (m: { status: string }) => m.status !== "dismissed" && m.status !== "no_risk";
 
@@ -118,6 +129,7 @@ export default function Sevra() {
   const navigate = useNavigate();
   const [mentions, setMentions] = useState<Mention[]>([]);
   const [alerts, setAlerts] = useState<MonitorAlert[]>([]);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
@@ -247,15 +259,32 @@ export default function Sevra() {
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("social_mentions")
-      .select("*, monitor_sources(name, role), monitor_topics(kind, value)")
-      .order("created_at", { ascending: false })
-      .limit(100);
-    if (error) toast.error(error.message);
-    setMentions((data ?? []) as Mention[]);
+    const all: Mention[] = [];
+    for (let from = 0; ; from += FETCH_CHUNK) {
+      const { data, error } = await supabase
+        .from("social_mentions")
+        .select("*, monitor_sources(name, role), monitor_topics(kind, value)")
+        // By when it was said. Ordering by created_at put a rebuild's worth of
+        // mentions in whatever order they happened to be written.
+        .order("posted_at", { ascending: false, nullsFirst: false })
+        .range(from, from + FETCH_CHUNK - 1);
+      if (error) {
+        toast.error(error.message);
+        break;
+      }
+      all.push(...((data ?? []) as Mention[]));
+      if (!data || data.length < FETCH_CHUNK) break;
+    }
+    setMentions(all);
     setLoading(false);
   };
+
+  // A changed filter is a different list, and being dropped on page 7 of it is
+  // disorienting. Sort too: reversing the order makes the first page the part
+  // you actually wanted to see.
+  useEffect(() => {
+    setPage(1);
+  }, [filter, statusFilter, levelFilter, timeRange, sort]);
 
   useEffect(() => {
     load();
@@ -354,7 +383,13 @@ export default function Sevra() {
     levelCounts[mentionCrisisLevel(m)]++;
   });
 
-  const tr = useTranslations("social_mentions", sorted);
+  // Still clamped as well as reset: a realtime delete can shrink the list
+  // under a page that is already open, and page 7 of 3 renders nothing.
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const visible = sorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const tr = useTranslations("social_mentions", visible);
 
   const stats = {
     noise: timeScoped.filter((m) => m.status === "dismissed").length,
@@ -566,7 +601,7 @@ export default function Sevra() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {sorted.map((m) => {
+          {visible.map((m) => {
             const meta = CHANNEL_META[m.channel] ?? CHANNEL_META.twitter;
             const isAnalyzing = analyzingId === m.id || m.status === "analyzing";
             return (
@@ -725,6 +760,41 @@ export default function Sevra() {
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {pageCount > 1 && (
+        <div className="flex items-center justify-between gap-4 flex-wrap pt-2">
+          {/* The range, not just the page number: "26-50 of 312" answers how
+              much is here, which a bare page number never does. */}
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {t.showingRange(
+              (currentPage - 1) * PAGE_SIZE + 1,
+              Math.min(currentPage * PAGE_SIZE, sorted.length),
+              sorted.length,
+            )}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={currentPage <= 1}
+              onClick={() => setPage(currentPage - 1)}
+            >
+              {t.previousPage}
+            </Button>
+            <span className="text-xs text-muted-foreground tabular-nums px-1">
+              {t.pageOf(currentPage, pageCount)}
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={currentPage >= pageCount}
+              onClick={() => setPage(currentPage + 1)}
+            >
+              {t.nextPage}
+            </Button>
+          </div>
         </div>
       )}
     </div>
