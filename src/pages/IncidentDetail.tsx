@@ -738,27 +738,50 @@ export default function IncidentDetail() {
             </div>
 
             {plan ? (
-              <div className="space-y-3">
-                {PHASES.map((phase) => {
-                  const actions = trPlan.list(plan, phase);
-                  if (!actions.length) return null;
-                  return (
-                    <div key={phase}>
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
+              <div className="space-y-1">
+                {/*
+                  A plan is two orderings at once -- phases in sequence, and
+                  steps in sequence inside each -- and rendering both as
+                  identical dots threw that away, leaving a wall of text in a
+                  column three hundred pixels wide. The rail carries the
+                  phases, the numbers carry the steps: structure that is true
+                  about the content rather than decoration.
+                */}
+                {PHASES.map((phase) => ({ phase, actions: trPlan.list(plan, phase) }))
+                  .filter((p) => p.actions.length)
+                  .map(({ phase, actions }, phaseIndex, rendered) => (
+                    <div key={phase} className="relative pl-5 pb-4 last:pb-1">
+                      <span className="absolute left-0 top-[5px] h-2 w-2 rounded-full bg-primary ring-4 ring-card" />
+                      {phaseIndex < rendered.length - 1 && (
+                        <span className="absolute left-[3.5px] top-3 bottom-0 w-px bg-border" aria-hidden />
+                      )}
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/80">
                         {t.phases[phase]}
                       </p>
-                      <ul className="mt-1 space-y-1">
+                      <ol className="mt-2 space-y-2.5">
                         {actions.map((action, i) => (
-                          <li key={i} className="text-xs leading-relaxed flex gap-1.5">
-                            <span className="text-primary/60 shrink-0">·</span>
+                          <li
+                            key={i}
+                            className="grid grid-cols-[1.25rem_1fr] gap-x-1 text-xs leading-[1.65] text-foreground/90"
+                          >
+                            {/* Tabular so a two-digit step does not shift the
+                                text column out of line with the one above it. */}
+                            <span className="tabular-nums text-[10px] text-muted-foreground pt-[3px]">
+                              {i + 1}.
+                            </span>
                             <span>{action}</span>
                           </li>
                         ))}
-                      </ul>
+                      </ol>
                     </div>
-                  );
-                })}
-                <Button size="sm" variant="outline" className="w-full" onClick={buildPlan} disabled={planning}>
+                  ))}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full mt-2"
+                  onClick={buildPlan}
+                  disabled={planning}
+                >
                   {planning ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
                   {t.rebuildPlan}
                 </Button>
