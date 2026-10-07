@@ -255,12 +255,16 @@ a handful. But it means Meta's timeline need not block the first customers.
 
 ## Running a second entity in parallel — Merx LLC
 
-**Revised 2026-10-07, once the relationship was clear: Merx LLC is one of the two
-owners of The Stellar Crew LLC.**
+**Decided 2026-10-07: pursue approval under Merx LLC.** Merx is one of the two owners
+of The Stellar Crew LLC. The trade-offs below were raised and accepted — they are
+recorded as things to manage, not as reasons to stop.
 
-That makes Merx a *fallback*, not a parallel race. The first version of this section
-assumed two independent companies and recommended submitting both at once; with a
-parent and its subsidiary that is worse, not better:
+**What this means in practice:** the Merx submission must be a complete, standalone
+Sevra submission, and the legal pages must disclose the ownership chain *before* it is
+submitted, because a reviewer opens them from the app listing. See "Who operates Sevra"
+below — that is the only part of this that touches the product.
+
+Known trade-offs, accepted:
 
 - **It is not an independent second chance.** Same corporate family, overlapping people
   with full control, overlapping documents. That is closer to what Meta's duplicate-app
@@ -271,14 +275,10 @@ parent and its subsidiary that is worse, not better:
   mismatch is the top rejection cause.
 - **The tenure clock applies either way**, so it is not faster.
 
-**When Merx is genuinely the right move:** The Stellar Crew is rejected on
-*documentation* and Merx has what it lacks — an older registration, a business bank
-statement, a utility bill at an address matching the registration. That is a real
-reason. "Two chances" is not.
-
-**So the order is:** find out why The Stellar Crew is sitting in review before preparing
-anything under Merx. Approved ends this. Rejected names a field, and only then is it
-worth asking whether Merx's documents answer that specific field better.
+**Still worth knowing before submitting:** what The Stellar Crew's verification is
+actually doing. If it has been *approved*, there is no reason to switch and the Merx
+work can stop. If it was *rejected*, the named field says which documents Merx must
+beat. Either way it is one look in Security Centre, and it is free.
 
 ### If Merx is used anyway — the rule that makes it legitimate
 
@@ -337,7 +337,8 @@ keeping the app under the operating entity unless documentation forces the switc
 
 - Submit under both entities **at the same time**. Meta flags near-duplicate apps across
   portfolios, and two portfolios owned by the same people make that more likely, not
-  less. One under review at a time, and only after the first has actually failed.
+  less. If The Stellar Crew's verification is still open when Merx is ready, withdraw it
+  or let it settle first — one under review at a time.
 - Create a Merx portfolio and expect to submit immediately. Portfolio tenure is
   30 days–3 months and the clock only starts when the portfolio exists. Create it now
   even if the submission waits.
