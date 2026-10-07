@@ -62,12 +62,23 @@ the fix is to submit only the ones that agree.
 utility bill cannot replace it here: the address is residential, so any utility account
 is in a personal name and would not match `MERX LLC` at all.
 
-**Why the CP 575 is held back.** It is a fine *identity* document — IRS-issued, names the
-entity, carries the EIN — but its address is from 2016 and matches nothing else. It also
-can never be corrected: the notice states it is issued once and the IRS will not reissue
-it. Form 8822-B updates the IRS record but produces no new CP 575. So it is permanently
-an identity document and never an address document. Produce it only if Meta asks for EIN
-verification specifically; do not volunteer it into an address check it will fail.
+**The CP 575 is the IRS SS-4 EIN Assignment Letter, and Meta marks it Recommended.**
+This pack originally said to hold it back, on the grounds that its 2016 Pompano Beach
+address agrees with nothing. That was wrong, because the upload step is split in two and
+they ask different questions:
+
+- **Verify legal business name** — the document must carry the legal name and not be
+  expired. The CP 575 is ideal here: government-issued, names `MERX LLC`, never expires.
+  Meta lists it as *Recommended*, alongside the IRS 147c.
+- **Verify address or phone number** — the document must carry the legal name *and* the
+  address or phone you entered. This is the bank statement's job, or the annual report's.
+
+So the address on the CP 575 never comes into it. Use it for the name, and something
+carrying the Spring TX address for the address.
+
+It remains irreplaceable: the notice states it is issued once and the IRS will not
+reissue it, and Form 8822-B updates their record without producing a new one. Keep the
+file safe.
 
 **Format:** PDF or clear image, each under 8 MB.
 
@@ -84,6 +95,27 @@ Registered agent stays in Florida — that is a state requirement, not an incons
 
 ---
 
+## 2b. Two traps in the verification wizard
+
+Both hit on 2026-10-07, both silent.
+
+**Public records contain a second company called Merx LLC.** The "Select your business"
+step offered four matches. Two carried an EIN ending `05` — a different legal entity —
+and one of those listed the Red Candle Dr address, which makes it the tempting pick.
+Only records whose EIN ends `31` are ours. None matched exactly: the one carrying our
+EIN *and* both principals listed Red Candle Dr as **Spring, FL**, which is wrong.
+Choosing *My business isn't listed* is the sanctioned answer when the details are
+incorrect, and it routes to document upload, which is cleaner than attaching the
+portfolio to someone else's company. **Check the EIN before selecting any record.**
+
+**The wizard silently changed the state to FL.** After choosing *My business isn't
+listed*, the Upload documents header read `3422 RED CANDLE DR, SPRING, FL 77388` — the
+bad state carried over from that public record, against a Texas ZIP. Documents would
+have been checked against Florida while every one of them says Texas. Going back to
+*Add business details*, re-entering `TX`, and coming forward again fixed it. **Read the
+header on the upload screen before attaching anything** — it is the contract the
+documents are compared against.
+
 ## 3. Business portfolio
 
 1. **business.facebook.com** → create the portfolio in the name `MERX LLC`
@@ -94,10 +126,12 @@ Registered agent stays in Florida — that is a state requirement, not an incons
 5. Leave Business Info alone afterwards. There is an edit limit, and exceeding it blocks
    verification
 
-> **Tenure.** A portfolio must be 30 days–3 months old before verification can be
-> requested. The clock runs from portfolio creation, not company age — Merx being ten
-> years old does not shorten it. **Create the portfolio now even if nothing else is
-> ready.** Nothing shortens it later.
+> **Tenure did not apply.** The runbook records a 30-day–3-month portfolio age
+> requirement before verification can be requested. That did **not** hold here: the
+> Merx portfolio was created on 2026-10-07 and Security Centre showed *"Eligible for
+> verification"* the same day, under the use case *App requires access to permissions on
+> Meta for Developers*. Do not plan a month of waiting around that claim — open Security
+> Centre and look.
 
 ---
 
@@ -276,6 +310,26 @@ goes on a public legal page. Apply it before the Merx app is submitted for revie
 after.
 
 ---
+
+## 8b. Status
+
+| | |
+|---|---|
+| Merx portfolio | created 2026-10-07 · ID `1118989097142108` |
+| App | `1422580146676547`, linked to Merx LLC |
+| Login configuration | `3156875411370865` · user access token · 4 Page permissions |
+| Redirect URI | registered, Strict Mode on |
+| **Business Verification** | **submitted 2026-10-07** |
+| Documents submitted | CP 575 (name) · address document (Spring TX) |
+| App Review | not started — needs the five screencasts |
+
+The Stellar Crew's verification was still *In Review* at the time of submitting, 18 days
+in. Two verifications are now open across two portfolios controlled by the same people.
+That is tolerable while only one **app** is under review — App Review is where
+near-duplicate apps get flagged — but do not submit both apps.
+
+**While it is in review: change nothing in Business Info.** Edits can reset or void the
+submission.
 
 ## 9. Order of operations
 
